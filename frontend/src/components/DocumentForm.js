@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import TableOfContents from './TableOfContents';
+import MarkdownEditor from './MarkdownEditor';
 import '../styles/DocumentForm.css';
 
 function DocumentForm({ documentType, onSubmit }) {
@@ -197,49 +198,11 @@ Bienvenido a nuestro sistema.
 
         <div className="form-group">
           <label htmlFor="content">Contenido</label>
-          <textarea
-            id="content"
-            name="content"
+          <MarkdownEditor
             value={formData.content}
-            onChange={handleChange}
-            onKeyDown={(e) => {
-              const el = e.target;
-              const value = el.value;
-              const start = el.selectionStart;
-              const end = el.selectionEnd;
-              // Tab to indent
-              if (e.key === 'Tab') {
-                e.preventDefault();
-                const indent = '  ';
-                const before = value.substring(0, start);
-                const after = value.substring(end);
-                const newValue = before + indent + value.substring(start, end) + after;
-                setFormData(prev => ({ ...prev, content: newValue }));
-                setTimeout(() => {
-                  el.selectionStart = el.selectionEnd = start + indent.length;
-                }, 0);
-              }
-              // Enter to continue list "- "
-              if (e.key === 'Enter') {
-                const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-                const currentLine = value.substring(lineStart, start);
-                const listMatch = currentLine.match(/^(-\s|\*\s|\d+\.\s)/);
-                if (listMatch) {
-                  e.preventDefault();
-                  const before = value.substring(0, start);
-                  const after = value.substring(end);
-                  const continuation = '\n' + listMatch[0];
-                  const newValue = before + continuation + after;
-                  setFormData(prev => ({ ...prev, content: newValue }));
-                  setTimeout(() => {
-                    el.selectionStart = el.selectionEnd = start + continuation.length;
-                  }, 0);
-                }
-              }
-            }}
+            onChange={(newContent) => setFormData(prev => ({ ...prev, content: newContent }))}
             placeholder={placeholders.content}
-            rows="15"
-            required
+            showPreview={true}
           />
         </div>
 

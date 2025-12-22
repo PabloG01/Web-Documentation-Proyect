@@ -26,28 +26,61 @@ function extractText(children) {
 function CodeBlock({ inline, className, children }) {
   const match = /language-(\w+)/.exec(className || '');
   const language = (match && match[1]) || 'text';
+  
   if (inline) {
-    return <code className={className}>{children}</code>;
+    return (
+      <code className="code-inline">
+        {children}
+      </code>
+    );
   }
+  
   const code = Array.isArray(children) ? children.join('') : String(children);
-  return (
-    <div className="code-block">
-      <div className="code-header">{language}</div>
-      <Highlight theme={themes.github} code={code.trim()} language={language}>
-        {({ className: cls, style, tokens, getLineProps, getTokenProps }) => (
-          <pre className={cls} style={style}>
-            {tokens.map((line, i) => (
-              <div key={i} {...getLineProps({ line, key: i })}>
-                {line.map((token, key) => (
-                  <span key={key} {...getTokenProps({ token, key })} />
+  
+  // Validar lenguaje con prism
+  const isValidLanguage = language && language !== 'text';
+  
+  try {
+    return (
+      <div className="code-block">
+        <div className="code-header">
+          <span className="code-language">{language}</span>
+          <button 
+            className="code-copy-btn"
+            onClick={() => navigator.clipboard.writeText(code.trim())}
+            title="Copiar código"
+          >
+            📋
+          </button>
+        </div>
+        <Highlight theme={themes.github} code={code.trim()} language={language}>
+          {({ className: cls, style, tokens, getLineProps, getTokenProps }) => (
+            <pre className={cls} style={style}>
+              <code>
+                {tokens.map((line, i) => (
+                  <div key={i} {...getLineProps({ line, key: i })}>
+                    {line.map((token, key) => (
+                      <span key={key} {...getTokenProps({ token, key })} />
+                    ))}
+                  </div>
                 ))}
-              </div>
-            ))}
-          </pre>
-        )}
-      </Highlight>
-    </div>
-  );
+              </code>
+            </pre>
+          )}
+        </Highlight>
+      </div>
+    );
+  } catch (error) {
+    // Si falla el highlight, renderizar como pre formateado
+    return (
+      <div className="code-block code-block-fallback">
+        <div className="code-header">
+          <span className="code-language">{language}</span>
+        </div>
+        <pre><code>{code}</code></pre>
+      </div>
+    );
+  }
 }
 
 export default function MarkdownRenderer({ content }) {
@@ -68,20 +101,65 @@ export default function MarkdownRenderer({ content }) {
             const text = extractText(children);
             return <h3 id={slugify(text)} className="content-h4">{children}</h3>;
           },
-          ul: ({ children }) => <ul className="content-ul">{children}</ul>,
-          li: ({ children }) => <li className="content-li">{children}</li>,
+          h4: ({ children }) => {
+            const text = extractText(children);
+            return <h4 id={slugify(text)} className="content-h5">{children}</h4>;
+          },
+          h5: ({ children }) => {
+            const text = extractText(children);
+            return <h5 id={slugify(text)} className="content-h6">{children}</h5>;
+          },
+          ul: ({ children, depth = 0 }) => (
+            <ul className={`content-ul content-ul-depth-${depth}`}>
+              {children}
+            </ul>
+          ),
+          ol: ({ children, depth = 0 }) => (
+            <ol className={`content-ol content-ol-depth-${depth}`}>
+              {children}
+            </ol>
+          ),
+          li: ({ children }) => (
+            <li className="content-li">
+              {children}
+            </li>
+          ),
           p: ({ children }) => <p className="content-p">{children}</p>,
           code: CodeBlock,
+          pre: ({ children }) => {
+            // react-markdown envuelve el código en <pre>, pero nuestro CodeBlock ya lo hace
+            return children;
+          },
           a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+            <a href={href} target="_blank" rel="noopener noreferrer" className="content-link">
+              {children}
+            </a>
           ),
           blockquote: ({ children }) => (
-            <blockquote className="content-blockquote">{children}</blockquote>
+            <blockquote className="content-blockquote">
+              {children}
+            </blockquote>
           ),
           table: ({ children }) => (
             <div className="content-table-wrapper">
               <table className="content-table">{children}</table>
             </div>
+          ),
+          thead: ({ children }) => <thead className="content-thead">{children}</thead>,
+          tbody: ({ children }) => <tbody className="content-tbody">{children}</tbody>,
+          tr: ({ children }) => <tr className="content-tr">{children}</tr>,
+          th: ({ children }) => <th className="content-th">{children}</th>,
+          td: ({ children }) => <td className="content-td">{children}</td>,
+          hr: () => <hr className="content-hr" />,
+          em: ({ children }) => <em>{children}</em>,
+          strong: ({ children }) => <strong>{children}</strong>,
+          img: ({ src, alt }) => (
+            <img 
+              src={src} 
+              alt={alt} 
+              className="content-image"
+              style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
+            />
           ),
         }}
       >

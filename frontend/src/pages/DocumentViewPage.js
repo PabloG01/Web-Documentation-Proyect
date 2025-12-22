@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import '../styles/DocumentViewPage.css';
 import TableOfContents from '../components/TableOfContents';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import MarkdownEditor from '../components/MarkdownEditor';
 
 function DocumentViewPage() {
   const { id } = useParams();
@@ -210,11 +211,11 @@ function DocumentViewPage() {
 
               <div className="edit-section">
                 <label>Contenido</label>
-                <textarea
+                <MarkdownEditor
                   value={editedContent.content}
-                  onChange={(e) => handleEditChange('content', e.target.value)}
+                  onChange={(newContent) => handleEditChange('content', newContent)}
                   placeholder="Contenido del documento"
-                  rows="20"
+                  showPreview={true}
                 />
               </div>
 
@@ -227,8 +228,6 @@ function DocumentViewPage() {
                 </button>
               </div>
             </div>
-            
-            <TableOfContents content={editedContent.content} />
           </>
         )}
       </div>
