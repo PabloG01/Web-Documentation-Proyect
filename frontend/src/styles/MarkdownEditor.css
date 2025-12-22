@@ -208,24 +208,72 @@
 .content-ul,
 .content-ol {
   margin: 10px 0;
-  padding-left: 22px;
+  padding-left: 24px;
 }
 
-.content-ul-depth-0 { padding-left: 24px; list-style-type: disc; }
-.content-ul-depth-1 { padding-left: 48px; list-style-type: circle; }
-.content-ul-depth-2 { padding-left: 72px; list-style-type: square; }
-.content-ul-depth-3 { padding-left: 96px; list-style-type: disc; }
+/* Listas desordenadas */
+.content-ul-depth-0 { 
+  padding-left: 24px; 
+  list-style-type: disc;
+}
 
-.content-ol-depth-0 { padding-left: 24px; list-style-type: decimal; }
-.content-ol-depth-1 { padding-left: 48px; list-style-type: lower-alpha; }
-.content-ol-depth-2 { padding-left: 72px; list-style-type: lower-roman; }
-.content-ol-depth-3 { padding-left: 96px; list-style-type: decimal; }
+.content-ul-depth-1 { 
+  padding-left: 48px; 
+  list-style-type: circle;
+}
 
+.content-ul-depth-2 { 
+  padding-left: 72px; 
+  list-style-type: square;
+}
+
+.content-ul-depth-3 { 
+  padding-left: 96px; 
+  list-style-type: disc;
+}
+
+/* Listas ordenadas con jerarquía decimal → alpha → roman */
+.content-ol-depth-0 { 
+  padding-left: 24px; 
+  list-style-type: decimal;
+  margin: 10px 0;
+}
+
+.content-ol-depth-1 { 
+  padding-left: 48px; 
+  list-style-type: lower-alpha;
+  margin: 8px 0;
+}
+
+.content-ol-depth-2 { 
+  padding-left: 72px; 
+  list-style-type: lower-roman;
+  margin: 8px 0;
+}
+
+.content-ol-depth-3 { 
+  padding-left: 96px; 
+  list-style-type: decimal;
+  margin: 8px 0;
+}
+
+/* Alineación de elementos de lista */
 .content-li-depth-0,
 .content-li-depth-1,
 .content-li-depth-2,
 .content-li-depth-3 {
   list-style-position: outside;
+  margin: 6px 0;
+}
+
+/* Asegurar que el contenido formateado en la vista previa respeta los estilos */
+.preview-content .content-formatted {
+  font-size: 14px;
+}
+
+.preview-content .content-formatted .content-ol,
+.preview-content .content-formatted .content-ul {
+  margin: 8px 0;
 }
 
 /* Scrollbar personalizado */

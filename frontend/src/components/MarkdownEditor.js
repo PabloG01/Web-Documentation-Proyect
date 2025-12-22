@@ -224,7 +224,7 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
         return;
       }
 
-      // a. →     i. (agrega 2 espacios y cambia letra a romano)
+      // a. →     i. (agrega 2 espacios y cambia a número romano inicial)
       if (alphaMatch) {
         const [, spaces, , rest] = alphaMatch;
         const newLine = `${spaces}  i. ${rest}`.trimEnd();
@@ -287,19 +287,7 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
         return;
       }
 
-      // Lista alfabética: incrementa letra y mantiene sangría
-      const alphaMatch = currentLine.match(/^(\s*)([a-z])\.\s/i);
-      if (alphaMatch) {
-        e.preventDefault();
-        const [, spaces, letter] = alphaMatch;
-        const currentChar = letter.toLowerCase();
-        const nextCharCode = Math.min('z'.charCodeAt(0), currentChar.charCodeAt(0) + 1);
-        const nextChar = String.fromCharCode(nextCharCode);
-        insertText(`\n${spaces}${nextChar}. `);
-        return;
-      }
-
-      // Lista romana: incrementa numeral romano y mantiene sangría
+      // Lista romana: incrementa numeral romano y mantiene sangría (ANTES que alfabética)
       const romanMatch = currentLine.match(/^(\s*)([ivxlcdm]+)\.\s/i);
       if (romanMatch) {
         e.preventDefault();
@@ -338,6 +326,19 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
 
         const nextRoman = intToRoman(romanToInt(roman) + 1);
         insertText(`\n${spaces}${nextRoman}. `);
+        return;
+      }
+
+      // Lista alfabética: incrementa letra y mantiene sangría (DESPUÉS de romanos)
+      // Excluye patrones de números romanos multi-letra (ii, iii, iv, v, etc.)
+      const alphaMatch = currentLine.match(/^(\s*)([a-h]|[j-u]|[w-z])\.\s/i);
+      if (alphaMatch) {
+        e.preventDefault();
+        const [, spaces, letter] = alphaMatch;
+        const currentChar = letter.toLowerCase();
+        const nextCharCode = Math.min('z'.charCodeAt(0), currentChar.charCodeAt(0) + 1);
+        const nextChar = String.fromCharCode(nextCharCode);
+        insertText(`\n${spaces}${nextChar}. `);
         return;
       }
 
