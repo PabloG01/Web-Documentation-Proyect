@@ -1,0 +1,11 @@
+{
+  "name": "app-documentacion",
+  "version": "1.0.0",
+  "description": "Aplicación web para crear documentación profesional y estandarizada",
+  "scripts": {
+    "start": "npm start --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "dev": "npm start --prefix frontend",
+    "install-all": "npm install && npm install --prefix frontend"
+  }
+}

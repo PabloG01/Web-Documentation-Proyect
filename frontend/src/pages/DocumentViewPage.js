@@ -1,0 +1,239 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import '../styles/DocumentViewPage.css';
+import TableOfContents from '../components/TableOfContents';
+import MarkdownRenderer from '../components/MarkdownRenderer';
+
+function DocumentViewPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [document, setDocument] = useState(null);
+  const [isEditing, setIsEditing] = useState(searchParams.get('edit') === 'true');
+  const [editedContent, setEditedContent] = useState({
+    title: '',
+    description: '',
+    author: '',
+    version: '',
+    content: ''
+  });
+  const [loading, setLoading] = useState(true);
+
+  const loadDocument = useCallback(() => {
+    const documents = JSON.parse(localStorage.getItem('documents') || '[]');
+    const doc = documents.find(d => d.id === id);
+    if (doc) {
+      setDocument(doc);
+      setEditedContent(doc);
+    }
+    setLoading(false);
+  }, [id]);
+
+  useEffect(() => {
+    loadDocument();
+  }, [loadDocument]);
+
+  const handleEditChange = (field, value) => {
+    setEditedContent(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveEdit = () => {
+    const documents = JSON.parse(localStorage.getItem('documents') || '[]');
+    const index = documents.findIndex(d => d.id === id);
+    
+    if (index !== -1) {
+      documents[index] = {
+        ...editedContent,
+        updatedAt: new Date().toISOString()
+      };
+      localStorage.setItem('documents', JSON.stringify(documents));
+      setDocument({...editedContent, updatedAt: new Date().toISOString()});
+      setIsEditing(false);
+      alert('¡Documento actualizado exitosamente!');
+    }
+  };
+
+  const handleDelete = () => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este documento?')) {
+      const documents = JSON.parse(localStorage.getItem('documents') || '[]');
+      const filtered = documents.filter(d => d.id !== id);
+      localStorage.setItem('documents', JSON.stringify(filtered));
+      navigate('/mis-documentos');
+    }
+  };
+
+  if (loading) {
+    return <div className="document-view-page"><p>Cargando...</p></div>;
+  }
+
+  if (!document) {
+    return (
+      <div className="document-view-page">
+        <div className="empty-state">
+          <div className="empty-icon">📭</div>
+          <h2>Documento no encontrado</h2>
+          <button className="btn btn-primary" onClick={() => navigate('/mis-documentos')}>
+            Volver a mis documentos
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const icons = {
+    api: '🔌',
+    usuario: '👤',
+    tecnica: '⚙️',
+    procesos: '📊',
+    proyecto: '📋',
+    requisitos: '✅'
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+  };
+
+  return (
+    <div className="document-view-page">
+      <div className="view-header">
+        <button className="btn-back" onClick={() => navigate('/mis-documentos')}>
+          ← Volver
+        </button>
+        <div className="header-actions">
+          {!isEditing && (
+            <>
+              <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
+                ✏️ Editar
+              </button>
+              <button className="btn btn-secondary" onClick={handleDelete}>
+                🗑️ Eliminar
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="document-container document-with-toc">
+        {!isEditing ? (
+          // VISTA
+          <>
+            <div className="document-view">
+              <div className="view-info">
+                <div className="info-header">
+                  <span className="doc-icon">{icons[document.type] || '📄'}</span>
+                  <div className="info-title">
+                    <h1>{document.title}</h1>
+                    <p className="doc-type">{document.typeName}</p>
+                  </div>
+                  <span className="doc-version">{document.version}</span>
+                </div>
+                
+                <div className="info-meta">
+                  <div className="meta-item">
+                    <span className="meta-label">Autor:</span>
+                    <span className="meta-value">{document.author}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Creado:</span>
+                    <span className="meta-value">{formatDate(document.createdAt)}</span>
+                  </div>
+                  {document.updatedAt && (
+                    <div className="meta-item">
+                      <span className="meta-label">Actualizado:</span>
+                      <span className="meta-value">{formatDate(document.updatedAt)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {document.description && (
+                  <div className="info-description">
+                    <p>{document.description}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="document-content">
+                <MarkdownRenderer content={document.content} />
+              </div>
+            </div>
+            
+            <TableOfContents content={document.content} />
+          </>
+        ) : (
+          // EDICIÓN
+          <>
+            <div className="document-edit">
+              <div className="edit-section">
+                <label>Título</label>
+                <input
+                  type="text"
+                  value={editedContent.title}
+                  onChange={(e) => handleEditChange('title', e.target.value)}
+                  placeholder="Título del documento"
+                />
+              </div>
+
+              <div className="edit-row">
+                <div className="edit-section">
+                  <label>Autor</label>
+                  <input
+                    type="text"
+                    value={editedContent.author}
+                    onChange={(e) => handleEditChange('author', e.target.value)}
+                    placeholder="Nombre del autor"
+                  />
+                </div>
+                <div className="edit-section">
+                  <label>Versión</label>
+                  <input
+                    type="text"
+                    value={editedContent.version}
+                    onChange={(e) => handleEditChange('version', e.target.value)}
+                    placeholder="1.0.0"
+                  />
+                </div>
+              </div>
+
+              <div className="edit-section">
+                <label>Descripción</label>
+                <input
+                  type="text"
+                  value={editedContent.description}
+                  onChange={(e) => handleEditChange('description', e.target.value)}
+                  placeholder="Descripción breve"
+                />
+              </div>
+
+              <div className="edit-section">
+                <label>Contenido</label>
+                <textarea
+                  value={editedContent.content}
+                  onChange={(e) => handleEditChange('content', e.target.value)}
+                  placeholder="Contenido del documento"
+                  rows="20"
+                />
+              </div>
+
+              <div className="edit-actions">
+                <button className="btn btn-primary" onClick={handleSaveEdit}>
+                  ✅ Guardar cambios
+                </button>
+                <button className="btn btn-secondary" onClick={() => setIsEditing(false)}>
+                  ❌ Cancelar
+                </button>
+              </div>
+            </div>
+            
+            <TableOfContents content={editedContent.content} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default DocumentViewPage;
