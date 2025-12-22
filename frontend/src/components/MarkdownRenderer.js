@@ -23,6 +23,14 @@ function extractText(children) {
   return '';
 }
 
+function getDepthFromNode(node) {
+  if (node && node.position && node.position.start && typeof node.position.start.column === 'number') {
+    const column = node.position.start.column || 1;
+    return Math.max(0, Math.floor((column - 1) / 2));
+  }
+  return 0;
+}
+
 function CodeBlock({ inline, className, children }) {
   const match = /language-(\w+)/.exec(className || '');
   const language = (match && match[1]) || 'text';
@@ -109,21 +117,30 @@ export default function MarkdownRenderer({ content }) {
             const text = extractText(children);
             return <h5 id={slugify(text)} className="content-h6">{children}</h5>;
           },
-          ul: ({ children, depth = 0 }) => (
-            <ul className={`content-ul content-ul-depth-${depth}`}>
-              {children}
-            </ul>
-          ),
-          ol: ({ children, depth = 0 }) => (
-            <ol className={`content-ol content-ol-depth-${depth}`}>
-              {children}
-            </ol>
-          ),
-          li: ({ children }) => (
-            <li className="content-li">
-              {children}
-            </li>
-          ),
+          ul: ({ node, children }) => {
+            const depth = getDepthFromNode(node);
+            return (
+              <ul className={`content-ul content-ul-depth-${depth}`}>
+                {children}
+              </ul>
+            );
+          },
+          ol: ({ node, children }) => {
+            const depth = getDepthFromNode(node);
+            return (
+              <ol className={`content-ol content-ol-depth-${depth}`}>
+                {children}
+              </ol>
+            );
+          },
+          li: ({ node, children }) => {
+            const depth = getDepthFromNode(node);
+            return (
+              <li className={`content-li content-li-depth-${depth}`}>
+                {children}
+              </li>
+            );
+          },
           p: ({ children }) => <p className="content-p">{children}</p>,
           code: CodeBlock,
           pre: ({ children }) => {

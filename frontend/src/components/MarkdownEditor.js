@@ -195,6 +195,34 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
     // Tab para indentación
     if (e.key === 'Tab') {
       e.preventDefault();
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+      const lineEnd = value.indexOf('\n', start);
+      const currentLine = value.substring(lineStart, lineEnd === -1 ? value.length : lineEnd);
+
+      const numberMatch = currentLine.match(/^(\s*)(\d+)\.\s/);
+      const scrollPos = textarea.scrollTop;
+
+      if (numberMatch) {
+        const newText =
+          value.substring(0, lineStart) +
+          '  ' +
+          currentLine +
+          value.substring(lineEnd === -1 ? value.length : lineEnd);
+
+        onChange(newText);
+
+        setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(start + 2, start + 2);
+          textarea.scrollTop = scrollPos;
+        }, 0);
+        return;
+      }
+
       insertText('  ');
       return;
     }
