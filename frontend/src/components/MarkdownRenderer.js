@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Highlight, themes } from 'prism-react-renderer';
 
+const ListDepthContext = React.createContext(0);
+
 function slugify(text) {
   return String(text)
     .toLowerCase()
@@ -23,12 +25,8 @@ function extractText(children) {
   return '';
 }
 
-function getDepthFromNode(node) {
-  if (node && node.position && node.position.start && typeof node.position.start.column === 'number') {
-    const column = node.position.start.column || 1;
-    return Math.max(0, Math.floor((column - 1) / 2));
-  }
-  return 0;
+function useListDepth() {
+  return Math.max(0, React.useContext(ListDepthContext));
 }
 
 function CodeBlock({ inline, className, children }) {
@@ -91,6 +89,41 @@ function CodeBlock({ inline, className, children }) {
   }
 }
 
+function UlComponent({ children }) {
+  const currentDepth = useListDepth();
+  const listDepth = currentDepth;
+  const nextDepth = currentDepth + 1;
+  return (
+    <ListDepthContext.Provider value={nextDepth}>
+      <ul className={`content-ul content-ul-depth-${listDepth}`}>
+        {children}
+      </ul>
+    </ListDepthContext.Provider>
+  );
+}
+
+function OlComponent({ children }) {
+  const currentDepth = useListDepth();
+  const listDepth = currentDepth;
+  const nextDepth = currentDepth + 1;
+  return (
+    <ListDepthContext.Provider value={nextDepth}>
+      <ol className={`content-ol content-ol-depth-${listDepth}`}>
+        {children}
+      </ol>
+    </ListDepthContext.Provider>
+  );
+}
+
+function LiComponent({ children }) {
+  const depth = Math.max(0, useListDepth() - 1);
+  return (
+    <li className={`content-li content-li-depth-${depth}`}>
+      {children}
+    </li>
+  );
+}
+
 export default function MarkdownRenderer({ content }) {
   return (
     <div className="content-formatted">
@@ -117,30 +150,9 @@ export default function MarkdownRenderer({ content }) {
             const text = extractText(children);
             return <h5 id={slugify(text)} className="content-h6">{children}</h5>;
           },
-          ul: ({ node, children }) => {
-            const depth = getDepthFromNode(node);
-            return (
-              <ul className={`content-ul content-ul-depth-${depth}`}>
-                {children}
-              </ul>
-            );
-          },
-          ol: ({ node, children }) => {
-            const depth = getDepthFromNode(node);
-            return (
-              <ol className={`content-ol content-ol-depth-${depth}`}>
-                {children}
-              </ol>
-            );
-          },
-          li: ({ node, children }) => {
-            const depth = getDepthFromNode(node);
-            return (
-              <li className={`content-li content-li-depth-${depth}`}>
-                {children}
-              </li>
-            );
-          },
+          ul: UlComponent,
+          ol: OlComponent,
+          li: LiComponent,
           p: ({ children }) => <p className="content-p">{children}</p>,
           code: CodeBlock,
           pre: ({ children }) => {

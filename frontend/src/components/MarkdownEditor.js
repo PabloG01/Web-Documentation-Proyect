@@ -192,7 +192,7 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
   ];
 
   const handleKeyDown = (e) => {
-    // Tab para indentación
+    // Tab para cambiar nivel en listas ordenadas
     if (e.key === 'Tab') {
       e.preventDefault();
       const textarea = textareaRef.current;
@@ -202,27 +202,61 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
       const lineStart = value.lastIndexOf('\n', start - 1) + 1;
       const lineEnd = value.indexOf('\n', start);
       const currentLine = value.substring(lineStart, lineEnd === -1 ? value.length : lineEnd);
-
-      const numberMatch = currentLine.match(/^(\s*)(\d+)\.\s/);
       const scrollPos = textarea.scrollTop;
 
+      const numberMatch = currentLine.match(/^(\s*)(\d+)\.\s(.*)$/);
+      const alphaMatch = currentLine.match(/^(\s*)([a-z])\.\s(.*)$/i);
+      const romanMatch = currentLine.match(/^(\s*)([ivxlcdm]+)\.\s(.*)$/i);
+
+      // 1. →   a. (agrega 2 espacios y cambia número a letra)
       if (numberMatch) {
-        const newText =
-          value.substring(0, lineStart) +
-          '  ' +
-          currentLine +
-          value.substring(lineEnd === -1 ? value.length : lineEnd);
+        const [, spaces, , rest] = numberMatch;
+        const newLine = `${spaces}  a. ${rest}`.trimEnd();
+        const newText = value.substring(0, lineStart) + newLine + value.substring(lineEnd === -1 ? value.length : lineEnd);
 
         onChange(newText);
-
         setTimeout(() => {
+          const newCaret = lineStart + newLine.length - rest.length;
           textarea.focus();
-          textarea.setSelectionRange(start + 2, start + 2);
+          textarea.setSelectionRange(newCaret, newCaret);
           textarea.scrollTop = scrollPos;
         }, 0);
         return;
       }
 
+      // a. →     i. (agrega 2 espacios y cambia letra a romano)
+      if (alphaMatch) {
+        const [, spaces, , rest] = alphaMatch;
+        const newLine = `${spaces}  i. ${rest}`.trimEnd();
+        const newText = value.substring(0, lineStart) + newLine + value.substring(lineEnd === -1 ? value.length : lineEnd);
+
+        onChange(newText);
+        setTimeout(() => {
+          const newCaret = lineStart + newLine.length - rest.length;
+          textarea.focus();
+          textarea.setSelectionRange(newCaret, newCaret);
+          textarea.scrollTop = scrollPos;
+        }, 0);
+        return;
+      }
+
+      // i. →       i. (solo agrega 2 espacios sin cambiar el romano)
+      if (romanMatch) {
+        const [, spaces, roman, rest] = romanMatch;
+        const newLine = `${spaces}  ${roman}. ${rest}`.trimEnd();
+        const newText = value.substring(0, lineStart) + newLine + value.substring(lineEnd === -1 ? value.length : lineEnd);
+
+        onChange(newText);
+        setTimeout(() => {
+          const newCaret = lineStart + newLine.length - rest.length;
+          textarea.focus();
+          textarea.setSelectionRange(newCaret, newCaret);
+          textarea.scrollTop = scrollPos;
+        }, 0);
+        return;
+      }
+
+      // Caso general: insertar espacios
       insertText('  ');
       return;
     }
@@ -234,28 +268,85 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
       const lineStart = value.lastIndexOf('\n', start - 1) + 1;
       const currentLine = value.substring(lineStart, start);
 
-      // Lista con viñetas
+      // Lista con viñetas: detecta espacios iniciales y mantiene sangría
       const bulletMatch = currentLine.match(/^(\s*)([-*+])\s/);
       if (bulletMatch) {
         e.preventDefault();
-        insertText(`\n${bulletMatch[1]}${bulletMatch[2]} `);
+        const [, spaces, bullet] = bulletMatch;
+        insertText(`\n${spaces}${bullet} `);
         return;
       }
 
-      // Lista numerada
+      // Lista numerada decimal: incrementa número y mantiene sangría
       const numberMatch = currentLine.match(/^(\s*)(\d+)\.\s/);
       if (numberMatch) {
         e.preventDefault();
-        const nextNum = parseInt(numberMatch[2]) + 1;
-        insertText(`\n${numberMatch[1]}${nextNum}. `);
+        const [, spaces, numStr] = numberMatch;
+        const nextNum = parseInt(numStr, 10) + 1;
+        insertText(`\n${spaces}${nextNum}. `);
         return;
       }
 
-      // Lista de tareas
+      // Lista alfabética: incrementa letra y mantiene sangría
+      const alphaMatch = currentLine.match(/^(\s*)([a-z])\.\s/i);
+      if (alphaMatch) {
+        e.preventDefault();
+        const [, spaces, letter] = alphaMatch;
+        const currentChar = letter.toLowerCase();
+        const nextCharCode = Math.min('z'.charCodeAt(0), currentChar.charCodeAt(0) + 1);
+        const nextChar = String.fromCharCode(nextCharCode);
+        insertText(`\n${spaces}${nextChar}. `);
+        return;
+      }
+
+      // Lista romana: incrementa numeral romano y mantiene sangría
+      const romanMatch = currentLine.match(/^(\s*)([ivxlcdm]+)\.\s/i);
+      if (romanMatch) {
+        e.preventDefault();
+        const spaces = romanMatch[1];
+        const roman = romanMatch[2];
+        
+        const romanToInt = (str) => {
+          const map = { i: 1, v: 5, x: 10, l: 50, c: 100, d: 500, m: 1000 };
+          let total = 0;
+          let prev = 0;
+          const chars = str.toLowerCase().split('').reverse();
+          for (const ch of chars) {
+            const val = map[ch] || 0;
+            if (val < prev) total -= val; else total += val;
+            prev = val;
+          }
+          return total;
+        };
+        
+        const intToRoman = (num) => {
+          const romans = [
+            ['m', 1000], ['cm', 900], ['d', 500], ['cd', 400],
+            ['c', 100], ['xc', 90], ['l', 50], ['xl', 40],
+            ['x', 10], ['ix', 9], ['v', 5], ['iv', 4], ['i', 1]
+          ];
+          let n = Math.max(1, Math.min(3999, num));
+          let res = '';
+          for (const [sym, val] of romans) {
+            while (n >= val) {
+              res += sym;
+              n -= val;
+            }
+          }
+          return res;
+        };
+
+        const nextRoman = intToRoman(romanToInt(roman) + 1);
+        insertText(`\n${spaces}${nextRoman}. `);
+        return;
+      }
+
+      // Lista de tareas: mantiene sangría y checkbox vacío
       const taskMatch = currentLine.match(/^(\s*)(-)\s\[([ x])\]\s/);
       if (taskMatch) {
         e.preventDefault();
-        insertText(`\n${taskMatch[1]}- [ ] `);
+        const [, spaces] = taskMatch;
+        insertText(`\n${spaces}- [ ] `);
         return;
       }
     }
