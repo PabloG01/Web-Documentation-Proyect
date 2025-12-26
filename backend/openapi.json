@@ -1,0 +1,888 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "DocApp API",
+        "description": "API para gestión de documentación técnica con autenticación JWT, proyectos y documentos",
+        "version": "1.0.0",
+        "contact": {
+            "name": "DocApp Support"
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost:5000",
+            "description": "Servidor de desarrollo local"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "Endpoints de autenticación y gestión de sesiones"
+        },
+        {
+            "name": "Projects",
+            "description": "Gestión de proyectos"
+        },
+        {
+            "name": "Documents",
+            "description": "Gestión de documentos técnicos"
+        }
+    ],
+    "paths": {
+        "/auth/register": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Registrar nuevo usuario",
+                "description": "Crea una nueva cuenta de usuario con credenciales",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "username",
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "username": {
+                                        "type": "string",
+                                        "example": "juan_perez"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "juan@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "minLength": 6,
+                                        "example": "password123"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Usuario creado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/User"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error del servidor",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Iniciar sesión",
+                "description": "Autentica al usuario y establece cookie HttpOnly con JWT",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "juan@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login exitoso",
+                        "headers": {
+                            "Set-Cookie": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Login successful"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Credenciales inválidas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Cerrar sesión",
+                "description": "Elimina la cookie de autenticación",
+                "responses": {
+                    "200": {
+                        "description": "Logout exitoso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logged out"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Obtener usuario actual",
+                "description": "Verifica la sesión y retorna información del usuario autenticado",
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Usuario autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/User"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/projects": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Listar proyectos",
+                "description": "Obtiene lista de todos los proyectos (opcionalmente filtrados por usuario)",
+                "parameters": [
+                    {
+                        "name": "user_only",
+                        "in": "query",
+                        "description": "Filtrar solo proyectos del usuario autenticado",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de proyectos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProjectWithUser"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Crear proyecto",
+                "description": "Crea un nuevo proyecto (requiere autenticación)",
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "code",
+                                    "name"
+                                ],
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "maxLength": 20,
+                                        "example": "PRY01"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 100,
+                                        "example": "Proyecto Backend"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Documentación del backend de la aplicación"
+                                    },
+                                    "color": {
+                                        "type": "string",
+                                        "pattern": "^#[0-9A-Fa-f]{6}$",
+                                        "example": "#6366f1"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Proyecto creado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Project"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/projects/{id}": {
+            "put": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Actualizar proyecto",
+                "description": "Actualiza un proyecto existente (solo el propietario)",
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "ID del proyecto"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "color": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Proyecto actualizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Project"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No autorizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Proyecto no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Eliminar proyecto",
+                "description": "Elimina un proyecto y sus documentos asociados (solo el propietario)",
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "ID del proyecto"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proyecto eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Project deleted successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No autorizado"
+                    },
+                    "404": {
+                        "description": "Proyecto no encontrado"
+                    }
+                }
+            }
+        },
+        "/documents": {
+            "get": {
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Listar documentos",
+                "description": "Obtiene lista de todos los documentos (lectura pública)",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "query",
+                        "description": "Filtrar documentos por proyecto",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de documentos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DocumentWithDetails"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Crear documento",
+                "description": "Crea un nuevo documento (requiere autenticación)",
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "type",
+                                    "title",
+                                    "content"
+                                ],
+                                "properties": {
+                                    "project_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "api",
+                                            "manual",
+                                            "tecnica",
+                                            "guia",
+                                            "changelog",
+                                            "faq"
+                                        ],
+                                        "example": "api"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "maxLength": 150,
+                                        "example": "API de Autenticación"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Documentación de endpoints de autenticación"
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "example": "# Autenticación\\n\\nLa API usa JWT..."
+                                    },
+                                    "version": {
+                                        "type": "string",
+                                        "example": "1.0.0"
+                                    },
+                                    "author": {
+                                        "type": "string",
+                                        "example": "Juan Pérez"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Documento creado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentWithDetails"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    }
+                }
+            }
+        },
+        "/documents/{id}": {
+            "get": {
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Obtener documento",
+                "description": "Obtiene un documento específico (lectura pública)",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "ID del documento"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Documento encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentWithDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Documento no encontrado"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Actualizar documento",
+                "description": "Actualiza un documento existente (solo el propietario)",
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "content": {
+                                        "type": "string"
+                                    },
+                                    "version": {
+                                        "type": "string"
+                                    },
+                                    "author": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Documento actualizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Document"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No autorizado"
+                    },
+                    "404": {
+                        "description": "Documento no encontrado"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Eliminar documento",
+                "description": "Elimina un documento (solo el propietario)",
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Documento eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Document deleted successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No autorizado"
+                    },
+                    "404": {
+                        "description": "Documento no encontrado"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "cookieAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "auth_token",
+                "description": "JWT almacenado en cookie HttpOnly"
+            }
+        },
+        "schemas": {
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "username": {
+                        "type": "string",
+                        "example": "juan_perez"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "juan@example.com"
+                    }
+                }
+            },
+            "Project": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "PRY01"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Proyecto Backend"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Documentación del backend"
+                    },
+                    "color": {
+                        "type": "string",
+                        "example": "#6366f1"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-15T10:30:00Z"
+                    }
+                }
+            },
+            "ProjectWithUser": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Project"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "username": {
+                                "type": "string",
+                                "example": "juan_perez"
+                            }
+                        }
+                    }
+                ]
+            },
+            "Document": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "type": {
+                        "type": "string",
+                        "example": "api"
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "API de Autenticación"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Documentación de endpoints"
+                    },
+                    "content": {
+                        "type": "string",
+                        "example": "# Documentación\\n\\n..."
+                    },
+                    "version": {
+                        "type": "string",
+                        "example": "1.0.0"
+                    },
+                    "author": {
+                        "type": "string",
+                        "example": "Juan Pérez"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "DocumentWithDetails": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Document"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "username": {
+                                "type": "string",
+                                "example": "juan_perez"
+                            },
+                            "project_name": {
+                                "type": "string",
+                                "example": "Proyecto Backend"
+                            },
+                            "project_code": {
+                                "type": "string",
+                                "example": "PRY01"
+                            }
+                        }
+                    }
+                ]
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Error message"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -5,6 +5,7 @@ import '../styles/DocumentViewPage.css';
 import TableOfContents from '../components/TableOfContents';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import MarkdownEditor from '../components/MarkdownEditor';
+import MarkdownHelper from '../components/MarkdownHelper';
 
 function DocumentViewPage() {
   const { id } = useParams();
@@ -239,6 +240,9 @@ function DocumentViewPage() {
           </>
         )}
       </div>
+
+      {/* Ayuda flotante de Markdown - solo en modo edición */}
+      {isEditing && <MarkdownHelper />}
     </div>
   );
 }

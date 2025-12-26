@@ -1,4 +1,5 @@
 
+
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
@@ -9,6 +10,7 @@ import DocumentViewPage from './pages/DocumentViewPage';
 import ProjectsPage from './pages/ProjectsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ApiTestPage from './pages/ApiTestPage';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import './styles/global.css';
 
@@ -60,6 +62,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProjectsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/api-test"
+              element={
+                <ProtectedRoute>
+                  <ApiTestPage />
                 </ProtectedRoute>
               }
             />

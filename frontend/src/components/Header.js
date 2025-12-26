@@ -25,6 +25,7 @@ function Header() {
               <Link to="/proyectos" className="nav-link">Proyectos</Link>
               <Link to="/mis-documentos" className="nav-link">Mis Documentos</Link>
               <Link to="/crear" className="nav-link active">Crear</Link>
+              <Link to="/api-test" className="nav-link">API Testing</Link>
               <button onClick={handleLogout} className="btn btn-secondary" style={{ marginLeft: '1rem' }}>
                 Cerrar Sesión ({user.username})
               </button>

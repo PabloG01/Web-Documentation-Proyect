@@ -4,6 +4,7 @@ import { documentsAPI } from '../services/api';
 import DocumentTypeSelector from '../components/DocumentTypeSelector';
 import DocumentForm from '../components/DocumentForm';
 import ProjectSelector from '../components/ProjectSelector';
+import MarkdownHelper from '../components/MarkdownHelper';
 import '../styles/CreatePage.css';
 
 function CreatePage() {
@@ -86,6 +87,9 @@ function CreatePage() {
           <DocumentForm documentType={selectedType} onSubmit={handleFormSubmit} />
         </>
       )}
+
+      {/* Ayuda flotante de Markdown */}
+      {step === 3 && <MarkdownHelper />}
     </div>
   );
 }

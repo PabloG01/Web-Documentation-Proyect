@@ -1,4 +1,5 @@
 :root {
+  /* Colors */
   --primary-color: #6366f1;
   --secondary-color: #8b5cf6;
   --accent-color: #ec4899;
@@ -10,6 +11,16 @@
   --success-color: #10b981;
   --warning-color: #f59e0b;
   --danger-color: #ef4444;
+
+  /* Aliases for markdown */
+  --primary: var(--primary-color);
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --border: var(--border-color);
+  --card-bg: var(--surface-color);
+  --hover-bg: #f1f5f9;
+  --code-bg: #f1f5f9;
+  --code-text: #c7254e;
 }
 
 * {

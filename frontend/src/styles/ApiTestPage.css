@@ -1,0 +1,114 @@
+.api-test-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    color: var(--text-muted);
+}
+
+.upload-section {
+    margin-bottom: 2rem;
+}
+
+.upload-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    border: 2px dashed var(--border);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+
+.upload-card:hover {
+    border-color: var(--primary);
+    background: var(--hover-bg);
+}
+
+.upload-label {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.upload-icon {
+    font-size: 3rem;
+}
+
+.upload-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.upload-hint {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.error-message {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #fee;
+    border: 1px solid #fcc;
+    border-radius: 8px;
+    color: #c00;
+}
+
+.success-message {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #efe;
+    border: 1px solid #cfc;
+    border-radius: 8px;
+    color: #060;
+}
+
+.viewer-section {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.openapi-viewer {
+    min-height: 400px;
+}
+
+.placeholder {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+}
+
+.placeholder-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.placeholder h3 {
+    margin-bottom: 0.5rem;
+    color: var(--text);
+}
+
+.placeholder p {
+    font-size: 0.95rem;
+}
