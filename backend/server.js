@@ -4,6 +4,8 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const { initializeDatabase } = require('./database');
 const authRoutes = require('./routes/auth');
+const projectRoutes = require('./routes/projects');
+const documentRoutes = require('./routes/documents');
 require('dotenv').config();
 
 const app = express();
@@ -20,6 +22,8 @@ app.use(cookieParser());
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/projects', projectRoutes);
+app.use('/documents', documentRoutes);
 
 // Database init
 initializeDatabase();

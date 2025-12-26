@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { documentsAPI, projectsAPI } from '../services/api';
 import DocumentCard from '../components/DocumentCard';
 import '../styles/DocumentsListPage.css';
 
@@ -10,28 +11,39 @@ function DocumentsListPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('todos');
   const [filterProject, setFilterProject] = useState(searchParams.get('project') || 'todos');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadDocuments();
     loadProjects();
   }, []);
 
-  const loadDocuments = () => {
-    const storedDocuments = JSON.parse(localStorage.getItem('documents') || '[]');
-    setDocuments(storedDocuments);
+  const loadDocuments = async () => {
+    try {
+      const response = await documentsAPI.getAll();
+      setDocuments(response.data);
+    } catch (err) {
+      console.error('Error loading documents:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const loadProjects = () => {
-    const storedProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-    setProjects(storedProjects);
+  const loadProjects = async () => {
+    try {
+      const response = await projectsAPI.getAll();
+      setProjects(response.data);
+    } catch (err) {
+      console.error('Error loading projects:', err);
+    }
   };
 
 
   const filteredDocuments = documents.filter(doc => {
     const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.description.toLowerCase().includes(searchTerm.toLowerCase());
+      doc.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'todos' || doc.type === filterType;
-    const matchesProject = filterProject === 'todos' || doc.projectId === filterProject;
+    const matchesProject = filterProject === 'todos' || doc.project_id == filterProject;
     return matchesSearch && matchesType && matchesProject;
   });
 

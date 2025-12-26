@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { documentsAPI } from '../services/api';
 import '../styles/DocumentViewPage.css';
 import TableOfContents from '../components/TableOfContents';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -20,15 +21,19 @@ function DocumentViewPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  const loadDocument = useCallback(() => {
-    const documents = JSON.parse(localStorage.getItem('documents') || '[]');
-    const doc = documents.find(d => d.id === id);
-    if (doc) {
-      setDocument(doc);
-      setEditedContent(doc);
+  const loadDocument = useCallback(async () => {
+    try {
+      const response = await documentsAPI.getById(id);
+      setDocument(response.data);
+      setEditedContent(response.data);
+    } catch (err) {
+      console.error('Error loading document:', err);
+      alert('Documento no encontrado');
+      navigate('/mis-documentos');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [id]);
+  }, [id, navigate]);
 
   useEffect(() => {
     loadDocument();
@@ -41,28 +46,25 @@ function DocumentViewPage() {
     }));
   };
 
-  const handleSaveEdit = () => {
-    const documents = JSON.parse(localStorage.getItem('documents') || '[]');
-    const index = documents.findIndex(d => d.id === id);
-    
-    if (index !== -1) {
-      documents[index] = {
-        ...editedContent,
-        updatedAt: new Date().toISOString()
-      };
-      localStorage.setItem('documents', JSON.stringify(documents));
-      setDocument({...editedContent, updatedAt: new Date().toISOString()});
+  const handleSaveEdit = async () => {
+    try {
+      const response = await documentsAPI.update(id, editedContent);
+      setDocument(response.data);
       setIsEditing(false);
       alert('¡Documento actualizado exitosamente!');
+    } catch (err) {
+      alert('Error al actualizar: ' + (err.response?.data?.error || err.message));
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este documento?')) {
-      const documents = JSON.parse(localStorage.getItem('documents') || '[]');
-      const filtered = documents.filter(d => d.id !== id);
-      localStorage.setItem('documents', JSON.stringify(filtered));
-      navigate('/mis-documentos');
+      try {
+        await documentsAPI.delete(id);
+        navigate('/mis-documentos');
+      } catch (err) {
+        alert('Error al eliminar: ' + (err.response?.data?.error || err.message));
+      }
     }
   };
 
@@ -94,8 +96,14 @@ function DocumentViewPage() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+    if (!dateString) return 'Sin fecha';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Fecha inválida';
+      return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return 'Fecha inválida';
+    }
   };
 
   return (
@@ -132,7 +140,7 @@ function DocumentViewPage() {
                   </div>
                   <span className="doc-version">{document.version}</span>
                 </div>
-                
+
                 <div className="info-meta">
                   <div className="meta-item">
                     <span className="meta-label">Autor:</span>
@@ -140,12 +148,12 @@ function DocumentViewPage() {
                   </div>
                   <div className="meta-item">
                     <span className="meta-label">Creado:</span>
-                    <span className="meta-value">{formatDate(document.createdAt)}</span>
+                    <span className="meta-value">{formatDate(document.created_at)}</span>
                   </div>
-                  {document.updatedAt && (
+                  {document.updated_at && (
                     <div className="meta-item">
                       <span className="meta-label">Actualizado:</span>
-                      <span className="meta-value">{formatDate(document.updatedAt)}</span>
+                      <span className="meta-value">{formatDate(document.updated_at)}</span>
                     </div>
                   )}
                 </div>
@@ -161,7 +169,7 @@ function DocumentViewPage() {
                 <MarkdownRenderer content={document.content} />
               </div>
             </div>
-            
+
             <TableOfContents content={document.content} />
           </>
         ) : (

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { documentsAPI } from '../services/api';
 import DocumentTypeSelector from '../components/DocumentTypeSelector';
 import DocumentForm from '../components/DocumentForm';
 import ProjectSelector from '../components/ProjectSelector';
@@ -8,6 +10,8 @@ function CreatePage() {
   const [step, setStep] = useState(1); // 1: Proyecto, 2: Tipo, 3: Formulario
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
   const handleProjectSelect = (projectId) => {
     setSelectedProjectId(projectId);
@@ -19,22 +23,24 @@ function CreatePage() {
     setStep(3);
   };
 
-  const handleFormSubmit = (documentData) => {
-    const newDocument = {
-      id: Date.now().toString(),
-      projectId: selectedProjectId,
-      ...documentData
-    };
-    
-    // Guardar en localStorage
-    const storedDocuments = JSON.parse(localStorage.getItem('documents') || '[]');
-    storedDocuments.push(newDocument);
-    localStorage.setItem('documents', JSON.stringify(storedDocuments));
+  const handleFormSubmit = async (documentData) => {
+    try {
+      setSaving(true);
+      const newDocument = {
+        project_id: selectedProjectId,
+        type: selectedType,
+        ...documentData
+      };
 
-    alert('¡Documentación creada exitosamente!');
-    setStep(1);
-    setSelectedProjectId(null);
-    setSelectedType(null);
+      await documentsAPI.create(newDocument);
+
+      alert('¡Documentación creada exitosamente!');
+      navigate('/mis-documentos');
+    } catch (err) {
+      alert('Error al crear documento: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleBack = () => {
@@ -55,8 +61,8 @@ function CreatePage() {
             <h1>Crear Nueva Documentación</h1>
             <p>Paso 1: Selecciona o crea un proyecto</p>
           </div>
-          <ProjectSelector 
-            selectedProjectId={selectedProjectId} 
+          <ProjectSelector
+            selectedProjectId={selectedProjectId}
             onSelect={handleProjectSelect}
             allowCreate={true}
           />

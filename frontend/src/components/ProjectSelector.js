@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { projectsAPI } from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 import '../styles/ProjectSelector.css';
 
 function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
   const [projects, setProjects] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { user } = useContext(AuthContext);
   const [newProject, setNewProject] = useState({
     code: '',
     name: '',
@@ -11,34 +15,38 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
     color: '#6366f1'
   });
 
-  const loadProjects = useCallback(() => {
-    const storedProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-    setProjects(storedProjects);
-    
-    // Si no hay proyectos, crear uno por defecto
-    if (storedProjects.length === 0 && allowCreate) {
-      const defaultProject = {
-        id: Date.now().toString(),
-        code: 'GEN',
-        name: 'General',
-        description: 'Documentos generales sin proyecto específico',
-        color: '#64748b',
-        createdAt: new Date().toISOString()
-      };
-      const newProjects = [defaultProject];
-      localStorage.setItem('projects', JSON.stringify(newProjects));
-      setProjects(newProjects);
-      if (onSelect) onSelect(defaultProject.id);
+  const loadProjects = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await projectsAPI.getAll();
+      setProjects(response.data);
+
+      // Si no hay proyectos y el usuario está autenticado, crear uno por defecto
+      if (response.data.length === 0 && allowCreate && user) {
+        const defaultProject = {
+          code: 'GEN',
+          name: 'General',
+          description: 'Documentos generales sin proyecto específico',
+          color: '#64748b'
+        };
+        const createResponse = await projectsAPI.create(defaultProject);
+        setProjects([createResponse.data]);
+        if (onSelect) onSelect(createResponse.data.id);
+      }
+    } catch (err) {
+      console.error('Error loading projects:', err);
+    } finally {
+      setLoading(false);
     }
-  }, [allowCreate, onSelect]);
+  }, [allowCreate, onSelect, user]);
 
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
 
-  const handleCreateProject = (e) => {
+  const handleCreateProject = async (e) => {
     e.preventDefault();
-    
+
     // Validar que el código no exista
     const codeExists = projects.some(p => p.code.toLowerCase() === newProject.code.toLowerCase());
     if (codeExists) {
@@ -46,24 +54,25 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
       return;
     }
 
-    const project = {
-      id: Date.now().toString(),
-      ...newProject,
-      code: newProject.code.toUpperCase(),
-      createdAt: new Date().toISOString()
-    };
+    try {
+      const projectData = {
+        ...newProject,
+        code: newProject.code.toUpperCase()
+      };
 
-    const updatedProjects = [...projects, project];
-    localStorage.setItem('projects', JSON.stringify(updatedProjects));
-    setProjects(updatedProjects);
-    setShowCreateForm(false);
-    setNewProject({ code: '', name: '', description: '', color: '#6366f1' });
-    
-    if (onSelect) onSelect(project.id);
+      const response = await projectsAPI.create(projectData);
+      setProjects([...projects, response.data]);
+      setShowCreateForm(false);
+      setNewProject({ code: '', name: '', description: '', color: '#6366f1' });
+
+      if (onSelect) onSelect(response.data.id);
+    } catch (err) {
+      alert('Error al crear proyecto: ' + (err.response?.data?.error || err.message));
+    }
   };
 
   const colors = [
-    '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', 
+    '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
     '#f59e0b', '#10b981', '#06b6d4', '#3b82f6'
   ];
 
@@ -72,7 +81,7 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
       <div className="selector-header">
         <h3>Selecciona un Proyecto</h3>
         {allowCreate && (
-          <button 
+          <button
             className="btn btn-small btn-primary"
             onClick={() => setShowCreateForm(!showCreateForm)}
           >
@@ -89,7 +98,7 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
               <input
                 type="text"
                 value={newProject.code}
-                onChange={(e) => setNewProject({...newProject, code: e.target.value.toUpperCase()})}
+                onChange={(e) => setNewProject({ ...newProject, code: e.target.value.toUpperCase() })}
                 placeholder="PRY"
                 maxLength="10"
                 required
@@ -104,7 +113,7 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
                     key={color}
                     className={`color-option ${newProject.color === color ? 'selected' : ''}`}
                     style={{ backgroundColor: color }}
-                    onClick={() => setNewProject({...newProject, color})}
+                    onClick={() => setNewProject({ ...newProject, color })}
                   />
                 ))}
               </div>
@@ -116,7 +125,7 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
             <input
               type="text"
               value={newProject.name}
-              onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+              onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
               placeholder="Nombre descriptivo"
               required
             />
@@ -126,7 +135,7 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
             <label>Descripción</label>
             <textarea
               value={newProject.description}
-              onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+              onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
               placeholder="Descripción opcional del proyecto"
               rows="2"
             />

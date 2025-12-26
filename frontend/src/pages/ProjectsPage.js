@@ -1,25 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { projectsAPI, documentsAPI } from '../services/api';
 import '../styles/ProjectsPage.css';
 
 function ProjectsPage() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    loadProjects();
+    loadData();
   }, []);
 
-  const loadProjects = () => {
-    const storedProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-    setProjects(storedProjects);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [projectsRes, docsRes] = await Promise.all([
+        projectsAPI.getAll(),
+        documentsAPI.getAll()
+      ]);
+      setProjects(projectsRes.data);
+      setDocuments(docsRes.data);
+    } catch (err) {
+      console.error('Error loading data:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getDocumentCount = (projectId) => {
-    const documents = JSON.parse(localStorage.getItem('documents') || '[]');
-    return documents.filter(doc => doc.projectId === projectId).length;
+    return documents.filter(doc => doc.project_id == projectId).length;
   };
 
   const handleEdit = (project) => {
@@ -27,43 +41,40 @@ function ProjectsPage() {
     setEditForm(project);
   };
 
-  const handleSaveEdit = () => {
-    const updatedProjects = projects.map(p => 
-      p.id === editingId ? editForm : p
-    );
-    localStorage.setItem('projects', JSON.stringify(updatedProjects));
-    setProjects(updatedProjects);
-    setEditingId(null);
-    setEditForm({});
+  const handleSaveEdit = async () => {
+    try {
+      await projectsAPI.update(editingId, editForm);
+      const updatedProjects = projects.map(p =>
+        p.id === editingId ? editForm : p
+      );
+      setProjects(updatedProjects);
+      setEditingId(null);
+      setEditForm({});
+    } catch (err) {
+      alert('Error al guardar: ' + (err.response?.data?.error || err.message));
+    }
   };
 
-  const handleDelete = (projectId) => {
-    const docCount = getDocumentCount(projectId);
-    
-    if (docCount > 0) {
-      if (!window.confirm(`Este proyecto tiene ${docCount} documento(s). ¿Deseas eliminarlo de todas formas? Los documentos se quedarán sin proyecto.`)) {
-        return;
-      }
-      
-      // Remover projectId de los documentos
-      const documents = JSON.parse(localStorage.getItem('documents') || '[]');
-      const updatedDocs = documents.map(doc => {
-        if (doc.projectId === projectId) {
-          const { projectId, ...rest } = doc;
-          return rest;
-        }
-        return doc;
-      });
-      localStorage.setItem('documents', JSON.stringify(updatedDocs));
-    }
+  const handleDelete = async (projectId) => {
+    try {
+      const docCount = getDocumentCount(projectId);
 
-    const filteredProjects = projects.filter(p => p.id !== projectId);
-    localStorage.setItem('projects', JSON.stringify(filteredProjects));
-    setProjects(filteredProjects);
+      if (docCount > 0) {
+        if (!window.confirm(`Este proyecto tiene ${docCount} documento(s). ¿Deseas eliminarlo de todas formas? Los documentos asociados también se eliminarán.`)) {
+          return;
+        }
+      }
+
+      await projectsAPI.delete(projectId);
+      setProjects(projects.filter(p => p.id !== projectId));
+      setDocuments(documents.filter(d => d.project_id != projectId));
+    } catch (err) {
+      alert('Error al eliminar: ' + (err.response?.data?.error || err.message));
+    }
   };
 
   const colors = [
-    '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', 
+    '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
     '#f59e0b', '#10b981', '#06b6d4', '#3b82f6'
   ];
 
@@ -101,7 +112,7 @@ function ProjectsPage() {
                       <input
                         type="text"
                         value={editForm.code}
-                        onChange={(e) => setEditForm({...editForm, code: e.target.value.toUpperCase()})}
+                        onChange={(e) => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
                         maxLength="10"
                       />
                     </div>
@@ -113,27 +124,27 @@ function ProjectsPage() {
                             key={color}
                             className={`color-option ${editForm.color === color ? 'selected' : ''}`}
                             style={{ backgroundColor: color }}
-                            onClick={() => setEditForm({...editForm, color})}
+                            onClick={() => setEditForm({ ...editForm, color })}
                           />
                         ))}
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="edit-field">
                     <label>Nombre</label>
                     <input
                       type="text"
                       value={editForm.name}
-                      onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                     />
                   </div>
-                  
+
                   <div className="edit-field">
                     <label>Descripción</label>
                     <textarea
                       value={editForm.description}
-                      onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                       rows="2"
                     />
                   </div>
@@ -168,19 +179,19 @@ function ProjectsPage() {
                   </div>
 
                   <div className="project-actions">
-                    <button 
+                    <button
                       className="btn btn-small"
                       onClick={() => navigate(`/mis-documentos?project=${project.id}`)}
                     >
                       Ver Documentos
                     </button>
-                    <button 
+                    <button
                       className="btn btn-small btn-secondary"
                       onClick={() => handleEdit(project)}
                     >
                       ✏️ Editar
                     </button>
-                    <button 
+                    <button
                       className="btn btn-small btn-secondary"
                       onClick={() => handleDelete(project.id)}
                     >
