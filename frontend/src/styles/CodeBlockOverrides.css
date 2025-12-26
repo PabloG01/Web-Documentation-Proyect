@@ -1,0 +1,20 @@
+/* Override syntax highlighter light backgrounds */
+.code-block-wrapper pre code,
+.code-block-wrapper pre {
+    background: transparent !important;
+}
+
+.code-block-wrapper div[class*="language-"],
+.guide-section pre,
+.guide-section code {
+    background: transparent !important;
+}
+
+/* Override syntax highlighter light backgrounds on individual tokens */
+.code-block-wrapper pre code span[style*="background"] {
+    background: none !important;
+}
+
+.guide-section pre code span[style*="background"] {
+    background: none !important;
+}

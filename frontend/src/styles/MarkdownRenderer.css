@@ -151,6 +151,10 @@
     tab-size: 4;
 }
 
+.markdown-content pre code span {
+    background: none !important;
+}
+
 /* Inline code */
 .inline-code {
     background: var(--code-bg);

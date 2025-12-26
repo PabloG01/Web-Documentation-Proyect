@@ -11,6 +11,7 @@ import ProjectsPage from './pages/ProjectsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ApiTestPage from './pages/ApiTestPage';
+import OpenApiGuidePage from './pages/OpenApiGuidePage';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import './styles/global.css';
 
@@ -73,6 +74,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/openapi-guide" element={<OpenApiGuidePage />} />
           </Routes>
         </main>
       </Router>

@@ -16,7 +16,7 @@ function Header() {
     <header className="header">
       <div className="header-container">
         <Link to="/" className="logo">
-          <h1>📚 DocApp</h1>
+          <h1>DocApp</h1>
         </Link>
         <nav className="nav">
           <Link to="/" className="nav-link">Inicio</Link>
@@ -26,6 +26,7 @@ function Header() {
               <Link to="/mis-documentos" className="nav-link">Mis Documentos</Link>
               <Link to="/crear" className="nav-link active">Crear</Link>
               <Link to="/api-test" className="nav-link">API Testing</Link>
+              <Link to="/openapi-guide" className="nav-link">Guía OpenAPI</Link>
               <button onClick={handleLogout} className="btn btn-secondary" style={{ marginLeft: '1rem' }}>
                 Cerrar Sesión ({user.username})
               </button>
