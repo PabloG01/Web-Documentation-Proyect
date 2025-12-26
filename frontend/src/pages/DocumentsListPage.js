@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { documentsAPI, projectsAPI } from '../services/api';
 import DocumentCard from '../components/DocumentCard';
 import '../styles/DocumentsListPage.css';
+import '../styles/LoadingStates.css';
 
 function DocumentsListPage() {
   const [searchParams] = useSearchParams();
@@ -43,7 +44,7 @@ function DocumentsListPage() {
     const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'todos' || doc.type === filterType;
-    const matchesProject = filterProject === 'todos' || doc.project_id == filterProject;
+    const matchesProject = filterProject === 'todos' || doc.project_id === filterProject;
     return matchesSearch && matchesType && matchesProject;
   });
 
@@ -101,11 +102,18 @@ function DocumentsListPage() {
         </div>
       </div>
 
-      {filteredDocuments.length === 0 ? (
+      {loading ? (
+        <div className="loading-skeleton">
+          <div className="skeleton-item"></div>
+          <div className="skeleton-item"></div>
+          <div className="skeleton-item"></div>
+          <div className="skeleton-item"></div>
+        </div>
+      ) : filteredDocuments.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📭</div>
-          <h2>No hay documentos</h2>
-          <p>Crea tu primer documento para comenzar</p>
+          <h2>No se encontraron documentos</h2>
+          <p>Intenta ajustar los filtros o crea un nuevo documento</p>
         </div>
       ) : (
         <div className="documents-grid">

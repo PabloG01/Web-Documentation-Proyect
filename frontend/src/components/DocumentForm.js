@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import TableOfContents from './TableOfContents';
 import MarkdownEditor from './MarkdownEditor';
 import '../styles/DocumentForm.css';
+import '../styles/LoadingStates.css';
 
-function DocumentForm({ documentType, onSubmit }) {
+function DocumentForm({ documentType, onSubmit, saving = false }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -143,79 +144,88 @@ Bienvenido a nuestro sistema.
       </div>
 
       <div className="form-with-toc">
-      <form onSubmit={handleSubmit} className="document-form">
-        <div className="form-group">
-          <label htmlFor="title">Título del Documento</label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            placeholder={placeholders.title}
-            required
-          />
-        </div>
-
-        <div className="form-row">
+        <form onSubmit={handleSubmit} className="document-form">
           <div className="form-group">
-            <label htmlFor="author">Autor</label>
+            <label htmlFor="title">Título del Documento</label>
             <input
               type="text"
-              id="author"
-              name="author"
-              value={formData.author}
+              id="title"
+              name="title"
+              value={formData.title}
               onChange={handleChange}
-              placeholder="Tu nombre"
+              placeholder={placeholders.title}
               required
             />
           </div>
 
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="author">Autor</label>
+              <input
+                type="text"
+                id="author"
+                name="author"
+                value={formData.author}
+                onChange={handleChange}
+                placeholder="Tu nombre"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="version">Versión</label>
+              <input
+                type="text"
+                id="version"
+                name="version"
+                value={formData.version}
+                onChange={handleChange}
+                placeholder="1.0.0"
+              />
+            </div>
+          </div>
+
           <div className="form-group">
-            <label htmlFor="version">Versión</label>
+            <label htmlFor="description">Descripción Breve</label>
             <input
               type="text"
-              id="version"
-              name="version"
-              value={formData.version}
+              id="description"
+              name="description"
+              value={formData.description}
               onChange={handleChange}
-              placeholder="1.0.0"
+              placeholder={placeholders.description}
             />
           </div>
-        </div>
 
-        <div className="form-group">
-          <label htmlFor="description">Descripción Breve</label>
-          <input
-            type="text"
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder={placeholders.description}
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="content">Contenido</label>
+            <MarkdownEditor
+              value={formData.content}
+              onChange={(newContent) => setFormData(prev => ({ ...prev, content: newContent }))}
+              placeholder={placeholders.content}
+              showPreview={true}
+            />
+          </div>
 
-        <div className="form-group">
-          <label htmlFor="content">Contenido</label>
-          <MarkdownEditor
-            value={formData.content}
-            onChange={(newContent) => setFormData(prev => ({ ...prev, content: newContent }))}
-            placeholder={placeholders.content}
-            showPreview={true}
-          />
-        </div>
-
-        <div className="form-actions">
-          <button type="submit" className="btn btn-primary">
-            Crear Documento
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={() => window.history.back()}>
-            Cancelar
-          </button>
-        </div>
-      </form>
-      <TableOfContents content={formData.content} />
+          <div className="form-actions">
+            <button
+              type="submit"
+              className={`btn btn-primary ${saving ? 'btn-loading' : ''}`}
+              disabled={saving}
+            >
+              {saving ? '⏳ Guardando...' : '💾 Crear Documento'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => window.history.back()}
+              disabled={saving}
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+        <TableOfContents content={formData.content} />
       </div>
     </div>
   );

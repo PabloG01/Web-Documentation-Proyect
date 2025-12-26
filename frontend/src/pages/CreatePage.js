@@ -84,7 +84,11 @@ function CreatePage() {
           <button className="btn-back" onClick={handleBack}>
             ← Volver
           </button>
-          <DocumentForm documentType={selectedType} onSubmit={handleFormSubmit} />
+          <DocumentForm
+            documentType={selectedType}
+            onSubmit={handleFormSubmit}
+            saving={saving}
+          />
         </>
       )}
 

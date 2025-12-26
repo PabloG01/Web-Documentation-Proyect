@@ -26,6 +26,9 @@ function MarkdownRenderer({ content }) {
 
   let codeBlockIndex = 0;
 
+  // Asegurar que el contenido preserve los saltos de línea y espacios
+  const processedContent = content ? content.replace(/\r\n/g, '\n') : '';
+
   return (
     <div className="markdown-content">
       <ReactMarkdown
@@ -118,7 +121,7 @@ function MarkdownRenderer({ content }) {
           },
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );

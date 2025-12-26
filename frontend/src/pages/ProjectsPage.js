@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectsAPI, documentsAPI } from '../services/api';
 import '../styles/ProjectsPage.css';
+import '../styles/LoadingStates.css';
 
 function ProjectsPage() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ function ProjectsPage() {
   };
 
   const getDocumentCount = (projectId) => {
-    return documents.filter(doc => doc.project_id == projectId).length;
+    return documents.filter(doc => doc.project_id === projectId).length;
   };
 
   const handleEdit = (project) => {
@@ -67,7 +68,7 @@ function ProjectsPage() {
 
       await projectsAPI.delete(projectId);
       setProjects(projects.filter(p => p.id !== projectId));
-      setDocuments(documents.filter(d => d.project_id != projectId));
+      setDocuments(documents.filter(d => d.project_id !== projectId));
     } catch (err) {
       alert('Error al eliminar: ' + (err.response?.data?.error || err.message));
     }
@@ -90,17 +91,19 @@ function ProjectsPage() {
         </button>
       </div>
 
-      {projects.length === 0 ? (
+      {loading ? (
+        <div className="loading-container">
+          <div className="spinner-large"></div>
+          <p>Cargando proyectos...</p>
+        </div>
+      ) : projects.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📁</div>
-          <h2>No hay proyectos</h2>
-          <p>Crea tu primer proyecto al crear un documento</p>
-          <button className="btn btn-primary" onClick={() => navigate('/crear')}>
-            Crear Documento
-          </button>
+          <h3>No tienes proyectos aún</h3>
+          <p>Crea tu primer proyecto para organizar la documentación</p>
         </div>
       ) : (
-        <div className="projects-list">
+        <div className="projects-grid">
           {projects.map(project => (
             <div key={project.id} className="project-item" style={{ borderLeftColor: project.color }}>
               {editingId === project.id ? (

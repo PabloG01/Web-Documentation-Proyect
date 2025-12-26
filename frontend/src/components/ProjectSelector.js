@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/ProjectSelector.css';
+import '../styles/LoadingStates.css';
 
 function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
   const [projects, setProjects] = useState([]);
@@ -29,9 +30,9 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
           description: 'Documentos generales sin proyecto específico',
           color: '#64748b'
         };
-        const createResponse = await projectsAPI.create(defaultProject);
-        setProjects([createResponse.data]);
-        if (onSelect) onSelect(createResponse.data.id);
+        const newProjectRes = await projectsAPI.create(defaultProject);
+        setProjects([newProjectRes.data]);
+        if (onSelect) onSelect(newProjectRes.data.id);
       }
     } catch (err) {
       console.error('Error loading projects:', err);
@@ -147,26 +148,34 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
         </form>
       )}
 
-      <div className="projects-grid">
-        {projects.map(project => (
-          <div
-            key={project.id}
-            className={`project-card ${selectedProjectId === project.id ? 'selected' : ''}`}
-            onClick={() => onSelect && onSelect(project.id)}
-            style={{ borderLeftColor: project.color }}
-          >
-            <div className="project-header">
-              <span className="project-code" style={{ backgroundColor: project.color }}>
-                {project.code}
-              </span>
-              <h4>{project.name}</h4>
+      {loading ? (
+        <div className="loading-skeleton">
+          <div className="skeleton-item"></div>
+          <div className="skeleton-item"></div>
+          <div className="skeleton-item"></div>
+        </div>
+      ) : (
+        <div className="projects-grid">
+          {projects.map(project => (
+            <div
+              key={project.id}
+              className={`project-card ${selectedProjectId === project.id ? 'selected' : ''}`}
+              onClick={() => onSelect && onSelect(project.id)}
+              style={{ borderLeftColor: project.color }}
+            >
+              <div className="project-header">
+                <span className="project-code" style={{ backgroundColor: project.color }}>
+                  {project.code}
+                </span>
+                <h4>{project.name}</h4>
+              </div>
+              {project.description && (
+                <p className="project-description">{project.description}</p>
+              )}
             </div>
-            {project.description && (
-              <p className="project-description">{project.description}</p>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {projects.length === 0 && !showCreateForm && (
         <div className="empty-projects">

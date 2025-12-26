@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { documentsAPI } from '../services/api';
 import '../styles/DocumentViewPage.css';
+import '../styles/LoadingStates.css';
 import TableOfContents from '../components/TableOfContents';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import MarkdownEditor from '../components/MarkdownEditor';
@@ -20,6 +21,7 @@ function DocumentViewPage() {
     version: '',
     content: ''
   });
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadDocument = useCallback(async () => {
@@ -47,14 +49,17 @@ function DocumentViewPage() {
     }));
   };
 
-  const handleSaveEdit = async () => {
+  const handleSave = async () => {
     try {
+      setSaving(true);
       const response = await documentsAPI.update(id, editedContent);
       setDocument(response.data);
       setIsEditing(false);
       alert('¡Documento actualizado exitosamente!');
     } catch (err) {
       alert('Error al actualizar: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -229,10 +234,18 @@ function DocumentViewPage() {
               </div>
 
               <div className="edit-actions">
-                <button className="btn btn-primary" onClick={handleSaveEdit}>
-                  ✅ Guardar cambios
+                <button
+                  className={`btn btn-primary ${saving ? 'btn-loading' : ''}`}
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? '⏳ Guardando...' : '✅ Guardar cambios'}
                 </button>
-                <button className="btn btn-secondary" onClick={() => setIsEditing(false)}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setIsEditing(false)}
+                  disabled={saving}
+                >
                   ❌ Cancelar
                 </button>
               </div>

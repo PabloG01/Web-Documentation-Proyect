@@ -26,6 +26,7 @@ function MarkdownHelper() {
             items: [
                 { syntax: '- Item\n- Item', desc: 'Lista sin orden' },
                 { syntax: '1. Item\n2. Item', desc: 'Lista ordenada' },
+                { syntax: '1. Item principal\n   - Subitem (3 espacios)\n   - Subitem', desc: 'Lista anidada' },
                 { syntax: '- [ ] Tarea\n- [x] Completo', desc: 'Lista de tareas' },
             ]
         },
@@ -107,6 +108,9 @@ function MarkdownHelper() {
 
                         <div className="helper-footer">
                             <small>💡 Haz clic en cualquier ejemplo para copiarlo</small>
+                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                <strong>Tip:</strong> Para listas anidadas, usa 3 espacios o 1 tabulación antes del subitem
+                            </div>
                         </div>
                     </div>
                 )}

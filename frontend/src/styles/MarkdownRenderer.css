@@ -50,7 +50,9 @@
 /* Paragraphs */
 .markdown-content p {
     margin: 0.8em 0;
-    text-align: justify;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Lists */
@@ -58,14 +60,26 @@
 .markdown-content ol {
     margin: 1em 0;
     padding-left: 2em;
+    text-align: left;
 }
 
 .markdown-content li {
     margin: 0.5em 0;
+    text-align: left;
 }
 
 .markdown-content li>p {
     margin: 0.3em 0;
+    text-align: left;
+}
+
+/* Nested lists */
+.markdown-content ul ul,
+.markdown-content ol ol,
+.markdown-content ul ol,
+.markdown-content ol ul {
+    margin: 0.3em 0;
+    padding-left: 1.5em;
 }
 
 /* Code blocks */
@@ -126,6 +140,15 @@
 .markdown-content pre {
     margin: 0 !important;
     border-radius: 0 !important;
+    white-space: pre !important;
+    overflow-x: auto;
+}
+
+.markdown-content pre code {
+    white-space: pre !important;
+    word-wrap: normal;
+    overflow-wrap: normal;
+    tab-size: 4;
 }
 
 /* Inline code */
@@ -137,6 +160,7 @@
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.9em;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 /* Blockquotes */
