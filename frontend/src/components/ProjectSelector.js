@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useRef } from 'react';
 import { projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/ProjectSelector.css';
@@ -16,6 +16,9 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
     color: '#6366f1'
   });
 
+  // Flag para prevenir la creación duplicada del proyecto por defecto
+  const defaultProjectCreated = useRef(false);
+
   const loadProjects = useCallback(async () => {
     try {
       setLoading(true);
@@ -23,16 +26,27 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
       setProjects(response.data);
 
       // Si no hay proyectos y el usuario está autenticado, crear uno por defecto
-      if (response.data.length === 0 && allowCreate && user) {
-        const defaultProject = {
-          code: 'GEN',
-          name: 'General',
-          description: 'Documentos generales sin proyecto específico',
-          color: '#64748b'
-        };
-        const newProjectRes = await projectsAPI.create(defaultProject);
-        setProjects([newProjectRes.data]);
-        if (onSelect) onSelect(newProjectRes.data.id);
+      if (response.data.length === 0 && allowCreate && user && !defaultProjectCreated.current) {
+        defaultProjectCreated.current = true; // Marcar como creado antes de la llamada
+
+        try {
+          const defaultProject = {
+            code: 'GEN',
+            name: 'General',
+            description: 'Documentos generales sin proyecto específico',
+            color: '#64748b'
+          };
+          const newProjectRes = await projectsAPI.create(defaultProject);
+          setProjects([newProjectRes.data]);
+          if (onSelect) onSelect(newProjectRes.data.id);
+        } catch (createErr) {
+          // Si falla (ej: ya existe), resetear el flag y cargar proyectos nuevamente
+          defaultProjectCreated.current = false;
+          console.error('Error creating default project:', createErr);
+          // Intentar cargar proyectos de nuevo por si ya existe
+          const retryResponse = await projectsAPI.getAll();
+          setProjects(retryResponse.data);
+        }
       }
     } catch (err) {
       console.error('Error loading projects:', err);

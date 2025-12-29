@@ -5,10 +5,13 @@ function OpenApiViewer({ spec }) {
     const uiRef = useRef(null);
 
     useEffect(() => {
+        // 1. Capturamos la referencia actual en una variable local al inicio del efecto
+        const container = containerRef.current; // <--- CAMBIO AQUÍ
+
         if (!spec) return;
 
         // Limpiar instancia anterior si existe
-        if (uiRef.current) {
+        if (uiRef.current && containerRef.current) {
             containerRef.current.innerHTML = '';
         }
 
@@ -57,13 +60,15 @@ function OpenApiViewer({ spec }) {
                 });
             } catch (error) {
                 console.error('Error initializing Swagger UI:', error);
-                containerRef.current.innerHTML = `
-          <div style="padding: 20px; color: #d32f2f; background: #ffebee; border-radius: 8px; margin: 20px;">
-            <h3>Error al cargar el visor</h3>
-            <p>No se pudo inicializar Swagger UI. Por favor, recarga la página.</p>
-            <p style="font-size: 0.9em; color: #666;">${error.message}</p>
-          </div>
-        `;
+                if (containerRef.current) {
+                    containerRef.current.innerHTML = `
+                      <div style="padding: 20px; color: #d32f2f; background: #ffebee; border-radius: 8px; margin: 20px;">
+                        <h3>Error al cargar el visor</h3>
+                        <p>No se pudo inicializar Swagger UI. Por favor, recarga la página.</p>
+                        <p style="font-size: 0.9em; color: #666;">${error.message}</p>
+                      </div>
+                    `;
+                }
             }
         };
 
@@ -71,8 +76,9 @@ function OpenApiViewer({ spec }) {
 
         // Cleanup
         return () => {
-            if (containerRef.current) {
-                containerRef.current.innerHTML = '';
+            // 2. Usamos la variable 'container' en lugar de 'containerRef.current'
+            if (container) { // <--- CAMBIO AQUÍ
+                container.innerHTML = '';
             }
         };
     }, [spec]);
