@@ -207,7 +207,7 @@ const swaggerUi = require('swagger-ui-express');
 
 const app = express();
 
-const swaggerOptions = {
+const options = {
   definition: {
     openapi: '3.0.0',
     info: {
@@ -218,7 +218,7 @@ const swaggerOptions = {
   apis: ['./routes/*.js'], // Archivos con anotaciones
 };
 
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
+const swaggerSpec = swaggerJsdoc(options);
 
 // Servir UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
