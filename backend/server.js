@@ -3,6 +3,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const { initializeDatabase } = require('./database');
+const { errorHandler } = require('./middleware/errorHandler');
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const documentRoutes = require('./routes/documents');
@@ -49,6 +50,9 @@ app.use(cookieParser());
 app.use('/auth', authRoutes);
 app.use('/projects', projectRoutes);
 app.use('/documents', documentRoutes);
+
+// Error handling middleware (MUST be after all routes)
+app.use(errorHandler);
 
 // Database init
 initializeDatabase();
