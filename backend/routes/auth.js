@@ -3,6 +3,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { validateRegister, validateLogin } = require('../middleware/validators');
+const { authLimiter, registerLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
 
 
@@ -24,7 +26,7 @@ const verifyToken = (req, res, next) => {
 };
 
 // Register
-router.post('/register', asyncHandler(async (req, res, next) => {
+router.post('/register', registerLimiter, validateRegister, asyncHandler(async (req, res, next) => {
     const { username, email, password } = req.body;
 
     // Check if user exists
@@ -47,7 +49,7 @@ router.post('/register', asyncHandler(async (req, res, next) => {
 }));
 
 // Login
-router.post('/login', asyncHandler(async (req, res, next) => {
+router.post('/login', authLimiter, validateLogin, asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
 
     // Check user

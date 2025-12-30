@@ -25,6 +25,20 @@ function CreatePage() {
   };
 
   const handleFormSubmit = async (documentData) => {
+    // Validación crítica: asegurar que hay un proyecto seleccionado
+    if (!selectedProjectId) {
+      alert('❌ Error: No se ha seleccionado un proyecto.\n\nPor favor, vuelve al paso 1 y selecciona un proyecto antes de crear la documentación.');
+      setStep(1);
+      return;
+    }
+
+    // Validación adicional: asegurar que hay un tipo seleccionado
+    if (!selectedType) {
+      alert('❌ Error: No se ha seleccionado un tipo de documento.\n\nPor favor, vuelve al paso 2 y selecciona el tipo de documentación.');
+      setStep(2);
+      return;
+    }
+
     try {
       setSaving(true);
       const newDocument = {
@@ -33,12 +47,15 @@ function CreatePage() {
         ...documentData
       };
 
+      console.log('Creando documento con project_id:', selectedProjectId); // Debug log
+
       await documentsAPI.create(newDocument);
 
-      alert('¡Documentación creada exitosamente!');
+      alert('✅ ¡Documentación creada exitosamente!');
       navigate('/mis-documentos');
     } catch (err) {
-      alert('Error al crear documento: ' + (err.response?.data?.error || err.message));
+      console.error('Error al crear documento:', err);
+      alert('❌ Error al crear documento: ' + (err.response?.data?.error || err.message));
     } finally {
       setSaving(false);
     }

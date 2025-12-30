@@ -1,6 +1,8 @@
 const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { validateCreateDocument, validateUpdateDocument, validateDocumentId } = require('../middleware/validators');
+const { createLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
 
 // Middleware to verify token
@@ -44,7 +46,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // GET /documents/:id - Get specific document
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', validateDocumentId, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const result = await pool.query(`
         SELECT documents.*, users.username, projects.name as project_name, projects.code as project_code
@@ -62,8 +64,24 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // POST /documents - Create document (requires auth)
-router.post('/', verifyToken, asyncHandler(async (req, res) => {
+router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandler(async (req, res) => {
     const { project_id, type, title, description, content, version, author } = req.body;
+
+    // Validación 1: El campo project_id es obligatorio
+    if (!project_id) {
+        throw new AppError('El campo project_id es obligatorio. Debes seleccionar un proyecto.', 400);
+    }
+
+    // Validación 2: Verificar que el proyecto existe en la base de datos
+    const projectExists = await pool.query('SELECT id FROM projects WHERE id = $1', [project_id]);
+    if (projectExists.rows.length === 0) {
+        throw new AppError('El proyecto especificado no existe', 404);
+    }
+
+    // Validación 3: Verificar campos requeridos del documento
+    if (!type || !title || !content) {
+        throw new AppError('Los campos type, title y content son obligatorios', 400);
+    }
 
     const result = await pool.query(
         `INSERT INTO documents (project_id, user_id, type, title, description, content, version, author)
@@ -84,7 +102,7 @@ router.post('/', verifyToken, asyncHandler(async (req, res) => {
 }));
 
 // PUT /documents/:id - Update document (owner only)
-router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, validateDocumentId, validateUpdateDocument, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { title, description, content, version, author } = req.body;
 
@@ -108,7 +126,7 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
 }));
 
 // DELETE /documents/:id - Delete document (owner only)
-router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
+router.delete('/:id', verifyToken, validateDocumentId, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // Check ownership

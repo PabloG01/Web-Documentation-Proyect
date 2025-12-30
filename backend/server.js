@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const { initializeDatabase } = require('./database');
 const { errorHandler } = require('./middleware/errorHandler');
+const { apiLimiter } = require('./middleware/rateLimiter');
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const documentRoutes = require('./routes/documents');
@@ -43,8 +44,13 @@ app.use(cors({
     origin: 'http://localhost:3000', // Frontend URL
     credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' })); // Limitar payload a 1MB para prevenir DoS
 app.use(cookieParser());
+
+// Rate limiting global para todas las rutas de la API
+app.use('/auth', apiLimiter);
+app.use('/projects', apiLimiter);
+app.use('/documents', apiLimiter);
 
 // Routes
 app.use('/auth', authRoutes);

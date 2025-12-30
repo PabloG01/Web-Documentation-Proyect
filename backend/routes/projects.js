@@ -1,6 +1,8 @@
 const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { validateProject, validateProjectId } = require('../middleware/validators');
+const { createLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
 
 // Middleware to verify token (copy from auth.js)
@@ -39,7 +41,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // POST /projects - Create project (requires auth)
-router.post('/', verifyToken, asyncHandler(async (req, res) => {
+router.post('/', verifyToken, createLimiter, validateProject, asyncHandler(async (req, res) => {
     const { code, name, description, color } = req.body;
 
     const result = await pool.query(
@@ -51,7 +53,7 @@ router.post('/', verifyToken, asyncHandler(async (req, res) => {
 }));
 
 // PUT /projects/:id - Update project (owner only)
-router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, validateProjectId, validateProject, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { code, name, description, color } = req.body;
 
@@ -73,7 +75,7 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
 }));
 
 // DELETE /projects/:id - Delete project (owner only)
-router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
+router.delete('/:id', verifyToken, validateProjectId, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // Check ownership
