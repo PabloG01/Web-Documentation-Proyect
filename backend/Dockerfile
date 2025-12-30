@@ -16,4 +16,4 @@ COPY . .
 EXPOSE 5000
 
 # Usamos "dev" para que nodemon reinicie si haces cambios, o "start" para producción
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]

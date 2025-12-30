@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "axios": "^1.6.0",
+    "html2pdf.js": "^0.12.1",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

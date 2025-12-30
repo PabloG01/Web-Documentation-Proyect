@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { documentsAPI } from '../services/api';
 import '../styles/DocumentViewPage.css';
@@ -7,6 +7,7 @@ import TableOfContents from '../components/TableOfContents';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import MarkdownEditor from '../components/MarkdownEditor';
 import MarkdownHelper from '../components/MarkdownHelper';
+import PdfDownloadButton from '../components/PdfDownloadButton';
 
 function DocumentViewPage() {
   const { id } = useParams();
@@ -23,6 +24,9 @@ function DocumentViewPage() {
   });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Ref para el contenido del documento (usado para exportar a PDF)
+  const documentRef = useRef(null);
 
   const loadDocument = useCallback(async () => {
     try {
@@ -121,6 +125,7 @@ function DocumentViewPage() {
         <div className="header-actions">
           {!isEditing && (
             <>
+              <PdfDownloadButton document={document} contentRef={documentRef} />
               <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
                 ✏️ Editar
               </button>
@@ -136,7 +141,7 @@ function DocumentViewPage() {
         {!isEditing ? (
           // VISTA
           <>
-            <div className="document-view">
+            <div className="document-view" ref={documentRef}>
               <div className="view-info">
                 <div className="info-header">
                   <span className="doc-icon">{icons[document.type] || '📄'}</span>

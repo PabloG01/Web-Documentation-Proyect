@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. Base de Datos
   db:
@@ -31,6 +29,9 @@ services:
       DB_PORT: 5432
       PORT: 5000
       JWT_SECRET: supersecretkey
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     depends_on:
       - db
 
@@ -45,6 +46,9 @@ services:
       # React necesita saber dónde está el backend
       - REACT_APP_API_URL=http://localhost:5000
       - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     stdin_open: true
     tty: true
     depends_on:
