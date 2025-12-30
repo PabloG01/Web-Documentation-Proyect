@@ -23,9 +23,16 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// GET /documents - List all documents (public read)
+// GET /documents - List all documents (public read) with pagination
 router.get('/', asyncHandler(async (req, res) => {
-    const { project_id } = req.query;
+    const { project_id, page = 1, limit = 10 } = req.query;
+    
+    // Validate and parse pagination parameters
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10)); // Max 100 items per page
+    const offset = (pageNum - 1) * limitNum;
+
+    let countQuery = 'SELECT COUNT(*) FROM documents';
     let query = `
         SELECT documents.*, users.username, projects.name as project_name, projects.code as project_code
         FROM documents
@@ -33,16 +40,42 @@ router.get('/', asyncHandler(async (req, res) => {
         LEFT JOIN projects ON documents.project_id = projects.id
     `;
     let params = [];
+    let countParams = [];
 
     if (project_id) {
         query += ' WHERE documents.project_id = $1';
+        countQuery += ' WHERE project_id = $1';
         params.push(project_id);
+        countParams.push(project_id);
     }
 
     query += ' ORDER BY documents.created_at DESC';
+    
+    // Add pagination
+    const paginationParamStart = params.length + 1;
+    query += ` LIMIT $${paginationParamStart} OFFSET $${paginationParamStart + 1}`;
+    params.push(limitNum, offset);
 
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    // Get total count and paginated results
+    const [countResult, dataResult] = await Promise.all([
+        pool.query(countQuery, countParams),
+        pool.query(query, params)
+    ]);
+
+    const totalItems = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalItems / limitNum);
+
+    res.json({
+        data: dataResult.rows,
+        pagination: {
+            currentPage: pageNum,
+            totalPages,
+            totalItems,
+            itemsPerPage: limitNum,
+            hasNextPage: pageNum < totalPages,
+            hasPrevPage: pageNum > 1
+        }
+    });
 }));
 
 // GET /documents/:id - Get specific document

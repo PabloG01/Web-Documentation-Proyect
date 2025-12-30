@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { documentsAPI, projectsAPI } from '../services/api';
 import DocumentCard from '../components/DocumentCard';
+import Pagination from '../components/Pagination';
 import '../styles/DocumentsListPage.css';
 import '../styles/LoadingStates.css';
 
@@ -13,18 +14,40 @@ function DocumentsListPage() {
   const [filterType, setFilterType] = useState('todos');
   const [filterProject, setFilterProject] = useState(searchParams.get('project') || 'todos');
   const [loading, setLoading] = useState(true);
+  
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [pagination, setPagination] = useState(null);
 
   useEffect(() => {
     loadDocuments();
     loadProjects();
-  }, []);
+  }, [currentPage, itemsPerPage, filterProject]);
 
   const loadDocuments = async () => {
     try {
-      const response = await documentsAPI.getAll();
-      setDocuments(response.data);
+      setLoading(true);
+      let response;
+      
+      // Si hay filtro de proyecto, usar la API específica
+      if (filterProject && filterProject !== 'todos' && filterProject !== 'sin-proyecto') {
+        response = await documentsAPI.getByProject(filterProject, currentPage, itemsPerPage);
+      } else {
+        response = await documentsAPI.getAll(currentPage, itemsPerPage);
+      }
+      
+      // Manejar formato de respuesta paginada
+      if (response.data.data) {
+        setDocuments(response.data.data);
+        setPagination(response.data.pagination);
+      } else {
+        setDocuments(response.data);
+        setPagination(null);
+      }
     } catch (err) {
-      console.error('Error loading documents:', err);
+      console.error('Error al cargar documentos:', err);
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -32,20 +55,34 @@ function DocumentsListPage() {
 
   const loadProjects = async () => {
     try {
-      const response = await projectsAPI.getAll();
-      setProjects(response.data);
+      const response = await projectsAPI.getAll(1, 100);
+      // Manejar formato de respuesta paginada
+      setProjects(response.data.data || response.data);
     } catch (err) {
-      console.error('Error loading projects:', err);
+      console.error('Error al cargar proyectos:', err);
     }
   };
 
+  // Manejador de cambio de página
+  const handlePageChange = (newPage, newItemsPerPage) => {
+    if (newItemsPerPage && newItemsPerPage !== itemsPerPage) {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reiniciar a página 1 cuando cambia el tamaño
+    } else {
+      setCurrentPage(newPage);
+    }
+    // Scroll suave hacia arriba
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
+
+  // Filtrado local (se aplica después de la paginación del servidor)
   const filteredDocuments = documents.filter(doc => {
     const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.description.toLowerCase().includes(searchTerm.toLowerCase());
+      doc.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'todos' || doc.type === filterType;
-    const matchesProject = filterProject === 'todos' || doc.project_id === filterProject;
-    return matchesSearch && matchesType && matchesProject;
+    // El filtro de proyecto ya se aplica en el servidor
+    return matchesSearch && matchesType;
   });
 
   const documentTypes = [
@@ -64,7 +101,12 @@ function DocumentsListPage() {
     <div className="documents-list-page">
       <div className="page-header">
         <h1>Mis Documentos</h1>
-        <p>Total: {filteredDocuments.length} documento(s)</p>
+        <p>
+          {pagination 
+            ? `Total: ${pagination.totalItems} documento(s)` 
+            : `Total: ${filteredDocuments.length} documento(s)`
+          }
+        </p>
       </div>
 
       <div className="filters">
@@ -79,7 +121,13 @@ function DocumentsListPage() {
 
         <div className="filter-group">
           <div className="type-filter">
-            <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)}>
+            <select 
+              value={filterProject} 
+              onChange={(e) => {
+                setFilterProject(e.target.value);
+                setCurrentPage(1); // Reiniciar a página 1 cuando cambia el filtro
+              }}
+            >
               <option value="todos">📁 Todos los proyectos</option>
               {projects.map(project => (
                 <option key={project.id} value={project.id}>
@@ -116,11 +164,21 @@ function DocumentsListPage() {
           <p>Intenta ajustar los filtros o crea un nuevo documento</p>
         </div>
       ) : (
-        <div className="documents-grid">
-          {filteredDocuments.map(doc => (
-            <DocumentCard key={doc.id} document={doc} />
-          ))}
-        </div>
+        <>
+          <div className="documents-grid">
+            {filteredDocuments.map(doc => (
+              <DocumentCard key={doc.id} document={doc} />
+            ))}
+          </div>
+          
+          {/* Componente de paginación */}
+          {pagination && (
+            <Pagination 
+              pagination={pagination} 
+              onPageChange={handlePageChange}
+            />
+          )}
+        </>
       )}
     </div>
   );

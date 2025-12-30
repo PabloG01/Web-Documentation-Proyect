@@ -10,8 +10,8 @@ const api = axios.create({
 
 // Projects API
 export const projectsAPI = {
-    getAll: () => api.get('/projects'),
-    getByUser: () => api.get('/projects?user_only=true'),
+    getAll: (page = 1, limit = 100) => api.get(`/projects?page=${page}&limit=${limit}`),
+    getByUser: (page = 1, limit = 100) => api.get(`/projects?user_only=true&page=${page}&limit=${limit}`),
     create: (projectData) => api.post('/projects', projectData),
     update: (id, projectData) => api.put(`/projects/${id}`, projectData),
     delete: (id) => api.delete(`/projects/${id}`)
@@ -19,8 +19,8 @@ export const projectsAPI = {
 
 // Documents API
 export const documentsAPI = {
-    getAll: () => api.get('/documents'),
-    getByProject: (projectId) => api.get(`/documents?project_id=${projectId}`),
+    getAll: (page = 1, limit = 100) => api.get(`/documents?page=${page}&limit=${limit}`),
+    getByProject: (projectId, page = 1, limit = 100) => api.get(`/documents?project_id=${projectId}&page=${page}&limit=${limit}`),
     getById: (id) => api.get(`/documents/${id}`),
     create: (documentData) => api.post('/documents', documentData),
     update: (id, documentData) => api.put(`/documents/${id}`, documentData),

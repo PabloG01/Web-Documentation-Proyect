@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectsAPI, documentsAPI } from '../services/api';
+import Pagination from '../components/Pagination';
 import '../styles/ProjectsPage.css';
 import '../styles/LoadingStates.css';
 
@@ -10,27 +11,52 @@ function ProjectsPage() {
   const [documents, setDocuments] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
-
   const [loading, setLoading] = useState(true);
+  
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [pagination, setPagination] = useState(null);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [projectsRes, docsRes] = await Promise.all([
-        projectsAPI.getAll(),
-        documentsAPI.getAll()
+        projectsAPI.getAll(currentPage, itemsPerPage),
+        documentsAPI.getAll(1, 1000) // Cargar todos los documentos para contar
       ]);
-      setProjects(projectsRes.data);
-      setDocuments(docsRes.data);
+      
+      // Manejar formato de respuesta paginada
+      if (projectsRes.data.data) {
+        setProjects(projectsRes.data.data);
+        setPagination(projectsRes.data.pagination);
+      } else {
+        setProjects(projectsRes.data);
+        setPagination(null);
+      }
+      
+      setDocuments(docsRes.data.data || docsRes.data);
     } catch (err) {
-      console.error('Error loading data:', err);
+      console.error('Error al cargar datos:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Manejador de cambio de página
+  const handlePageChange = (newPage, newItemsPerPage) => {
+    if (newItemsPerPage && newItemsPerPage !== itemsPerPage) {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reiniciar a página 1 cuando cambia el tamaño
+    } else {
+      setCurrentPage(newPage);
+    }
+    // Scroll suave hacia arriba
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const getDocumentCount = (projectId) => {
@@ -206,6 +232,14 @@ function ProjectsPage() {
             </div>
           ))}
         </div>
+      )}
+      
+      {/* Componente de paginación */}
+      {!loading && pagination && (
+        <Pagination 
+          pagination={pagination} 
+          onPageChange={handlePageChange}
+        />
       )}
     </div>
   );

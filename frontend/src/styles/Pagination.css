@@ -1,0 +1,158 @@
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  margin-top: 30px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.pagination-info strong {
+  color: #334155;
+  font-weight: 600;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pagination-btn {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #475569;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.pagination-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  background: #f8fafc;
+}
+
+.pagination-btn.active {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+  font-weight: 600;
+}
+
+.pagination-btn.active:hover {
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.pagination-btn span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.pagination-ellipsis {
+  padding: 0 8px;
+  color: #94a3b8;
+  font-size: 14px;
+  user-select: none;
+}
+
+.pagination-page-size {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.pagination-page-size label {
+  font-weight: 500;
+}
+
+.pagination-page-size select {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.pagination-page-size select:hover {
+  border-color: #6366f1;
+}
+
+.pagination-page-size select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .pagination-info {
+    order: 1;
+    text-align: center;
+    width: 100%;
+  }
+
+  .pagination-controls {
+    order: 2;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pagination-page-size {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pagination-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pagination-btn {
+    min-width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .pagination-ellipsis {
+    padding: 0 4px;
+  }
+}

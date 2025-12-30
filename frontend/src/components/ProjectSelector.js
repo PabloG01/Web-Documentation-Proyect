@@ -23,10 +23,12 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
     try {
       setLoading(true);
       const response = await projectsAPI.getAll();
-      setProjects(response.data);
+      // Handle paginated response format
+      const projectsData = response.data.data || response.data;
+      setProjects(projectsData);
 
       // Si no hay proyectos y el usuario está autenticado, crear uno por defecto
-      if (response.data.length === 0 && allowCreate && user && !defaultProjectCreated.current) {
+      if (projectsData.length === 0 && allowCreate && user && !defaultProjectCreated.current) {
         defaultProjectCreated.current = true; // Marcar como creado antes de la llamada
 
         try {
@@ -45,7 +47,7 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
           console.error('Error creating default project:', createErr);
           // Intentar cargar proyectos de nuevo por si ya existe
           const retryResponse = await projectsAPI.getAll();
-          setProjects(retryResponse.data);
+          setProjects(retryResponse.data.data || retryResponse.data);
         }
       }
     } catch (err) {

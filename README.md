@@ -23,12 +23,20 @@ Aplicación web para crear, gestionar y organizar documentación técnica y prof
 - Filtro por tipo de documentación
 - Filtro por proyecto
 - Navegación rápida entre proyectos
+- **Paginación inteligente** - Control de navegación entre páginas
 
 ### ✏️ **Editor Completo**
 - Vista previa formateada con Markdown simple
 - Modo edición inline
 - Control de versiones
 - Seguimiento de cambios (creado/actualizado)
+
+### ⚡ **Performance Optimizado**
+- Paginación en backend con LIMIT y OFFSET
+- Carga eficiente de grandes volúmenes de datos
+- Controles de navegación por páginas
+- Selector de items por página (10, 20, 50, 100)
+- Escalable hasta miles de documentos sin pérdida de rendimiento
 
 ## 🚀 Instalación
 
@@ -61,6 +69,14 @@ La aplicación se abrirá en [http://localhost:3000](http://localhost:3000)
 
 ```
 prueba-de-documentacion/
+├── backend/
+│   ├── routes/
+│   │   ├── documents.js (con paginación)
+│   │   ├── projects.js (con paginación)
+│   │   └── auth.js
+│   ├── middleware/
+│   ├── database.js
+│   └── server.js
 ├── frontend/
 │   ├── public/
 │   │   └── index.html
@@ -70,18 +86,23 @@ prueba-de-documentacion/
 │   │   │   ├── DocumentCard.js
 │   │   │   ├── DocumentForm.js
 │   │   │   ├── DocumentTypeSelector.js
-│   │   │   └── ProjectSelector.js
+│   │   │   ├── ProjectSelector.js
+│   │   │   └── Pagination.js (NUEVO)
 │   │   ├── pages/
 │   │   │   ├── HomePage.js
 │   │   │   ├── CreatePage.js
-│   │   │   ├── DocumentsListPage.js
+│   │   │   ├── DocumentsListPage.js (con paginación)
 │   │   │   ├── DocumentViewPage.js
-│   │   │   └── ProjectsPage.js
+│   │   │   └── ProjectsPage.js (con paginación)
+│   │   ├── services/
+│   │   │   └── api.js (con soporte de paginación)
 │   │   ├── styles/
+│   │   │   ├── Pagination.css (NUEVO)
 │   │   │   └── *.css
 │   │   ├── App.js
 │   │   └── index.js
 │   └── package.json
+├── PAGINATION_GUIDE.md (NUEVO)
 └── package.json
 ```
 
@@ -173,14 +194,22 @@ Los datos se guardan en **localStorage** del navegador:
 
 ## 🚧 Roadmap
 
+### ✅ Implementado
+- [x] Paginación en backend y frontend
+- [x] Rate limiting y validaciones
+- [x] Sistema de autenticación JWT
+- [x] Base de datos PostgreSQL
+- [x] Manejo de errores centralizado
+
+### 📋 Próximas Funcionalidades
 - [ ] Exportar a PDF
 - [ ] Importar/Exportar datos
-- [ ] Backend con API REST
-- [ ] Autenticación de usuarios
 - [ ] Colaboración en tiempo real
-- [ ] Historial de versiones
+- [ ] Historial de versiones detallado
 - [ ] Templates personalizados
 - [ ] Integración con Git
+- [ ] Búsqueda full-text en contenido
+- [ ] Tags y categorías personalizadas
 
 ## 📝 Licencia
 

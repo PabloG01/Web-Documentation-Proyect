@@ -23,21 +23,54 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// GET /projects - List all projects (optionally filter by user)
+// GET /projects - List all projects (optionally filter by user) with pagination
 router.get('/', asyncHandler(async (req, res) => {
-    const { user_only } = req.query;
+    const { user_only, page = 1, limit = 10 } = req.query;
+    
+    // Validate and parse pagination parameters
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10)); // Max 100 items per page
+    const offset = (pageNum - 1) * limitNum;
+
+    let countQuery = 'SELECT COUNT(*) FROM projects';
     let query = 'SELECT projects.*, users.username FROM projects LEFT JOIN users ON projects.user_id = users.id';
     let params = [];
+    let countParams = [];
 
     if (user_only && req.user) {
         query += ' WHERE projects.user_id = $1';
+        countQuery += ' WHERE user_id = $1';
         params.push(req.user.id);
+        countParams.push(req.user.id);
     }
 
     query += ' ORDER BY projects.created_at DESC';
+    
+    // Add pagination
+    const paginationParamStart = params.length + 1;
+    query += ` LIMIT $${paginationParamStart} OFFSET $${paginationParamStart + 1}`;
+    params.push(limitNum, offset);
 
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    // Get total count and paginated results
+    const [countResult, dataResult] = await Promise.all([
+        pool.query(countQuery, countParams),
+        pool.query(query, params)
+    ]);
+
+    const totalItems = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalItems / limitNum);
+
+    res.json({
+        data: dataResult.rows,
+        pagination: {
+            currentPage: pageNum,
+            totalPages,
+            totalItems,
+            itemsPerPage: limitNum,
+            hasNextPage: pageNum < totalPages,
+            hasPrevPage: pageNum > 1
+        }
+    });
 }));
 
 // POST /projects - Create project (requires auth)

@@ -1,5 +1,6 @@
 .documents-list-page {
   padding: 20px;
+  padding-bottom: 40px;
   min-height: calc(100vh - 70px);
 }
 

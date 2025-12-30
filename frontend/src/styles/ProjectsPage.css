@@ -1,5 +1,6 @@
 .projects-page {
   padding: 20px;
+  padding-bottom: 40px;
   min-height: calc(100vh - 70px);
   max-width: 1000px;
   margin: 0 auto;
