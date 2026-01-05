@@ -53,11 +53,11 @@ const registerLimiter = rateLimit({
  * Protege contra uso excesivo y ataques DoS
  * 
  * Límites:
- * - Máximo 100 requests por 15 minutos por IP
+ * - Máximo 500 requests por 15 minutos por IP
  */
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100, // Máximo 100 requests por ventana
+    max: 500, // Máximo 500 requests por ventana
     message: {
         error: 'Demasiadas solicitudes desde esta IP. Por favor, inténtalo de nuevo más tarde.'
     },

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import OpenApiViewer from '../components/OpenApiViewer';
 import { projectsAPI, apiSpecsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
@@ -6,6 +7,7 @@ import '../styles/ApiTestPage.css';
 
 function ApiTestPage() {
     const { user } = useContext(AuthContext);
+    const [searchParams] = useSearchParams();
     const [spec, setSpec] = useState(null);
     const [fileName, setFileName] = useState('');
     const [error, setError] = useState('');
@@ -29,6 +31,32 @@ function ApiTestPage() {
             loadSavedSpecs();
         }
     }, [user]);
+
+    // Cargar spec desde URL si viene con parámetro ?spec=id
+    useEffect(() => {
+        const specIdFromUrl = searchParams.get('spec');
+        if (specIdFromUrl && user) {
+            loadSpecFromUrl(specIdFromUrl);
+        }
+    }, [searchParams, user]);
+
+    const loadSpecFromUrl = async (specId) => {
+        try {
+            const response = await apiSpecsAPI.getById(specId);
+            const savedSpec = response.data;
+            setSpec(savedSpec.spec_content);
+            setViewerKey(prev => prev + 1);
+            setSpecName(savedSpec.name);
+            setSpecDescription(savedSpec.description || '');
+            setCurrentSpecId(savedSpec.id);
+            setSelectedProjectId(savedSpec.project_id || '');
+            setFileName(`${savedSpec.name} (guardado)`);
+            setError('');
+        } catch (err) {
+            console.error('Error loading spec from URL:', err);
+            setError('No se pudo cargar la especificación');
+        }
+    };
 
     const loadProjects = async () => {
         try {

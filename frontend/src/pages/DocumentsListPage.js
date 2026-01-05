@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { documentsAPI, projectsAPI } from '../services/api';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { documentsAPI, projectsAPI, apiSpecsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import DocumentCard from '../components/DocumentCard';
 import Pagination from '../components/Pagination';
@@ -9,8 +9,10 @@ import '../styles/LoadingStates.css';
 
 function DocumentsListPage() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [documents, setDocuments] = useState([]);
+  const [apiSpecs, setApiSpecs] = useState([]);
   const [projects, setProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('todos');
@@ -19,6 +21,8 @@ function DocumentsListPage() {
 
   // Tab activo: 'mine' o 'all'
   const [viewMode, setViewMode] = useState('mine');
+  // Tipo de contenido: 'documents' o 'api-specs'
+  const [contentType, setContentType] = useState('documents');
 
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,7 +32,10 @@ function DocumentsListPage() {
   useEffect(() => {
     loadDocuments();
     loadProjects();
-  }, [currentPage, itemsPerPage, filterProject, viewMode]);
+    if (user) {
+      loadApiSpecs();
+    }
+  }, [currentPage, itemsPerPage, filterProject, viewMode, user]);
 
   const loadDocuments = async () => {
     try {
@@ -59,6 +66,16 @@ function DocumentsListPage() {
       setDocuments([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadApiSpecs = async () => {
+    try {
+      const response = await apiSpecsAPI.getAll();
+      setApiSpecs(response.data || []);
+    } catch (err) {
+      console.error('Error al cargar API specs:', err);
+      setApiSpecs([]);
     }
   };
 
@@ -100,6 +117,16 @@ function DocumentsListPage() {
     return matchesSearch && matchesType;
   });
 
+  // Filtrado de API specs
+  const filteredSpecs = apiSpecs.filter(spec => {
+    const matchesSearch = spec.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      spec.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesProject = filterProject === 'todos' ||
+      (filterProject === 'sin-proyecto' && !spec.project_id) ||
+      spec.project_id?.toString() === filterProject;
+    return matchesSearch && matchesProject;
+  });
+
   const documentTypes = [
     { value: 'todos', label: 'Todos' },
     { value: 'api', label: 'API' },
@@ -110,39 +137,75 @@ function DocumentsListPage() {
     { value: 'requisitos', label: 'Requisitos' }
   ];
 
+  // Navegar a API Testing con spec específica
+  const handleViewSpec = (specId) => {
+    navigate(`/api-testing?spec=${specId}`);
+  };
+
+  // Eliminar spec
+  const handleDeleteSpec = async (specId) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta especificación API?')) return;
+    try {
+      await apiSpecsAPI.delete(specId);
+      loadApiSpecs();
+    } catch (err) {
+      alert('Error al eliminar: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   return (
     <div className="documents-list-page">
       <div className="page-header">
         <h1>Documentos</h1>
         <p>
-          {pagination
-            ? `Total: ${pagination.totalItems} documento(s)`
-            : `Total: ${filteredDocuments.length} documento(s)`
+          {contentType === 'documents'
+            ? (pagination
+              ? `Total: ${pagination.totalItems} documento(s)`
+              : `Total: ${filteredDocuments.length} documento(s)`)
+            : `Total: ${filteredSpecs.length} API spec(s)`
           }
         </p>
       </div>
 
-      {/* Tabs de modo de vista */}
-      <div className="view-tabs">
+      {/* Tabs de tipo de contenido */}
+      <div className="content-tabs">
         <button
-          className={`view-tab ${viewMode === 'mine' ? 'active' : ''}`}
-          onClick={() => handleViewModeChange('mine')}
+          className={`content-tab ${contentType === 'documents' ? 'active' : ''}`}
+          onClick={() => setContentType('documents')}
         >
-          📄 Mis Documentos
+          📄 Documentos
         </button>
         <button
-          className={`view-tab ${viewMode === 'all' ? 'active' : ''}`}
-          onClick={() => handleViewModeChange('all')}
+          className={`content-tab ${contentType === 'api-specs' ? 'active' : ''}`}
+          onClick={() => setContentType('api-specs')}
         >
-          🌐 Todos los Documentos
+          🔌 API Specs (Swagger)
         </button>
       </div>
+
+      {/* Tabs de modo de vista - solo para documentos */}
+      {contentType === 'documents' && (
+        <div className="view-tabs">
+          <button
+            className={`view-tab ${viewMode === 'mine' ? 'active' : ''}`}
+            onClick={() => handleViewModeChange('mine')}
+          >
+            📄 Mis Documentos
+          </button>
+          <button
+            className={`view-tab ${viewMode === 'all' ? 'active' : ''}`}
+            onClick={() => handleViewModeChange('all')}
+          >
+            🌐 Todos los Documentos
+          </button>
+        </div>
+      )}
 
       <div className="filters">
         <div className="search-box">
           <input
             type="text"
-            placeholder="🔍 Buscar documentos..."
+            placeholder={contentType === 'documents' ? "🔍 Buscar documentos..." : "🔍 Buscar API specs..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -154,7 +217,7 @@ function DocumentsListPage() {
               value={filterProject}
               onChange={(e) => {
                 setFilterProject(e.target.value);
-                setCurrentPage(1); // Reiniciar a página 1 cuando cambia el filtro
+                setCurrentPage(1);
               }}
             >
               <option value="todos">📁 Todos los proyectos</option>
@@ -167,56 +230,108 @@ function DocumentsListPage() {
             </select>
           </div>
 
-          <div className="type-filter">
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-              {documentTypes.map(type => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {contentType === 'documents' && (
+            <div className="type-filter">
+              <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                {documentTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
-      {loading ? (
+      {loading && contentType === 'documents' ? (
         <div className="loading-skeleton">
           <div className="skeleton-item"></div>
           <div className="skeleton-item"></div>
           <div className="skeleton-item"></div>
           <div className="skeleton-item"></div>
         </div>
-      ) : filteredDocuments.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">📭</div>
-          <h2>No se encontraron documentos</h2>
-          <p>
-            {viewMode === 'mine'
-              ? 'Aún no has creado ningún documento. ¡Crea tu primer documento!'
-              : 'Intenta ajustar los filtros o crea un nuevo documento'}
-          </p>
-        </div>
-      ) : (
-        <>
-          <div className="documents-grid">
-            {filteredDocuments.map(doc => (
-              <DocumentCard
-                key={doc.id}
-                document={doc}
-                currentUserId={user?.id}
-                showAuthor={viewMode === 'all'}
+      ) : contentType === 'documents' ? (
+        // DOCUMENTOS
+        filteredDocuments.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📭</div>
+            <h2>No se encontraron documentos</h2>
+            <p>
+              {viewMode === 'mine'
+                ? 'Aún no has creado ningún documento. ¡Crea tu primer documento!'
+                : 'Intenta ajustar los filtros o crea un nuevo documento'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="documents-grid">
+              {filteredDocuments.map(doc => (
+                <DocumentCard
+                  key={doc.id}
+                  document={doc}
+                  currentUserId={user?.id}
+                  showAuthor={viewMode === 'all'}
+                />
+              ))}
+            </div>
+
+            {pagination && (
+              <Pagination
+                pagination={pagination}
+                onPageChange={handlePageChange}
               />
+            )}
+          </>
+        )
+      ) : (
+        // API SPECS
+        filteredSpecs.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">🔌</div>
+            <h2>No hay API specs guardadas</h2>
+            <p>Ve a "API Testing" para subir y guardar especificaciones OpenAPI</p>
+          </div>
+        ) : (
+          <div className="specs-grid">
+            {filteredSpecs.map(spec => (
+              <div key={spec.id} className="spec-card">
+                <div className="spec-card-header">
+                  <span className="spec-icon">🔌</span>
+                  {spec.project_code && (
+                    <span className="spec-project-badge">{spec.project_code}</span>
+                  )}
+                </div>
+                <h3 className="spec-card-title">{spec.name}</h3>
+                {spec.description && (
+                  <p className="spec-card-description">{spec.description}</p>
+                )}
+                <div className="spec-card-meta">
+                  <span>📅 {new Date(spec.created_at).toLocaleDateString('es-ES')}</span>
+                  {spec.creator_username && (
+                    <span className="spec-creator">👤 {spec.creator_username}</span>
+                  )}
+                </div>
+                <div className="spec-card-actions">
+                  <button
+                    className="btn btn-small btn-primary"
+                    onClick={() => handleViewSpec(spec.id)}
+                  >
+                    🔍 Ver con Swagger
+                  </button>
+                  {user?.id === spec.user_id && (
+                    <button
+                      className="btn btn-small btn-secondary"
+                      onClick={() => handleDeleteSpec(spec.id)}
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
-
-          {/* Componente de paginación */}
-          {pagination && (
-            <Pagination
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
-          )}
-        </>
+        )
       )}
     </div>
   );

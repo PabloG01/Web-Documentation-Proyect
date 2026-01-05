@@ -12,7 +12,7 @@ function ProjectsPage() {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [loading, setLoading] = useState(true);
-  
+
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
@@ -29,7 +29,7 @@ function ProjectsPage() {
         projectsAPI.getAll(currentPage, itemsPerPage),
         documentsAPI.getAll(1, 1000) // Cargar todos los documentos para contar
       ]);
-      
+
       // Manejar formato de respuesta paginada
       if (projectsRes.data.data) {
         setProjects(projectsRes.data.data);
@@ -38,7 +38,7 @@ function ProjectsPage() {
         setProjects(projectsRes.data);
         setPagination(null);
       }
-      
+
       setDocuments(docsRes.data.data || docsRes.data);
     } catch (err) {
       console.error('Error al cargar datos:', err);
@@ -233,11 +233,11 @@ function ProjectsPage() {
           ))}
         </div>
       )}
-      
+
       {/* Componente de paginación */}
       {!loading && pagination && (
-        <Pagination 
-          pagination={pagination} 
+        <Pagination
+          pagination={pagination}
           onPageChange={handlePageChange}
         />
       )}

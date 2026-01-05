@@ -126,6 +126,63 @@
   width: 100%;
 }
 
+/* API Specs section */
+.project-specs {
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 5px;
+}
+
+.project-specs h4 {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.specs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spec-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-color);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.spec-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.btn-spec {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.btn-spec:hover {
+  background: #4f46e5;
+}
+
+.stat-api {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+}
+
 /* MODO EDICIÓN */
 .project-edit {
   width: 100%;

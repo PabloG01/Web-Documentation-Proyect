@@ -8,7 +8,6 @@ function DocumentForm({ documentType, onSubmit, saving = false }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    author: '',
     version: '1.0.0',
     content: ''
   });
@@ -159,19 +158,6 @@ Bienvenido a nuestro sistema.
           </div>
 
           <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="author">Autor</label>
-              <input
-                type="text"
-                id="author"
-                name="author"
-                value={formData.author}
-                onChange={handleChange}
-                placeholder="Tu nombre"
-                required
-              />
-            </div>
-
             <div className="form-group">
               <label htmlFor="version">Versión</label>
               <input

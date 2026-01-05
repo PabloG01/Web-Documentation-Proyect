@@ -22,21 +22,42 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// GET /api-specs - List all API specs (optionally filter by project)
+// Middleware opcional - extrae user si hay token, pero no falla si no hay
+const optionalVerifyToken = (req, res, next) => {
+    const token = req.cookies.auth_token;
+    if (token) {
+        const jwt = require('jsonwebtoken');
+        try {
+            const verified = jwt.verify(token, process.env.JWT_SECRET);
+            req.user = verified;
+        } catch (err) {
+            // Token inválido, pero es opcional - continuar sin user
+            req.user = null;
+        }
+    } else {
+        req.user = null;
+    }
+    next();
+};
+
+// GET /api-specs - List all API specs (visible to all authenticated users)
 router.get('/', verifyToken, asyncHandler(async (req, res) => {
     const { project_id } = req.query;
 
     let query = `
-        SELECT api_specs.*, projects.name as project_name, projects.code as project_code
+        SELECT api_specs.*, projects.name as project_name, projects.code as project_code,
+               users.username as creator_username
         FROM api_specs 
         LEFT JOIN projects ON api_specs.project_id = projects.id
-        WHERE api_specs.user_id = $1
+        LEFT JOIN users ON api_specs.user_id = users.id
     `;
-    let params = [req.user.id];
+    let params = [];
+    let paramIndex = 1;
 
     if (project_id) {
-        query += ' AND api_specs.project_id = $2';
+        query += ` WHERE api_specs.project_id = $${paramIndex}`;
         params.push(project_id);
+        paramIndex++;
     }
 
     query += ' ORDER BY api_specs.updated_at DESC';
@@ -45,16 +66,18 @@ router.get('/', verifyToken, asyncHandler(async (req, res) => {
     res.json(result.rows);
 }));
 
-// GET /api-specs/:id - Get a single API spec by ID
+// GET /api-specs/:id - Get a single API spec by ID (visible to all authenticated users)
 router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-        `SELECT api_specs.*, projects.name as project_name, projects.code as project_code
+        `SELECT api_specs.*, projects.name as project_name, projects.code as project_code,
+                users.username as creator_username
          FROM api_specs 
          LEFT JOIN projects ON api_specs.project_id = projects.id
-         WHERE api_specs.id = $1 AND api_specs.user_id = $2`,
-        [id, req.user.id]
+         LEFT JOIN users ON api_specs.user_id = users.id
+         WHERE api_specs.id = $1`,
+        [id]
     );
 
     if (result.rows.length === 0) {
@@ -76,14 +99,14 @@ router.post('/', verifyToken, createLimiter, asyncHandler(async (req, res) => {
         throw new AppError('El contenido de la especificación es requerido y debe ser JSON válido', 400);
     }
 
-    // Validate project exists and belongs to user
+    // Validate project exists
     if (project_id) {
         const projectCheck = await pool.query(
-            'SELECT id FROM projects WHERE id = $1 AND user_id = $2',
-            [project_id, req.user.id]
+            'SELECT id FROM projects WHERE id = $1',
+            [project_id]
         );
         if (projectCheck.rows.length === 0) {
-            throw new AppError('Proyecto no encontrado o no autorizado', 404);
+            throw new AppError('Proyecto no encontrado', 404);
         }
     }
 
@@ -122,14 +145,14 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
         throw new AppError('El contenido de la especificación es requerido y debe ser JSON válido', 400);
     }
 
-    // Validate project if provided
+    // Validate project exists if provided
     if (project_id) {
         const projectCheck = await pool.query(
-            'SELECT id FROM projects WHERE id = $1 AND user_id = $2',
-            [project_id, req.user.id]
+            'SELECT id FROM projects WHERE id = $1',
+            [project_id]
         );
         if (projectCheck.rows.length === 0) {
-            throw new AppError('Proyecto no encontrado o no autorizado', 404);
+            throw new AppError('Proyecto no encontrado', 404);
         }
     }
 

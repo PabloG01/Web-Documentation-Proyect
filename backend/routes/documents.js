@@ -133,7 +133,7 @@ router.get('/:id', validateDocumentId, asyncHandler(async (req, res) => {
 
 // POST /documents - Create document (requires auth)
 router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandler(async (req, res) => {
-    const { project_id, type, title, description, content, version, author } = req.body;
+    const { project_id, type, title, description, content, version } = req.body;
 
     // Validación 1: El campo project_id es obligatorio
     if (!project_id) {
@@ -150,6 +150,9 @@ router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandle
     if (!type || !title || !content) {
         throw new AppError('Los campos type, title y content son obligatorios', 400);
     }
+
+    // El autor es automáticamente el usuario autenticado
+    const author = req.user.username;
 
     const result = await pool.query(
         `INSERT INTO documents (project_id, user_id, type, title, description, content, version, author)
@@ -172,7 +175,7 @@ router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandle
 // PUT /documents/:id - Update document (owner only)
 router.put('/:id', verifyToken, validateDocumentId, validateUpdateDocument, asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { title, description, content, version, author } = req.body;
+    const { title, description, content, version } = req.body;
 
     // Check ownership
     const check = await pool.query('SELECT user_id FROM documents WHERE id = $1', [id]);
@@ -185,9 +188,9 @@ router.put('/:id', verifyToken, validateDocumentId, validateUpdateDocument, asyn
 
     const result = await pool.query(
         `UPDATE documents 
-         SET title = $1, description = $2, content = $3, version = $4, author = $5, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $6 RETURNING *`,
-        [title, description, content, version, author, id]
+         SET title = $1, description = $2, content = $3, version = $4, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $5 RETURNING *`,
+        [title, description, content, version, id]
     );
 
     res.json(result.rows[0]);
