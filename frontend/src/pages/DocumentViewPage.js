@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useContext } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { documentsAPI } from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 import '../styles/DocumentViewPage.css';
 import '../styles/LoadingStates.css';
 import TableOfContents from '../components/TableOfContents';
@@ -12,6 +13,7 @@ import PdfDownloadButton from '../components/PdfDownloadButton';
 function DocumentViewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
   const [document, setDocument] = useState(null);
   const [isEditing, setIsEditing] = useState(searchParams.get('edit') === 'true');
@@ -45,6 +47,9 @@ function DocumentViewPage() {
   useEffect(() => {
     loadDocument();
   }, [loadDocument]);
+
+  // Verificar si el usuario actual es el propietario del documento
+  const isOwner = user && document && document.user_id === user.id;
 
   const handleEditChange = (field, value) => {
     setEditedContent(prev => ({
@@ -126,16 +131,27 @@ function DocumentViewPage() {
           {!isEditing && (
             <>
               <PdfDownloadButton document={document} />
-              <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
-                ✏️ Editar
-              </button>
-              <button className="btn btn-secondary" onClick={handleDelete}>
-                🗑️ Eliminar
-              </button>
+              {isOwner && (
+                <>
+                  <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
+                    ✏️ Editar
+                  </button>
+                  <button className="btn btn-secondary" onClick={handleDelete}>
+                    🗑️ Eliminar
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {/* Mostrar aviso si no es propietario */}
+      {!isOwner && (
+        <div className="owner-notice">
+          ℹ️ Este documento fue creado por <strong>{document.username || 'otro usuario'}</strong>. Solo puedes visualizarlo.
+        </div>
+      )}
 
       <div className="document-container document-with-toc">
         {!isEditing ? (
@@ -157,6 +173,12 @@ function DocumentViewPage() {
                     <span className="meta-label">Autor:</span>
                     <span className="meta-value">{document.author}</span>
                   </div>
+                  {document.username && (
+                    <div className="meta-item">
+                      <span className="meta-label">Creador:</span>
+                      <span className="meta-value">{document.username}</span>
+                    </div>
+                  )}
                   <div className="meta-item">
                     <span className="meta-label">Creado:</span>
                     <span className="meta-value">{formatDate(document.created_at)}</span>
@@ -184,7 +206,7 @@ function DocumentViewPage() {
             <TableOfContents content={document.content} />
           </>
         ) : (
-          // EDICIÓN
+          // EDICIÓN (solo si es propietario)
           <>
             <div className="document-edit">
               <div className="edit-section">
@@ -245,6 +267,13 @@ function DocumentViewPage() {
                   disabled={saving}
                 >
                   {saving ? '⏳ Guardando...' : '✅ Guardar cambios'}
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={handleDelete}
+                  disabled={saving}
+                >
+                  🗑️ Eliminar documento
                 </button>
                 <button
                   className="btn btn-secondary"

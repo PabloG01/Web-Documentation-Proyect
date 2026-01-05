@@ -2,10 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/DocumentCard.css';
 
-function DocumentCard({ document }) {
+function DocumentCard({ document, currentUserId, showAuthor = false }) {
   // Project info now comes from API via JOIN
   const projectCode = document.project_code || null;
   const projectColor = '#6366f1'; // Could be added to API response if needed
+
+  // Verificar si el usuario actual es el propietario
+  const isOwner = currentUserId && document.user_id === currentUserId;
 
   const icons = {
     api: '🔌',
@@ -46,6 +49,9 @@ function DocumentCard({ document }) {
       <p className="card-description">{document.description}</p>
 
       <div className="card-meta">
+        {showAuthor && document.username && (
+          <span className="meta-creator">✍️ {document.username}</span>
+        )}
         <span className="meta-author">👤 {document.author}</span>
         <span className="meta-date">📅 {formatDate(document.created_at)}</span>
       </div>
@@ -54,9 +60,11 @@ function DocumentCard({ document }) {
         <Link to={`/documento/${document.id}`} className="btn btn-small">
           Ver
         </Link>
-        <Link to={`/documento/${document.id}?edit=true`} className="btn btn-small btn-secondary">
-          Editar
-        </Link>
+        {isOwner && (
+          <Link to={`/documento/${document.id}?edit=true`} className="btn btn-small btn-secondary">
+            Editar
+          </Link>
+        )}
       </div>
     </div>
   );

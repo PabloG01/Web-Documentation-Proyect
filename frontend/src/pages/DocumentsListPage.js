@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { documentsAPI, projectsAPI } from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 import DocumentCard from '../components/DocumentCard';
 import Pagination from '../components/Pagination';
 import '../styles/DocumentsListPage.css';
 import '../styles/LoadingStates.css';
 
 function DocumentsListPage() {
+  const { user } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
   const [documents, setDocuments] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -14,7 +16,10 @@ function DocumentsListPage() {
   const [filterType, setFilterType] = useState('todos');
   const [filterProject, setFilterProject] = useState(searchParams.get('project') || 'todos');
   const [loading, setLoading] = useState(true);
-  
+
+  // Tab activo: 'mine' o 'all'
+  const [viewMode, setViewMode] = useState('mine');
+
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
@@ -23,20 +28,24 @@ function DocumentsListPage() {
   useEffect(() => {
     loadDocuments();
     loadProjects();
-  }, [currentPage, itemsPerPage, filterProject]);
+  }, [currentPage, itemsPerPage, filterProject, viewMode]);
 
   const loadDocuments = async () => {
     try {
       setLoading(true);
       let response;
-      
+
       // Si hay filtro de proyecto, usar la API específica
       if (filterProject && filterProject !== 'todos' && filterProject !== 'sin-proyecto') {
         response = await documentsAPI.getByProject(filterProject, currentPage, itemsPerPage);
+      } else if (viewMode === 'mine') {
+        // Modo "Mis Documentos" - solo del usuario actual
+        response = await documentsAPI.getByUser(currentPage, itemsPerPage);
       } else {
+        // Modo "Todos" - todos los documentos
         response = await documentsAPI.getAll(currentPage, itemsPerPage);
       }
-      
+
       // Manejar formato de respuesta paginada
       if (response.data.data) {
         setDocuments(response.data.data);
@@ -75,6 +84,12 @@ function DocumentsListPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Cambiar modo de vista
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    setCurrentPage(1);
+    setFilterProject('todos');
+  };
 
   // Filtrado local (se aplica después de la paginación del servidor)
   const filteredDocuments = documents.filter(doc => {
@@ -95,18 +110,32 @@ function DocumentsListPage() {
     { value: 'requisitos', label: 'Requisitos' }
   ];
 
-  // (Agrupación por proyecto disponible si se requiere)
-
   return (
     <div className="documents-list-page">
       <div className="page-header">
-        <h1>Mis Documentos</h1>
+        <h1>Documentos</h1>
         <p>
-          {pagination 
-            ? `Total: ${pagination.totalItems} documento(s)` 
+          {pagination
+            ? `Total: ${pagination.totalItems} documento(s)`
             : `Total: ${filteredDocuments.length} documento(s)`
           }
         </p>
+      </div>
+
+      {/* Tabs de modo de vista */}
+      <div className="view-tabs">
+        <button
+          className={`view-tab ${viewMode === 'mine' ? 'active' : ''}`}
+          onClick={() => handleViewModeChange('mine')}
+        >
+          📄 Mis Documentos
+        </button>
+        <button
+          className={`view-tab ${viewMode === 'all' ? 'active' : ''}`}
+          onClick={() => handleViewModeChange('all')}
+        >
+          🌐 Todos los Documentos
+        </button>
       </div>
 
       <div className="filters">
@@ -121,8 +150,8 @@ function DocumentsListPage() {
 
         <div className="filter-group">
           <div className="type-filter">
-            <select 
-              value={filterProject} 
+            <select
+              value={filterProject}
               onChange={(e) => {
                 setFilterProject(e.target.value);
                 setCurrentPage(1); // Reiniciar a página 1 cuando cambia el filtro
@@ -161,20 +190,29 @@ function DocumentsListPage() {
         <div className="empty-state">
           <div className="empty-icon">📭</div>
           <h2>No se encontraron documentos</h2>
-          <p>Intenta ajustar los filtros o crea un nuevo documento</p>
+          <p>
+            {viewMode === 'mine'
+              ? 'Aún no has creado ningún documento. ¡Crea tu primer documento!'
+              : 'Intenta ajustar los filtros o crea un nuevo documento'}
+          </p>
         </div>
       ) : (
         <>
           <div className="documents-grid">
             {filteredDocuments.map(doc => (
-              <DocumentCard key={doc.id} document={doc} />
+              <DocumentCard
+                key={doc.id}
+                document={doc}
+                currentUserId={user?.id}
+                showAuthor={viewMode === 'all'}
+              />
             ))}
           </div>
-          
+
           {/* Componente de paginación */}
           {pagination && (
-            <Pagination 
-              pagination={pagination} 
+            <Pagination
+              pagination={pagination}
               onPageChange={handlePageChange}
             />
           )}

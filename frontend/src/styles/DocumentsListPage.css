@@ -20,6 +20,47 @@
   font-size: 14px;
 }
 
+/* View mode tabs */
+.view-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 30px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.view-tab {
+  flex: 1;
+  padding: 12px 24px;
+  border: 2px solid var(--primary-color, #6366f1);
+  background: transparent;
+  color: var(--primary-color, #6366f1);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-tab:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.view-tab:last-child {
+  border-radius: 0 8px 8px 0;
+  border-left: none;
+}
+
+.view-tab:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.view-tab.active {
+  background: var(--primary-color, #6366f1);
+  color: white;
+}
+
 .filters {
   display: flex;
   flex-direction: column;

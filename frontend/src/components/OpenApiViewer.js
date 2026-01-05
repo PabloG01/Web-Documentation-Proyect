@@ -5,15 +5,10 @@ function OpenApiViewer({ spec }) {
     const uiRef = useRef(null);
 
     useEffect(() => {
-        // 1. Capturamos la referencia actual en una variable local al inicio del efecto
-        const container = containerRef.current; // <--- CAMBIO AQUÍ
+        if (!spec || !containerRef.current) return;
 
-        if (!spec) return;
-
-        // Limpiar instancia anterior si existe
-        if (uiRef.current && containerRef.current) {
-            containerRef.current.innerHTML = '';
-        }
+        const containerId = `swagger-ui-${Date.now()}`;
+        containerRef.current.id = containerId;
 
         const loadSwaggerUI = () => {
             // Verificar si ya está cargado
@@ -30,8 +25,8 @@ function OpenApiViewer({ spec }) {
                 document.head.appendChild(link);
             }
 
-            // Cargar JS - usar standalone
-            if (!document.querySelector('script[src*="swagger-ui-standalone"]')) {
+            // Cargar JS
+            if (!document.querySelector('script[src*="swagger-ui-bundle"]')) {
                 const script = document.createElement('script');
                 script.src = 'https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js';
                 script.onload = () => {
@@ -41,6 +36,14 @@ function OpenApiViewer({ spec }) {
                     document.head.appendChild(bundleScript);
                 };
                 document.head.appendChild(script);
+            } else {
+                // Scripts ya están cargando, esperar
+                const checkReady = setInterval(() => {
+                    if (window.SwaggerUIBundle) {
+                        clearInterval(checkReady);
+                        initSwagger();
+                    }
+                }, 100);
             }
         };
 
@@ -50,13 +53,14 @@ function OpenApiViewer({ spec }) {
             try {
                 uiRef.current = window.SwaggerUIBundle({
                     spec: spec,
-                    dom_id: '#swagger-ui-container',
+                    domNode: containerRef.current,
                     deepLinking: true,
                     presets: [
                         window.SwaggerUIBundle.presets.apis,
                         window.SwaggerUIStandalonePreset
                     ],
-                    layout: 'BaseLayout'
+                    layout: 'BaseLayout',
+                    defaultModelsExpandDepth: -1
                 });
             } catch (error) {
                 console.error('Error initializing Swagger UI:', error);
@@ -74,12 +78,9 @@ function OpenApiViewer({ spec }) {
 
         loadSwaggerUI();
 
-        // Cleanup
+        // Cleanup - el componente se destruirá completamente gracias al key
         return () => {
-            // 2. Usamos la variable 'container' en lugar de 'containerRef.current'
-            if (container) { // <--- CAMBIO AQUÍ
-                container.innerHTML = '';
-            }
+            uiRef.current = null;
         };
     }, [spec]);
 
@@ -95,7 +96,7 @@ function OpenApiViewer({ spec }) {
 
     return (
         <div className="openapi-viewer">
-            <div id="swagger-ui-container" ref={containerRef}></div>
+            <div ref={containerRef} style={{ minHeight: '400px' }}></div>
         </div>
     );
 }

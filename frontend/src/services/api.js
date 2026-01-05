@@ -20,6 +20,7 @@ export const projectsAPI = {
 // Documents API
 export const documentsAPI = {
     getAll: (page = 1, limit = 100) => api.get(`/documents?page=${page}&limit=${limit}`),
+    getByUser: (page = 1, limit = 100) => api.get(`/documents?user_only=true&page=${page}&limit=${limit}`),
     getByProject: (projectId, page = 1, limit = 100) => api.get(`/documents?project_id=${projectId}&page=${page}&limit=${limit}`),
     getById: (id) => api.get(`/documents/${id}`),
     create: (documentData) => api.post('/documents', documentData),

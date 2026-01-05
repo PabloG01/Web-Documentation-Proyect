@@ -23,10 +23,28 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// GET /documents - List all documents (public read) with pagination
-router.get('/', asyncHandler(async (req, res) => {
-    const { project_id, page = 1, limit = 10 } = req.query;
-    
+// Optional token verification (doesn't require auth, but extracts user if present)
+const optionalVerifyToken = (req, res, next) => {
+    const token = req.cookies.auth_token;
+    if (!token) {
+        req.user = null;
+        return next();
+    }
+
+    const jwt = require('jsonwebtoken');
+    try {
+        const verified = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = verified;
+    } catch (err) {
+        req.user = null;
+    }
+    next();
+};
+
+// GET /documents - List all documents with pagination and optional user filter
+router.get('/', optionalVerifyToken, asyncHandler(async (req, res) => {
+    const { project_id, user_only, page = 1, limit = 10 } = req.query;
+
     // Validate and parse pagination parameters
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10)); // Max 100 items per page
@@ -41,16 +59,33 @@ router.get('/', asyncHandler(async (req, res) => {
     `;
     let params = [];
     let countParams = [];
+    let whereConditions = [];
 
+    // Filter by project
     if (project_id) {
-        query += ' WHERE documents.project_id = $1';
-        countQuery += ' WHERE project_id = $1';
+        whereConditions.push(`documents.project_id = $${params.length + 1}`);
         params.push(project_id);
         countParams.push(project_id);
     }
 
+    // Filter by user (user_only=true)
+    if (user_only === 'true' && req.user) {
+        whereConditions.push(`documents.user_id = $${params.length + 1}`);
+        params.push(req.user.id);
+        countParams.push(req.user.id);
+    }
+
+    // Build WHERE clause
+    if (whereConditions.length > 0) {
+        query += ' WHERE ' + whereConditions.join(' AND ');
+        countQuery += ' WHERE ' + whereConditions.map((_, idx) => {
+            if (project_id && idx === 0) return `project_id = $${idx + 1}`;
+            return `user_id = $${idx + 1}`;
+        }).join(' AND ');
+    }
+
     query += ' ORDER BY documents.created_at DESC';
-    
+
     // Add pagination
     const paginationParamStart = params.length + 1;
     query += ` LIMIT $${paginationParamStart} OFFSET $${paginationParamStart + 1}`;

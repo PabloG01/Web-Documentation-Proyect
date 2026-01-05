@@ -20,6 +20,7 @@ function ApiTestPage() {
     const [loadingSpecs, setLoadingSpecs] = useState(false);
     const [currentSpecId, setCurrentSpecId] = useState(null);
     const [showSaveModal, setShowSaveModal] = useState(false);
+    const [viewerKey, setViewerKey] = useState(0); // Key para forzar recreación del visor
 
     // Cargar proyectos y specs guardadas
     useEffect(() => {
@@ -72,6 +73,7 @@ function ApiTestPage() {
                 }
 
                 setSpec(jsonContent);
+                setViewerKey(prev => prev + 1); // Forzar recreación del visor
                 setError('');
             } catch (err) {
                 setError('Error al parsear el archivo JSON: ' + err.message);
@@ -136,6 +138,7 @@ function ApiTestPage() {
 
     const handleLoadSpec = async (savedSpec) => {
         setSpec(savedSpec.spec_content);
+        setViewerKey(prev => prev + 1); // Forzar recreación del visor
         setSpecName(savedSpec.name);
         setSpecDescription(savedSpec.description || '');
         setCurrentSpecId(savedSpec.id);
@@ -249,7 +252,7 @@ function ApiTestPage() {
 
                     {spec && (
                         <div className="viewer-section">
-                            <OpenApiViewer spec={spec} />
+                            <OpenApiViewer key={viewerKey} spec={spec} />
                         </div>
                     )}
 
