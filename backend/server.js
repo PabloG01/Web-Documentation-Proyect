@@ -8,6 +8,7 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const documentRoutes = require('./routes/documents');
+const apiSpecsRoutes = require('./routes/api-specs');
 require('dotenv').config();
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
@@ -51,11 +52,13 @@ app.use(cookieParser());
 app.use('/auth', apiLimiter);
 app.use('/projects', apiLimiter);
 app.use('/documents', apiLimiter);
+app.use('/api-specs', apiLimiter);
 
 // Routes
 app.use('/auth', authRoutes);
 app.use('/projects', projectRoutes);
 app.use('/documents', documentRoutes);
+app.use('/api-specs', apiSpecsRoutes);
 
 // Error handling middleware (MUST be after all routes)
 app.use(errorHandler);

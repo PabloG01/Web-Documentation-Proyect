@@ -52,6 +52,20 @@ const initializeDatabase = async () => {
             )
         `);
 
+    // Create API Specs Table
+    await pool.query(`
+            CREATE TABLE IF NOT EXISTS api_specs (
+                id SERIAL PRIMARY KEY,
+                project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                name VARCHAR(150) NOT NULL,
+                description TEXT,
+                spec_content JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
     console.log('Database tables initialized successfully');
   } catch (err) {
     console.error('Error initializing database tables:', err);

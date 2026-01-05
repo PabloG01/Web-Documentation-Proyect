@@ -110,6 +110,12 @@ const styles = StyleSheet.create({
         marginVertical: 10,
         borderRadius: 4,
     },
+    codeLine: {
+        fontFamily: 'Courier',
+        fontSize: 9,
+        color: '#f8f8f2',
+        lineHeight: 1.4,
+    },
     listItem: {
         flexDirection: 'row',
         marginBottom: 4,
@@ -390,7 +396,11 @@ const PdfDocument = ({ document }) => {
                             case 'codeBlock':
                                 return (
                                     <View key={index} style={styles.codeBlock}>
-                                        <Text>{element.content}</Text>
+                                        {element.content.split('\n').map((line, lineIdx) => (
+                                            <Text key={lineIdx} style={styles.codeLine}>
+                                                {line.replace(/ /g, '\u00A0') || '\u00A0'}
+                                            </Text>
+                                        ))}
                                     </View>
                                 );
                             case 'list':

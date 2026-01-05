@@ -27,4 +27,14 @@ export const documentsAPI = {
     delete: (id) => api.delete(`/documents/${id}`)
 };
 
+// API Specs API
+export const apiSpecsAPI = {
+    getAll: () => api.get('/api-specs'),
+    getByProject: (projectId) => api.get(`/api-specs?project_id=${projectId}`),
+    getById: (id) => api.get(`/api-specs/${id}`),
+    create: (specData) => api.post('/api-specs', specData),
+    update: (id, specData) => api.put(`/api-specs/${id}`, specData),
+    delete: (id) => api.delete(`/api-specs/${id}`)
+};
+
 export default api;
