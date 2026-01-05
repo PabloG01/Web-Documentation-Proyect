@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import '../styles/MarkdownRenderer.css';
+
+// Esquema de sanitización personalizado para permitir clases en código y otros elementos seguros
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    code: [...(defaultSchema.attributes?.code || []), 'className'],
+    span: [...(defaultSchema.attributes?.span || []), 'className', 'style'],
+    pre: [...(defaultSchema.attributes?.pre || []), 'className'],
+  },
+};
 
 function MarkdownRenderer({ content }) {
   const [collapsedBlocks, setCollapsedBlocks] = useState({});
@@ -33,6 +45,7 @@ function MarkdownRenderer({ content }) {
     <div className="markdown-content">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
         components={{
           code({ node, inline, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');

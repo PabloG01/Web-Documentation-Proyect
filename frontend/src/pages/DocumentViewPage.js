@@ -125,7 +125,7 @@ function DocumentViewPage() {
         <div className="header-actions">
           {!isEditing && (
             <>
-              <PdfDownloadButton document={document} contentRef={documentRef} />
+              <PdfDownloadButton document={document} />
               <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
                 ✏️ Editar
               </button>

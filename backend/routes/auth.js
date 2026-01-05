@@ -68,11 +68,11 @@ router.post('/login', authLimiter, validateLogin, asyncHandler(async (req, res, 
     // Create token
     const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '24h' });
 
-    // Set cookie
+    // Set cookie (CONFIGURACIÓN CORREGIDA)
     res.cookie('auth_token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Set to true in production
-        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
@@ -81,7 +81,11 @@ router.post('/login', authLimiter, validateLogin, asyncHandler(async (req, res, 
 
 // Logout
 router.post('/logout', (req, res) => {
-    res.clearCookie('auth_token');
+    res.clearCookie('auth_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+    });
     res.json({ message: 'Logged out successfully' });
 });
 

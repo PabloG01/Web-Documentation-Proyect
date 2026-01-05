@@ -8,8 +8,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: usu2020
       POSTGRES_DB: docapp_db
-    ports:
-      - "5432:5432"
+    #ports:
+    # - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
