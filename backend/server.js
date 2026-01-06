@@ -40,11 +40,11 @@ app.get('/api-docs.json', (req, res) => {
 });
 
 // Middleware
-app.use(helmet());
 app.use(cors({
-    origin: 'http://localhost:3000', // Frontend URL
+    origin: true, // Permite cualquier origen
     credentials: true
 }));
+app.use(helmet());
 app.use(express.json({ limit: '1mb' })); // Limitar payload a 1MB para prevenir DoS
 app.use(cookieParser());
 
@@ -66,6 +66,7 @@ app.use(errorHandler);
 // Database init
 initializeDatabase();
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Accessible from LAN at http://<your-ip>:${PORT}`);
 });

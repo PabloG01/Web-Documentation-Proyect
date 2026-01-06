@@ -19,7 +19,7 @@ services:
     container_name: docapp-backend
     restart: always
     ports:
-      - "5000:5000"
+      - "0.0.0.0:5000:5000"
     environment:
       # Estas variables deben coincidir con database.js
       DB_USER: postgres
@@ -41,10 +41,9 @@ services:
     container_name: docapp-frontend
     restart: always
     ports:
-      - "3000:3000"
+      - "0.0.0.0:3000:3000"
     environment:
-      # React necesita saber dónde está el backend
-      - REACT_APP_API_URL=http://localhost:5000
+      # Frontend usa window.location.hostname dinamicamente
       - WATCHPACK_POLLING=true
     volumes:
       - ./frontend:/app
