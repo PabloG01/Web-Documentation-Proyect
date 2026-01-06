@@ -139,7 +139,7 @@ function DocumentsListPage() {
 
   // Navegar a API Testing con spec específica
   const handleViewSpec = (specId) => {
-    navigate(`/api-testing?spec=${specId}`);
+    navigate(`/api-test?spec=${specId}`);
   };
 
   // Eliminar spec

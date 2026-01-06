@@ -1,0 +1,989 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "API de Ejemplo - Tienda Online",
+        "description": "Esta es una API de ejemplo para una tienda online ficticia. Incluye operaciones para gestionar productos, usuarios y pedidos.",
+        "version": "1.0.0",
+        "contact": {
+            "name": "Soporte Técnico",
+            "email": "soporte@tiendaejemplo.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3000/api/v1",
+            "description": "Servidor de desarrollo"
+        },
+        {
+            "url": "https://api.tiendaejemplo.com/v1",
+            "description": "Servidor de producción"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Productos",
+            "description": "Operaciones relacionadas con productos"
+        },
+        {
+            "name": "Usuarios",
+            "description": "Gestión de usuarios y autenticación"
+        },
+        {
+            "name": "Pedidos",
+            "description": "Gestión de pedidos y compras"
+        },
+        {
+            "name": "Categorías",
+            "description": "Categorías de productos"
+        }
+    ],
+    "paths": {
+        "/productos": {
+            "get": {
+                "tags": [
+                    "Productos"
+                ],
+                "summary": "Listar todos los productos",
+                "description": "Obtiene una lista paginada de todos los productos disponibles en la tienda",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Cantidad de productos por página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "categoria",
+                        "in": "query",
+                        "description": "Filtrar por ID de categoría",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "orden",
+                        "in": "query",
+                        "description": "Orden de los resultados",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "precio_asc",
+                                "precio_desc",
+                                "nombre_asc",
+                                "nombre_desc",
+                                "reciente"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de productos obtenida exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ListaProductos"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Productos"
+                ],
+                "summary": "Crear nuevo producto",
+                "description": "Crea un nuevo producto en la tienda (requiere rol de administrador)",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProductoInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Producto creado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Producto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Datos de entrada inválidos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorValidacion"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "403": {
+                        "description": "No autorizado (requiere rol de administrador)"
+                    }
+                }
+            }
+        },
+        "/productos/{id}": {
+            "get": {
+                "tags": [
+                    "Productos"
+                ],
+                "summary": "Obtener producto por ID",
+                "description": "Obtiene los detalles completos de un producto específico",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "ID único del producto",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Producto encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Producto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Producto no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Productos"
+                ],
+                "summary": "Actualizar producto",
+                "description": "Actualiza los datos de un producto existente",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProductoInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Producto actualizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Producto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Producto no encontrado"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Productos"
+                ],
+                "summary": "Eliminar producto",
+                "description": "Elimina un producto de la tienda",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Producto eliminado exitosamente"
+                    },
+                    "404": {
+                        "description": "Producto no encontrado"
+                    }
+                }
+            }
+        },
+        "/usuarios/registro": {
+            "post": {
+                "tags": [
+                    "Usuarios"
+                ],
+                "summary": "Registrar nuevo usuario",
+                "description": "Crea una nueva cuenta de usuario en la tienda",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegistroUsuario"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Usuario registrado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Usuario"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Datos inválidos o email ya registrado"
+                    }
+                }
+            }
+        },
+        "/usuarios/login": {
+            "post": {
+                "tags": [
+                    "Usuarios"
+                ],
+                "summary": "Iniciar sesión",
+                "description": "Autentica al usuario y devuelve un token JWT",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "usuario@ejemplo.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "miContraseña123"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login exitoso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoginResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Credenciales inválidas"
+                    }
+                }
+            }
+        },
+        "/usuarios/perfil": {
+            "get": {
+                "tags": [
+                    "Usuarios"
+                ],
+                "summary": "Obtener perfil del usuario",
+                "description": "Obtiene la información del usuario autenticado",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Perfil del usuario",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Usuario"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    }
+                }
+            }
+        },
+        "/pedidos": {
+            "get": {
+                "tags": [
+                    "Pedidos"
+                ],
+                "summary": "Listar pedidos del usuario",
+                "description": "Obtiene todos los pedidos del usuario autenticado",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "estado",
+                        "in": "query",
+                        "description": "Filtrar por estado del pedido",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pendiente",
+                                "procesando",
+                                "enviado",
+                                "entregado",
+                                "cancelado"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de pedidos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Pedido"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Pedidos"
+                ],
+                "summary": "Crear nuevo pedido",
+                "description": "Crea un nuevo pedido con los productos del carrito",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PedidoInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Pedido creado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Pedido"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Datos inválidos o producto sin stock"
+                    }
+                }
+            }
+        },
+        "/categorias": {
+            "get": {
+                "tags": [
+                    "Categorías"
+                ],
+                "summary": "Listar categorías",
+                "description": "Obtiene todas las categorías de productos disponibles",
+                "responses": {
+                    "200": {
+                        "description": "Lista de categorías",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Categoria"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Token JWT obtenido del endpoint /usuarios/login"
+            }
+        },
+        "schemas": {
+            "Producto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Smartphone Galaxy X20"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Smartphone de última generación con pantalla AMOLED de 6.5 pulgadas"
+                    },
+                    "precio": {
+                        "type": "number",
+                        "format": "double",
+                        "example": 599.99
+                    },
+                    "precio_oferta": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true,
+                        "example": 499.99
+                    },
+                    "stock": {
+                        "type": "integer",
+                        "example": 50
+                    },
+                    "categoria_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "categoria_nombre": {
+                        "type": "string",
+                        "example": "Electrónica"
+                    },
+                    "imagen_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "https://ejemplo.com/imagenes/smartphone-x20.jpg"
+                    },
+                    "destacado": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-15T10:30:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-20T14:45:00Z"
+                    }
+                }
+            },
+            "ProductoInput": {
+                "type": "object",
+                "required": [
+                    "nombre",
+                    "precio",
+                    "categoria_id"
+                ],
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "maxLength": 150,
+                        "example": "Auriculares Bluetooth Pro"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "maxLength": 2000,
+                        "example": "Auriculares inalámbricos con cancelación de ruido activa"
+                    },
+                    "precio": {
+                        "type": "number",
+                        "format": "double",
+                        "minimum": 0.01,
+                        "example": 149.99
+                    },
+                    "precio_oferta": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true,
+                        "example": 129.99
+                    },
+                    "stock": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "default": 0,
+                        "example": 100
+                    },
+                    "categoria_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "imagen_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "https://ejemplo.com/imagenes/auriculares.jpg"
+                    },
+                    "destacado": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                }
+            },
+            "ListaProductos": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Producto"
+                        }
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/Paginacion"
+                    }
+                }
+            },
+            "Usuario": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Juan Pérez"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "juan.perez@ejemplo.com"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "+54 9 11 1234-5678"
+                    },
+                    "direccion": {
+                        "$ref": "#/components/schemas/Direccion"
+                    },
+                    "rol": {
+                        "type": "string",
+                        "enum": [
+                            "cliente",
+                            "admin"
+                        ],
+                        "example": "cliente"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "RegistroUsuario": {
+                "type": "object",
+                "required": [
+                    "nombre",
+                    "email",
+                    "password"
+                ],
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 100,
+                        "example": "Juan Pérez"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "juan.perez@ejemplo.com"
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "password",
+                        "minLength": 8,
+                        "example": "MiContraseña123!"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "+54 9 11 1234-5678"
+                    }
+                }
+            },
+            "LoginResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Login exitoso"
+                    },
+                    "token": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    },
+                    "usuario": {
+                        "$ref": "#/components/schemas/Usuario"
+                    }
+                }
+            },
+            "Pedido": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1001
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "estado": {
+                        "type": "string",
+                        "enum": [
+                            "pendiente",
+                            "procesando",
+                            "enviado",
+                            "entregado",
+                            "cancelado"
+                        ],
+                        "example": "procesando"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ItemPedido"
+                        }
+                    },
+                    "subtotal": {
+                        "type": "number",
+                        "format": "double",
+                        "example": 749.98
+                    },
+                    "costo_envio": {
+                        "type": "number",
+                        "format": "double",
+                        "example": 15.00
+                    },
+                    "total": {
+                        "type": "number",
+                        "format": "double",
+                        "example": 764.98
+                    },
+                    "direccion_envio": {
+                        "$ref": "#/components/schemas/Direccion"
+                    },
+                    "metodo_pago": {
+                        "type": "string",
+                        "enum": [
+                            "tarjeta",
+                            "transferencia",
+                            "efectivo"
+                        ],
+                        "example": "tarjeta"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "PedidoInput": {
+                "type": "object",
+                "required": [
+                    "items",
+                    "direccion_envio",
+                    "metodo_pago"
+                ],
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "required": [
+                                "producto_id",
+                                "cantidad"
+                            ],
+                            "properties": {
+                                "producto_id": {
+                                    "type": "integer",
+                                    "example": 1
+                                },
+                                "cantidad": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "example": 2
+                                }
+                            }
+                        }
+                    },
+                    "direccion_envio": {
+                        "$ref": "#/components/schemas/Direccion"
+                    },
+                    "metodo_pago": {
+                        "type": "string",
+                        "enum": [
+                            "tarjeta",
+                            "transferencia",
+                            "efectivo"
+                        ],
+                        "example": "tarjeta"
+                    },
+                    "notas": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "example": "Por favor enviar en horario de tarde"
+                    }
+                }
+            },
+            "ItemPedido": {
+                "type": "object",
+                "properties": {
+                    "producto_id": {
+                        "type": "integer"
+                    },
+                    "producto_nombre": {
+                        "type": "string"
+                    },
+                    "cantidad": {
+                        "type": "integer"
+                    },
+                    "precio_unitario": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "subtotal": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                }
+            },
+            "Categoria": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Electrónica"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Dispositivos electrónicos y gadgets"
+                    },
+                    "icono": {
+                        "type": "string",
+                        "example": "📱"
+                    },
+                    "productos_count": {
+                        "type": "integer",
+                        "example": 45
+                    }
+                }
+            },
+            "Direccion": {
+                "type": "object",
+                "properties": {
+                    "calle": {
+                        "type": "string",
+                        "example": "Av. Corrientes 1234"
+                    },
+                    "ciudad": {
+                        "type": "string",
+                        "example": "Buenos Aires"
+                    },
+                    "provincia": {
+                        "type": "string",
+                        "example": "CABA"
+                    },
+                    "codigo_postal": {
+                        "type": "string",
+                        "example": "C1043"
+                    },
+                    "pais": {
+                        "type": "string",
+                        "example": "Argentina"
+                    }
+                }
+            },
+            "Paginacion": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "total_items": {
+                        "type": "integer",
+                        "example": 150
+                    },
+                    "total_pages": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "has_next": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "has_prev": {
+                        "type": "boolean",
+                        "example": false
+                    }
+                }
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Recurso no encontrado"
+                    },
+                    "codigo": {
+                        "type": "string",
+                        "example": "NOT_FOUND"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "ErrorValidacion": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "errores": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "campo": {
+                                    "type": "string",
+                                    "example": "precio"
+                                },
+                                "mensaje": {
+                                    "type": "string",
+                                    "example": "El precio debe ser mayor a 0"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

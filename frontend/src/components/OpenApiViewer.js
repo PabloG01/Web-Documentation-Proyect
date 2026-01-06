@@ -1,32 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 function OpenApiViewer({ spec }) {
-    const containerRef = useRef(null);
-    const uiRef = useRef(null);
+    const wrapperRef = useRef(null);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(null);
+    const [scriptsLoaded, setScriptsLoaded] = useState(false);
 
+    // Cargar scripts de Swagger UI una sola vez
     useEffect(() => {
-        if (!spec || !containerRef.current) {
-            setIsLoading(false);
-            return;
-        }
+        const loadScripts = async () => {
+            // Ya cargado?
+            if (window.SwaggerUIBundle && window.SwaggerUIStandalonePreset) {
+                setScriptsLoaded(true);
+                return;
+            }
 
-        setIsLoading(true);
-        setLoadError(null);
-
-        const containerId = `swagger-ui-${Date.now()}`;
-        containerRef.current.id = containerId;
-
-        const loadSwaggerUI = async () => {
             try {
-                // Verificar si ya está cargado
-                if (window.SwaggerUIBundle) {
-                    await initSwagger();
-                    return;
-                }
-
-                // Cargar CSS primero
+                // Cargar CSS
                 if (!document.querySelector('link[href*="swagger-ui.css"]')) {
                     const link = document.createElement('link');
                     link.rel = 'stylesheet';
@@ -34,65 +24,79 @@ function OpenApiViewer({ spec }) {
                     document.head.appendChild(link);
                 }
 
-                // Cargar Bundle primero (es el principal)
+                // Cargar Bundle primero
                 await loadScript('https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-bundle.js');
 
-                // Luego cargar Standalone Preset
+                // Luego Standalone Preset
                 await loadScript('https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js');
 
-                // Pequeño delay para asegurar que todo esté listo
-                await new Promise(resolve => setTimeout(resolve, 100));
-
-                await initSwagger();
+                setScriptsLoaded(true);
             } catch (error) {
-                console.error('Error loading Swagger UI:', error);
-                setLoadError(error.message);
+                console.error('Error loading Swagger scripts:', error);
+                setLoadError('Error cargando scripts de Swagger UI');
                 setIsLoading(false);
             }
         };
 
-        const loadScript = (src) => {
-            return new Promise((resolve, reject) => {
-                // Verificar si ya existe
-                const existing = document.querySelector(`script[src="${src}"]`);
-                if (existing) {
-                    // Si ya está cargado, verificar si ya tiene el contenido
-                    if (window.SwaggerUIBundle && src.includes('bundle')) {
-                        resolve();
-                        return;
-                    }
-                    if (window.SwaggerUIStandalonePreset && src.includes('standalone')) {
-                        resolve();
-                        return;
-                    }
-                    // Esperar a que cargue
-                    existing.addEventListener('load', resolve);
-                    existing.addEventListener('error', reject);
+        loadScripts();
+    }, []);
+
+    const loadScript = (src) => {
+        return new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[src="${src}"]`);
+            if (existing) {
+                if (existing.dataset.loaded === 'true') {
+                    resolve();
                     return;
                 }
-
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = resolve;
-                script.onerror = () => reject(new Error(`Failed to load ${src}`));
-                document.head.appendChild(script);
-            });
-        };
-
-        const initSwagger = async () => {
-            if (!window.SwaggerUIBundle || !containerRef.current) {
-                throw new Error('SwaggerUIBundle not available');
+                existing.addEventListener('load', () => {
+                    existing.dataset.loaded = 'true';
+                    resolve();
+                });
+                existing.addEventListener('error', reject);
+                return;
             }
 
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => {
+                script.dataset.loaded = 'true';
+                resolve();
+            };
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
+            document.head.appendChild(script);
+        });
+    };
+
+    // Inicializar Swagger cuando los scripts estén listos y haya spec
+    useEffect(() => {
+        if (!scriptsLoaded || !spec || !wrapperRef.current) {
+            return;
+        }
+
+        setIsLoading(true);
+        setLoadError(null);
+
+        // Crear un nuevo div para Swagger (para evitar conflictos con React)
+        const containerId = `swagger-container-${Date.now()}`;
+        const container = document.createElement('div');
+        container.id = containerId;
+        container.style.minHeight = '400px';
+
+        // Limpiar wrapper y agregar nuevo container
+        wrapperRef.current.innerHTML = '';
+        wrapperRef.current.appendChild(container);
+
+        // Pequeño delay para asegurar que el DOM esté listo
+        const timer = setTimeout(() => {
             try {
-                // Limpiar contenedor antes de inicializar
-                if (containerRef.current) {
-                    containerRef.current.innerHTML = '';
+                if (!window.SwaggerUIBundle) {
+                    throw new Error('SwaggerUIBundle no disponible');
                 }
 
-                uiRef.current = window.SwaggerUIBundle({
+                window.SwaggerUIBundle({
                     spec: spec,
-                    domNode: containerRef.current,
+                    domNode: container,
                     deepLinking: true,
                     presets: [
                         window.SwaggerUIBundle.presets.apis,
@@ -108,15 +112,13 @@ function OpenApiViewer({ spec }) {
                 setLoadError(error.message);
                 setIsLoading(false);
             }
-        };
+        }, 200);
 
-        loadSwaggerUI();
-
-        // Cleanup
+        // Cleanup: solo limpiar el timer, no tocar el DOM que Swagger controla
         return () => {
-            uiRef.current = null;
+            clearTimeout(timer);
         };
-    }, [spec]);
+    }, [scriptsLoaded, spec]);
 
     if (!spec) {
         return (
@@ -134,6 +136,12 @@ function OpenApiViewer({ spec }) {
                 <h3>Error al cargar el visor</h3>
                 <p>No se pudo inicializar Swagger UI. Por favor, recarga la página.</p>
                 <p style={{ fontSize: '0.9em', color: '#666' }}>{loadError}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    style={{ marginTop: '10px', padding: '8px 16px', cursor: 'pointer' }}
+                >
+                    🔄 Recargar Página
+                </button>
             </div>
         );
     }
@@ -146,7 +154,10 @@ function OpenApiViewer({ spec }) {
                     <p>Cargando visor Swagger...</p>
                 </div>
             )}
-            <div ref={containerRef} style={{ minHeight: '400px', display: isLoading ? 'none' : 'block' }}></div>
+            <div
+                ref={wrapperRef}
+                style={{ display: isLoading ? 'none' : 'block' }}
+            />
         </div>
     );
 }

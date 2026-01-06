@@ -116,6 +116,126 @@
     padding: 1rem;
 }
 
+/* Project Folders */
+.specs-folder-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.project-folder {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.project-folder-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    cursor: pointer;
+    background: var(--hover-bg);
+    border-left: 3px solid var(--primary);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.project-folder-header:hover {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.folder-toggle-icon {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+    width: 12px;
+    display: inline-block;
+}
+
+.folder-toggle-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.folder-icon {
+    font-size: 1rem;
+}
+
+.folder-name {
+    flex: 1;
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folder-count {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.project-folder-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    padding-left: 0.5rem;
+}
+
+.project-folder-content.expanded {
+    max-height: 500px;
+}
+
+.folder-spec-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    margin: 0.25rem 0;
+    margin-left: 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.folder-spec-item:hover {
+    background: var(--hover-bg);
+    border-color: var(--border);
+}
+
+.folder-spec-item.active {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: var(--primary);
+}
+
+.folder-spec-item .spec-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    overflow: hidden;
+}
+
+.folder-spec-item .spec-icon {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.folder-spec-item .spec-name {
+    font-size: 0.85rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .main-panel {
     flex: 1;
     min-width: 0;

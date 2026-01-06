@@ -132,9 +132,9 @@ const validateCreateDocument = [
         .notEmpty().withMessage('El contenido es obligatorio'),
 
     body('author')
+        .optional()
         .trim()
-        .isLength({ min: 1, max: 100 }).withMessage('El autor debe tener entre 1 y 100 caracteres')
-        .notEmpty().withMessage('El autor es obligatorio'),
+        .isLength({ max: 100 }).withMessage('El autor no puede exceder 100 caracteres'),
 
     body('version')
         .optional()

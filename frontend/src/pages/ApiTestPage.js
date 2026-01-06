@@ -23,6 +23,7 @@ function ApiTestPage() {
     const [currentSpecId, setCurrentSpecId] = useState(null);
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [viewerKey, setViewerKey] = useState(0); // Key para forzar recreación del visor
+    const [expandedProjects, setExpandedProjects] = useState({}); // Estado para carpetas expandidas
 
     // Cargar proyectos y specs guardadas
     useEffect(() => {
@@ -189,6 +190,55 @@ function ApiTestPage() {
         }
     };
 
+    // Agrupar specs por proyecto
+    const groupSpecsByProject = (specs) => {
+        const grouped = {};
+
+        // Grupo "Sin clasificar" para specs sin proyecto
+        grouped['uncategorized'] = {
+            id: 'uncategorized',
+            name: 'Sin clasificar',
+            code: null,
+            color: '#6b7280',
+            specs: []
+        };
+
+        specs.forEach(spec => {
+            if (spec.project_id) {
+                if (!grouped[spec.project_id]) {
+                    grouped[spec.project_id] = {
+                        id: spec.project_id,
+                        name: spec.project_name || 'Proyecto',
+                        code: spec.project_code,
+                        color: spec.project_color || '#6366f1',
+                        specs: []
+                    };
+                }
+                grouped[spec.project_id].specs.push(spec);
+            } else {
+                grouped['uncategorized'].specs.push(spec);
+            }
+        });
+
+        // Retornar solo grupos con specs, ordenando proyectos primero y "Sin clasificar" al final
+        const result = Object.values(grouped).filter(g => g.specs.length > 0);
+        return result.sort((a, b) => {
+            if (a.id === 'uncategorized') return 1;
+            if (b.id === 'uncategorized') return -1;
+            return (a.name || '').localeCompare(b.name || '');
+        });
+    };
+
+    // Toggle para expandir/colapsar carpetas
+    const toggleProjectFolder = (projectId) => {
+        setExpandedProjects(prev => ({
+            ...prev,
+            [projectId]: !prev[projectId]
+        }));
+    };
+
+    const groupedSpecs = groupSpecsByProject(savedSpecs);
+
     return (
         <div className="api-test-page">
             <div className="page-header">
@@ -206,25 +256,46 @@ function ApiTestPage() {
                         ) : savedSpecs.length === 0 ? (
                             <p className="empty-text">No hay specs guardadas</p>
                         ) : (
-                            <ul className="saved-specs-list">
-                                {savedSpecs.map((savedSpec) => (
-                                    <li key={savedSpec.id} className={`saved-spec-item ${currentSpecId === savedSpec.id ? 'active' : ''}`}>
-                                        <div className="spec-info" onClick={() => handleLoadSpec(savedSpec)}>
-                                            <span className="spec-name">{savedSpec.name}</span>
-                                            {savedSpec.project_name && (
-                                                <span className="spec-project">{savedSpec.project_code}</span>
-                                            )}
-                                        </div>
-                                        <button
-                                            className="btn-delete-spec"
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteSpec(savedSpec.id); }}
-                                            title="Eliminar"
+                            <div className="specs-folder-container">
+                                {groupedSpecs.map((group) => (
+                                    <div key={group.id} className="project-folder">
+                                        <div
+                                            className="project-folder-header"
+                                            onClick={() => toggleProjectFolder(group.id)}
+                                            style={{ borderLeftColor: group.color }}
                                         >
-                                            🗑️
-                                        </button>
-                                    </li>
+                                            <span className={`folder-toggle-icon ${expandedProjects[group.id] ? 'expanded' : ''}`}>
+                                                ▶
+                                            </span>
+                                            <span className="folder-icon">📁</span>
+                                            <span className="folder-name">
+                                                {group.code ? `${group.code} - ${group.name}` : group.name}
+                                            </span>
+                                            <span className="folder-count">{group.specs.length}</span>
+                                        </div>
+                                        <div className={`project-folder-content ${expandedProjects[group.id] ? 'expanded' : ''}`}>
+                                            {group.specs.map((savedSpec) => (
+                                                <div
+                                                    key={savedSpec.id}
+                                                    className={`folder-spec-item ${currentSpecId === savedSpec.id ? 'active' : ''}`}
+                                                >
+                                                    <div className="spec-info" onClick={() => handleLoadSpec(savedSpec)}>
+                                                        <span className="spec-icon">📄</span>
+                                                        <span className="spec-name">{savedSpec.name}</span>
+                                                    </div>
+                                                    <button
+                                                        className="btn-delete-spec"
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteSpec(savedSpec.id); }}
+                                                        title="Eliminar"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
-                            </ul>
+                            </div>
                         )}
                     </div>
                 )}
