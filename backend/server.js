@@ -63,10 +63,21 @@ app.use('/api-specs', apiSpecsRoutes);
 // Error handling middleware (MUST be after all routes)
 app.use(errorHandler);
 
-// Database init
-initializeDatabase();
+// Initialize database and start server
+const startServer = async () => {
+    try {
+        // Database init - wait for it to complete
+        await initializeDatabase();
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-    console.log(`Accessible from LAN at http://<your-ip>:${PORT}`);
-});
+        // Start the server only after database is ready
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
+            console.log(`Accessible from LAN at http://<your-ip>:${PORT}`);
+        });
+    } catch (error) {
+        console.error('❌ Failed to start server:', error);
+        process.exit(1);
+    }
+};
+
+startServer();
