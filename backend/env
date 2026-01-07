@@ -1,7 +1,0 @@
-DB_USER=postgres
-DB_HOST=localhost
-DB_DATABASE=docapp_db
-DB_PASSWORD=usu2020
-DB_PORT=5432
-JWT_SECRET=supersecretkey
-PORT=5000
