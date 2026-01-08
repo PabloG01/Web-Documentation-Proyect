@@ -36,6 +36,169 @@
   color: var(--secondary-color);
 }
 
+/* No projects message */
+.no-projects-message {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--bg-secondary, #ffffff);
+  border: 2px dashed var(--border-color, #e2e8f0);
+  border-radius: 16px;
+  max-width: 500px;
+  margin: 2rem auto;
+}
+
+.no-projects-message .message-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.no-projects-message h3 {
+  color: var(--text-primary);
+  margin: 0 0 0.75rem 0;
+  font-size: 1.5rem;
+}
+
+.no-projects-message p {
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem 0;
+}
+
+/* Welcome message for first-time users */
+.welcome-message {
+  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 16px;
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+}
+
+.welcome-message .message-icon {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+.welcome-message h3 {
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.3rem;
+}
+
+.welcome-message p {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Project form container */
+.project-form-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.create-project-form-page {
+  background: var(--bg-secondary, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.create-project-form-page .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.create-project-form-page .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.create-project-form-page .form-group:last-of-type {
+  margin-bottom: 2rem;
+}
+
+.create-project-form-page label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.create-project-form-page input,
+.create-project-form-page textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-primary, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.create-project-form-page input:focus,
+.create-project-form-page textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+}
+
+.create-project-form-page small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.create-project-form-page .color-picker {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.create-project-form-page .color-option {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.create-project-form-page .color-option:hover {
+  transform: scale(1.1);
+}
+
+.create-project-form-page .color-option.selected {
+  border-color: white;
+  box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+/* Loading container */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 768px) {
   .page-header h1 {
     font-size: 24px;
@@ -43,5 +206,9 @@
 
   .page-header p {
     font-size: 14px;
+  }
+
+  .create-project-form-page .form-row {
+    grid-template-columns: 1fr;
   }
 }

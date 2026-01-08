@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { documentsAPI } from '../services/api';
+import { documentsAPI, projectsAPI } from '../services/api';
+import CreationTypeSelector from '../components/CreationTypeSelector';
 import DocumentTypeSelector from '../components/DocumentTypeSelector';
 import DocumentForm from '../components/DocumentForm';
 import ProjectSelector from '../components/ProjectSelector';
@@ -8,11 +9,51 @@ import MarkdownHelper from '../components/MarkdownHelper';
 import '../styles/CreatePage.css';
 
 function CreatePage() {
-  const [step, setStep] = useState(1); // 1: Proyecto, 2: Tipo, 3: Formulario
+  // Steps: 0 = Choose type (or forced project), 1 = Project form OR Project selector, 2 = Doc type, 3 = Doc form
+  const [step, setStep] = useState(0);
+  const [creationType, setCreationType] = useState(null); // 'project' | 'document'
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [hasProjects, setHasProjects] = useState(null); // null = loading, true/false = loaded
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [newProject, setNewProject] = useState({
+    code: '',
+    name: '',
+    description: '',
+    color: '#6366f1'
+  });
   const navigate = useNavigate();
+
+  // Check if projects exist on mount
+  useEffect(() => {
+    checkProjects();
+  }, []);
+
+  const checkProjects = async () => {
+    try {
+      const response = await projectsAPI.getAll();
+      const projectsData = response.data.data || response.data;
+      setHasProjects(projectsData.length > 0);
+    } catch (err) {
+      console.error('Error checking projects:', err);
+      setHasProjects(false);
+    } finally {
+      setInitialCheckDone(true);
+    }
+  };
+
+  const handleCreationTypeSelect = (type) => {
+    setCreationType(type);
+    if (type === 'project') {
+      setShowProjectForm(true);
+      setStep(1);
+    } else {
+      // Document - go to project selector
+      setStep(1);
+    }
+  };
 
   const handleProjectSelect = (projectId) => {
     setSelectedProjectId(projectId);
@@ -24,17 +65,47 @@ function CreatePage() {
     setStep(3);
   };
 
+  const handleProjectSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setSaving(true);
+      const projectData = {
+        ...newProject,
+        code: newProject.code.toUpperCase()
+      };
+      const response = await projectsAPI.create(projectData);
+      alert('✅ ¡Proyecto creado exitosamente!');
+
+      // Update hasProjects state
+      setHasProjects(true);
+
+      // Ask if user wants to create a document for this project
+      const createDoc = window.confirm('¿Deseas crear un documento para este proyecto?');
+      if (createDoc) {
+        setSelectedProjectId(response.data.id);
+        setCreationType('document');
+        setStep(2);
+      } else {
+        navigate('/proyectos');
+      }
+    } catch (err) {
+      console.error('Error al crear proyecto:', err);
+      alert('❌ Error al crear proyecto: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setSaving(false);
+      setNewProject({ code: '', name: '', description: '', color: '#6366f1' });
+    }
+  };
+
   const handleFormSubmit = async (documentData) => {
-    // Validación crítica: asegurar que hay un proyecto seleccionado
     if (!selectedProjectId) {
-      alert('❌ Error: No se ha seleccionado un proyecto.\n\nPor favor, vuelve al paso 1 y selecciona un proyecto antes de crear la documentación.');
+      alert('❌ Error: No se ha seleccionado un proyecto.');
       setStep(1);
       return;
     }
 
-    // Validación adicional: asegurar que hay un tipo seleccionado
     if (!selectedType) {
-      alert('❌ Error: No se ha seleccionado un tipo de documento.\n\nPor favor, vuelve al paso 2 y selecciona el tipo de documentación.');
+      alert('❌ Error: No se ha seleccionado un tipo de documento.');
       setStep(2);
       return;
     }
@@ -47,10 +118,7 @@ function CreatePage() {
         ...documentData
       };
 
-      console.log('Creando documento con project_id:', selectedProjectId); // Debug log
-
       await documentsAPI.create(newDocument);
-
       alert('✅ ¡Documentación creada exitosamente!');
       navigate('/mis-documentos');
     } catch (err) {
@@ -68,49 +136,244 @@ function CreatePage() {
     } else if (step === 2) {
       setStep(1);
       setSelectedProjectId(null);
+    } else if (step === 1) {
+      // Only go back to step 0 if there are projects (choice is available)
+      if (hasProjects) {
+        setStep(0);
+        setCreationType(null);
+        setShowProjectForm(false);
+      }
+      // If no projects, stay on project form (can't go back)
     }
   };
 
-  return (
-    <div className="create-page">
-      {step === 1 ? (
-        <>
+  const colors = [
+    '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
+    '#f59e0b', '#10b981', '#06b6d4', '#3b82f6'
+  ];
+
+  // Still loading initial check
+  if (!initialCheckDone) {
+    return (
+      <div className="create-page">
+        <div className="page-header">
+          <h1>Crear</h1>
+          <p>Cargando...</p>
+        </div>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // NO PROJECTS: Force project creation first
+  if (!hasProjects && step === 0) {
+    return (
+      <div className="create-page">
+        <div className="page-header">
+          <h1>Bienvenido</h1>
+          <p>Para comenzar, crea tu primer proyecto</p>
+        </div>
+        <div className="welcome-message">
+          <h2>¡Comienza creando un proyecto!</h2>
+          <p>Los proyectos te ayudan a organizar tu documentación. Una vez que tengas al menos un proyecto, podrás crear documentos.</p>
+        </div>
+        <div className="project-form-container">
+          <form className="create-project-form-page" onSubmit={handleProjectSubmit}>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Código del Proyecto*</label>
+                <input
+                  type="text"
+                  value={newProject.code}
+                  onChange={(e) => setNewProject({ ...newProject, code: e.target.value.toUpperCase() })}
+                  placeholder="PRY"
+                  maxLength="10"
+                  required
+                />
+                <small>Máx 10 caracteres, sin espacios</small>
+              </div>
+              <div className="form-group">
+                <label>Color</label>
+                <div className="color-picker">
+                  {colors.map(color => (
+                    <div
+                      key={color}
+                      className={`color-option ${newProject.color === color ? 'selected' : ''}`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setNewProject({ ...newProject, color })}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Nombre del Proyecto*</label>
+              <input
+                type="text"
+                value={newProject.name}
+                onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                placeholder="Nombre descriptivo"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Descripción</label>
+              <textarea
+                value={newProject.description}
+                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                placeholder="Descripción opcional del proyecto"
+                rows="3"
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? 'Creando...' : 'Crear mi primer proyecto'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 0: Choose creation type (only available if projects exist)
+  if (step === 0 && hasProjects) {
+    return (
+      <div className="create-page">
+        <div className="page-header">
+          <h1>Crear</h1>
+          <p>¿Qué deseas crear?</p>
+        </div>
+        <CreationTypeSelector onSelect={handleCreationTypeSelect} />
+      </div>
+    );
+  }
+
+  // Step 1: Project form OR Project selector
+  if (step === 1) {
+    // Creating a project
+    if (creationType === 'project' && showProjectForm) {
+      return (
+        <div className="create-page">
+          <button className="btn-back" onClick={handleBack}>
+            ← Volver
+          </button>
           <div className="page-header">
-            <h1>Crear Nueva Documentación</h1>
-            <p>Paso 1: Selecciona o crea un proyecto</p>
+            <h1>Crear Nuevo Proyecto</h1>
+            <p>Define los detalles de tu proyecto</p>
+          </div>
+          <div className="project-form-container">
+            <form className="create-project-form-page" onSubmit={handleProjectSubmit}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Código del Proyecto*</label>
+                  <input
+                    type="text"
+                    value={newProject.code}
+                    onChange={(e) => setNewProject({ ...newProject, code: e.target.value.toUpperCase() })}
+                    placeholder="PRY"
+                    maxLength="10"
+                    required
+                  />
+                  <small>Máx 10 caracteres, sin espacios</small>
+                </div>
+                <div className="form-group">
+                  <label>Color</label>
+                  <div className="color-picker">
+                    {colors.map(color => (
+                      <div
+                        key={color}
+                        className={`color-option ${newProject.color === color ? 'selected' : ''}`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setNewProject({ ...newProject, color })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Nombre del Proyecto*</label>
+                <input
+                  type="text"
+                  value={newProject.name}
+                  onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                  placeholder="Nombre descriptivo"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Descripción</label>
+                <textarea
+                  value={newProject.description}
+                  onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                  placeholder="Descripción opcional del proyecto"
+                  rows="3"
+                />
+              </div>
+
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? 'Creando...' : 'Crear Proyecto'}
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    // Creating a document - show project selector
+    if (creationType === 'document') {
+      return (
+        <div className="create-page">
+          <button className="btn-back" onClick={handleBack}>
+            ← Volver
+          </button>
+          <div className="page-header">
+            <h1>Crear Documento</h1>
+            <p>Paso 1: Selecciona el proyecto</p>
           </div>
           <ProjectSelector
             selectedProjectId={selectedProjectId}
             onSelect={handleProjectSelect}
             allowCreate={true}
           />
-        </>
-      ) : step === 2 ? (
-        <>
-          <button className="btn-back" onClick={handleBack}>
-            ← Volver
-          </button>
-          <div className="page-header">
-            <h1>Crear Nueva Documentación</h1>
-            <p>Paso 2: Selecciona el tipo de documentación</p>
-          </div>
-          <DocumentTypeSelector onSelect={handleTypeSelect} />
-        </>
-      ) : (
-        <>
-          <button className="btn-back" onClick={handleBack}>
-            ← Volver
-          </button>
-          <DocumentForm
-            documentType={selectedType}
-            onSubmit={handleFormSubmit}
-            saving={saving}
-          />
-        </>
-      )}
+        </div>
+      );
+    }
+  }
 
-      {/* Ayuda flotante de Markdown */}
-      {step === 3 && <MarkdownHelper />}
+  // Step 2: Document type selector
+  if (step === 2) {
+    return (
+      <div className="create-page">
+        <button className="btn-back" onClick={handleBack}>
+          ← Volver
+        </button>
+        <div className="page-header">
+          <h1>Crear Documento</h1>
+          <p>Paso 2: Selecciona el tipo de documentación</p>
+        </div>
+        <DocumentTypeSelector onSelect={handleTypeSelect} />
+      </div>
+    );
+  }
+
+  // Step 3: Document form
+  return (
+    <div className="create-page">
+      <button className="btn-back" onClick={handleBack}>
+        ← Volver
+      </button>
+      <DocumentForm
+        documentType={selectedType}
+        onSubmit={handleFormSubmit}
+        saving={saving}
+      />
+      <MarkdownHelper />
     </div>
   );
 }

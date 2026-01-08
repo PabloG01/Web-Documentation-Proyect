@@ -1,5 +1,5 @@
 :root {
-  /* Colors */
+  /* Colors - Light Theme */
   --primary-color: #6366f1;
   --secondary-color: #8b5cf6;
   --accent-color: #ec4899;
@@ -12,7 +12,19 @@
   --warning-color: #f59e0b;
   --danger-color: #ef4444;
 
-  /* Aliases for markdown */
+  /* Background variants */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-modal: #ffffff;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Aliases for markdown and components */
   --primary: var(--primary-color);
   --text: var(--text-primary);
   --text-muted: var(--text-secondary);

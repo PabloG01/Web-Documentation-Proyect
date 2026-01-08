@@ -2,10 +2,34 @@ const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { createLimiter } = require('../middleware/rateLimiter');
+const { parseSwaggerComments, extractSpecPreview } = require('../services/swagger-parser');
+const multer = require('multer');
 const router = express.Router();
+
+// Configure multer for file upload
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/javascript' ||
+            file.mimetype === 'text/javascript' ||
+            file.originalname.endsWith('.js')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only JavaScript files (.js) are allowed'));
+        }
+    }
+});
 
 // Middleware to verify token
 const verifyToken = (req, res, next) => {
+    // Debug: Log incoming cookies
+    console.log('=== DEBUG verifyToken ===');
+    console.log('Request URL:', req.originalUrl);
+    console.log('Cookies received:', req.cookies);
+    console.log('Cookie header:', req.headers.cookie);
+    console.log('========================');
+
     const token = req.cookies.auth_token;
     if (!token) {
         return next(new AppError('Acceso denegado', 401));
@@ -85,6 +109,36 @@ router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     }
 
     res.json(result.rows[0]);
+}));
+
+// POST /api-specs/parse-swagger - Parse JavaScript file with Swagger comments
+router.post('/parse-swagger', verifyToken, createLimiter, upload.single('file'), asyncHandler(async (req, res) => {
+    if (!req.file) {
+        throw new AppError('No file uploaded', 400);
+    }
+
+    try {
+        const code = req.file.buffer.toString('utf8');
+        const fileName = req.file.originalname;
+
+        //Parse Swagger comments and generate OpenAPI spec
+        const result = parseSwaggerComments(code, fileName);
+
+        // Extract preview information
+        const preview = extractSpecPreview(result.spec);
+
+        res.json({
+            success: true,
+            spec: result.spec,
+            preview,
+            fileName,
+            sourceCode: code,
+            message: `Successfully parsed ${result.pathsCount} path(s) and ${result.schemasCount} schema(s)`
+        });
+
+    } catch (error) {
+        throw new AppError(error.message, 400);
+    }
 }));
 
 // POST /api-specs - Create a new API spec

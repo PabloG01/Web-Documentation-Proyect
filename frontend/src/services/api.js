@@ -1,17 +1,22 @@
 import axios from 'axios';
 
+// URL dinámica basada en el hostname actual (igual que AuthContext)
 const API_URL = `http://${window.location.hostname}:5000`;
 
-// Create axios instance with credentials
+// Create axios instance with baseURL
 const api = axios.create({
     baseURL: API_URL,
-    withCredentials: true
+    withCredentials: true, // Important for cookies
+    headers: {
+        'Content-Type': 'application/json'
+    }
 });
 
 // Projects API
 export const projectsAPI = {
     getAll: (page = 1, limit = 100) => api.get(`/projects?page=${page}&limit=${limit}`),
     getByUser: (page = 1, limit = 100) => api.get(`/projects?user_only=true&page=${page}&limit=${limit}`),
+    getById: (id) => api.get(`/projects/${id}`),
     create: (projectData) => api.post('/projects', projectData),
     update: (id, projectData) => api.put(`/projects/${id}`, projectData),
     delete: (id) => api.delete(`/projects/${id}`)
@@ -35,7 +40,16 @@ export const apiSpecsAPI = {
     getById: (id) => api.get(`/api-specs/${id}`),
     create: (specData) => api.post('/api-specs', specData),
     update: (id, specData) => api.put(`/api-specs/${id}`, specData),
-    delete: (id) => api.delete(`/api-specs/${id}`)
+    delete: (id) => api.delete(`/api-specs/${id}`),
+    parseSwagger: (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post('/api-specs/parse-swagger', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    }
 };
 
 export default api;

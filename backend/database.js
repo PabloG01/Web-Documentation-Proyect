@@ -71,6 +71,8 @@ const initializeDatabase = async () => {
                   name VARCHAR(150) NOT NULL,
                   description TEXT,
                   spec_content JSONB NOT NULL,
+                  source_type VARCHAR(50) DEFAULT 'json',
+                  source_code TEXT,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )

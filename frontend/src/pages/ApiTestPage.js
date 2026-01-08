@@ -11,6 +11,7 @@ function ApiTestPage() {
     const [spec, setSpec] = useState(null);
     const [fileName, setFileName] = useState('');
     const [error, setError] = useState('');
+    const [processing, setProcessing] = useState(''); // For Swagger parsing progress
 
     // Para guardar specs
     const [projects, setProjects] = useState([]);
@@ -80,15 +81,62 @@ function ApiTestPage() {
         }
     };
 
-    const handleFileUpload = (event) => {
+
+    const handleFileUpload = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
         setFileName(file.name);
         setError('');
+        setProcessing('');
         setCurrentSpecId(null);
-        setSpecName(file.name.replace('.json', ''));
+        setSpecName(file.name.replace(/\.(json|js)$/, ''));
 
+        const isJSON = file.name.endsWith('.json');
+        const isJavaScript = file.name.endsWith('.js');
+
+        if (!isJSON && !isJavaScript) {
+            setError('Solo se permiten archivos .json o .js');
+            setSpec(null);
+            return;
+        }
+
+        // Si es archivo JavaScript, parsearlo con el backend
+        if (isJavaScript) {
+            try {
+                setProcessing('⏳ Analizando comentarios Swagger...');
+                setError('');
+                const response = await apiSpecsAPI.parseSwagger(file);
+
+                const { spec, preview, sourceCode, message } = response.data;
+
+                setSpec({
+                    ...spec,
+                    _metadata: {
+                        source_type: 'swagger-comments',
+                        source_code: sourceCode,
+                        preview: preview,
+                        message: message
+                    }
+                });
+                setViewerKey(prev => prev + 1);
+                setProcessing('');
+                setError('');
+
+                alert(`✅ ${message}\n\n` +
+                    `📋 Endpoints encontrados: ${preview.endpointsCount}\n` +
+                    `📦 Schemas: ${preview.schemas.length}`);
+
+            } catch (err) {
+                console.error('Error parsing Swagger:', err);
+                setError('❌ ' + (err.response?.data?.error || err.message));
+                setProcessing('');
+                setSpec(null);
+            }
+            return;
+        }
+
+        // Si es JSON, procesarlo como antes
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
@@ -101,10 +149,14 @@ function ApiTestPage() {
                     return;
                 }
 
-                setSpec(jsonContent);
-                setViewerKey(prev => prev + 1); // Forzar recreación del visor
+                setSpec({
+                    ...jsonContent,
+                    _metadata: { source_type: 'json' }
+                });
+                setViewerKey(prev => prev + 1);
                 setError('');
             } catch (err) {
+                console.error('Error parsing JSON:', err);
                 setError('Error al parsear el archivo JSON: ' + err.message);
                 setSpec(null);
             }
@@ -140,11 +192,16 @@ function ApiTestPage() {
 
         setSaving(true);
         try {
+            // Extract metadata if present
+            const { _metadata, ...cleanSpec } = spec;
+
             const specData = {
                 project_id: selectedProjectId || null,
                 name: specName.trim(),
                 description: specDescription.trim(),
-                spec_content: spec
+                spec_content: cleanSpec,
+                source_type: _metadata?.source_type || 'json',
+                source_code: _metadata?.source_code || null
             };
 
             if (currentSpecId) {
@@ -307,7 +364,7 @@ function ApiTestPage() {
                             <label htmlFor="file-input" className="upload-label">
                                 <div className="upload-icon">📄</div>
                                 <div className="upload-text">
-                                    {fileName ? fileName : 'Selecciona un archivo JSON'}
+                                    {fileName ? fileName : 'Selecciona un archivo .json o .js'}
                                 </div>
                                 <div className="upload-hint">
                                     Haz clic para seleccionar o arrastra un archivo aquí
@@ -316,7 +373,7 @@ function ApiTestPage() {
                             <input
                                 id="file-input"
                                 type="file"
-                                accept=".json"
+                                accept=".json,.js,application/json,text/javascript"
                                 onChange={handleFileUpload}
                                 style={{ display: 'none' }}
                             />
@@ -338,6 +395,12 @@ function ApiTestPage() {
                         {error && (
                             <div className="error-message">
                                 ⚠️ {error}
+                            </div>
+                        )}
+
+                        {processing && (
+                            <div className="processing-message">
+                                <p>{processing}</p>
                             </div>
                         )}
 
