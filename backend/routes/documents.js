@@ -56,13 +56,14 @@ const router = express.Router();
  *     CreateDocumentInput:
  *       type: object
  *       required:
+ *         - project_id
  *         - title
  *         - content
  *         - doc_type
  *       properties:
  *         project_id:
  *           type: integer
- *           description: ID del proyecto (opcional)
+ *           description: ID del proyecto (requerido)
  *         title:
  *           type: string
  *           maxLength: 200
@@ -326,10 +327,21 @@ router.get('/:id', validateDocumentId, asyncHandler(async (req, res) => {
 router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandler(async (req, res) => {
     const { project_id, title, content, doc_type } = req.body;
 
+    // Validate project_id is required
+    if (!project_id) {
+        throw new AppError('El proyecto es requerido', 400);
+    }
+
+    // Verify project exists
+    const projectCheck = await pool.query('SELECT id FROM projects WHERE id = $1', [project_id]);
+    if (projectCheck.rows.length === 0) {
+        throw new AppError('Proyecto no encontrado', 404);
+    }
+
     const result = await pool.query(
         `INSERT INTO documents (project_id, user_id, title, content, doc_type) 
          VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [project_id || null, req.user.id, title, content, doc_type]
+        [project_id, req.user.id, title, content, doc_type]
     );
 
     res.status(201).json(result.rows[0]);

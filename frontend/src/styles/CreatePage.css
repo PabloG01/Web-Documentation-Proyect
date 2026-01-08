@@ -1,23 +1,32 @@
 .create-page {
   padding: 20px;
   min-height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.create-page>* {
+  width: 100%;
+  max-width: 1200px;
 }
 
 .page-header {
   text-align: center;
-  margin-bottom: 40px;
-  padding-bottom: 30px;
-  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: none;
 }
 
 .page-header h1 {
-  font-size: 32px;
-  margin-bottom: 10px;
+  font-size: 28px;
+  margin-bottom: 8px;
   color: var(--text-primary);
 }
 
 .page-header p {
-  font-size: 16px;
+  font-size: 15px;
   color: var(--text-secondary);
 }
 
@@ -70,7 +79,7 @@
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
   border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: 16px;
-  max-width: 600px;
+  max-width: 1000px;
   margin: 0 auto 2rem auto;
 }
 
@@ -94,7 +103,7 @@
 
 /* Project form container */
 .project-form-container {
-  max-width: 600px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 

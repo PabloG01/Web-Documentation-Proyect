@@ -47,6 +47,7 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 
 ### 📊 **Especificaciones OpenAPI**
 - Visualizador interactivo de especificaciones OpenAPI 3.0
+- **Parseo de comentarios Swagger desde archivos JavaScript**
 - Navegación por tags, paths, endpoints y schemas
 - Testing de APIs directamente desde la interfaz
 - Importación y almacenamiento de specs
@@ -326,6 +327,7 @@ Las tablas se crean automáticamente al iniciar el backend mediante la función 
 - `GET /api-specs` - Listar especificaciones OpenAPI
 - `GET /api-specs/:id` - Obtener especificación específica
 - `POST /api-specs` - Crear especificación
+- `POST /api-specs/parse-swagger` - Parsear archivo JS con comentarios Swagger
 - `PUT /api-specs/:id` - Actualizar especificación
 - `DELETE /api-specs/:id` - Eliminar especificación
 
@@ -347,12 +349,14 @@ Las tablas se crean automáticamente al iniciar el backend mediante la función 
 
 ### 3. Crear Documentación
 1. Ir a **Crear** en el menú
-2. Seleccionar proyecto (o crear uno nuevo)
-3. Elegir tipo de documentación
-4. Completar formulario con plantilla predefinida
-5. Editar contenido en Markdown
-6. Vista previa en tiempo real
-7. Guardar documento
+2. **Si no hay proyectos**: Se muestra formulario para crear el primer proyecto
+3. **Si hay proyectos**: Elegir entre crear proyecto o documento
+4. Seleccionar proyecto (si se crea documento)
+5. Elegir tipo de documentación
+6. Completar formulario con plantilla predefinida
+7. Editar contenido en Markdown
+8. Vista previa en tiempo real
+9. Guardar documento
 
 ### 4. Gestionar Documentos
 1. Ir a **Mis Documentos**
@@ -394,10 +398,15 @@ docker-compose logs -f     # Ver logs en tiempo real
 
 ## 🎨 Características de UI
 
+### Tema Claro
+La aplicación utiliza un tema claro moderno con los siguientes colores:
+
 ### Paleta de Colores
 - **Primary**: `#6366f1` (Índigo)
 - **Secondary**: `#8b5cf6` (Violeta)
 - **Accent**: `#ec4899` (Rosa)
+- **Background**: `#f8fafc` (Gris claro)
+- **Surface**: `#ffffff` (Blanco)
 - **Success**: `#10b981` (Verde)
 - **Warning**: `#f59e0b` (Naranja)
 - **Danger**: `#ef4444` (Rojo)

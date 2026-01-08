@@ -25,7 +25,7 @@ const options = {
             version: '1.0.0',
         },
     },
-    apis: ['./routes/auth.js', './routes/projects.js', './routes/documents.js'],
+    apis: ['./routes/auth.js', './routes/projects.js', './routes/documents.js', './routes/api-specs.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options); // Corregido: era swaggerOptions

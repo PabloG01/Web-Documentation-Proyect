@@ -5,6 +5,86 @@ const { validateProject, validateProjectId } = require('../middleware/validators
 const { createLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Projects
+ *   description: Gestión de proyectos
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Project:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID único del proyecto
+ *         user_id:
+ *           type: integer
+ *           description: ID del usuario propietario
+ *         code:
+ *           type: string
+ *           description: Código corto del proyecto (ej. PRY)
+ *         name:
+ *           type: string
+ *           description: Nombre del proyecto
+ *         description:
+ *           type: string
+ *           description: Descripción del proyecto
+ *         color:
+ *           type: string
+ *           description: Color hexadecimal del proyecto
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *     ProjectInput:
+ *       type: object
+ *       required:
+ *         - code
+ *         - name
+ *       properties:
+ *         code:
+ *           type: string
+ *           maxLength: 10
+ *           description: Código corto del proyecto (máx 10 caracteres)
+ *         name:
+ *           type: string
+ *           maxLength: 100
+ *           description: Nombre del proyecto
+ *         description:
+ *           type: string
+ *           description: Descripción opcional
+ *         color:
+ *           type: string
+ *           pattern: '^#[0-9A-Fa-f]{6}$'
+ *           description: Color hexadecimal (ej. #6366f1)
+ *     PaginatedProjects:
+ *       type: object
+ *       properties:
+ *         data:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Project'
+ *         pagination:
+ *           type: object
+ *           properties:
+ *             currentPage:
+ *               type: integer
+ *             totalPages:
+ *               type: integer
+ *             totalItems:
+ *               type: integer
+ *             itemsPerPage:
+ *               type: integer
+ *             hasNextPage:
+ *               type: boolean
+ *             hasPrevPage:
+ *               type: boolean
+ */
+
 // Middleware to verify token (copy from auth.js)
 const verifyToken = (req, res, next) => {
     const token = req.cookies.auth_token;
@@ -23,10 +103,42 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// GET /projects - List all projects (optionally filter by user) with pagination
+/**
+ * @swagger
+ * /projects:
+ *   get:
+ *     summary: Listar todos los proyectos con paginación
+ *     tags: [Projects]
+ *     parameters:
+ *       - in: query
+ *         name: user_only
+ *         schema:
+ *           type: boolean
+ *         description: Filtrar solo proyectos del usuario autenticado
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Número de página
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           maximum: 100
+ *         description: Elementos por página (máx 100)
+ *     responses:
+ *       200:
+ *         description: Lista paginada de proyectos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedProjects'
+ */
 router.get('/', asyncHandler(async (req, res) => {
     const { user_only, page = 1, limit = 10 } = req.query;
-    
+
     // Validate and parse pagination parameters
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10)); // Max 100 items per page
@@ -45,7 +157,7 @@ router.get('/', asyncHandler(async (req, res) => {
     }
 
     query += ' ORDER BY projects.created_at DESC';
-    
+
     // Add pagination
     const paginationParamStart = params.length + 1;
     query += ` LIMIT $${paginationParamStart} OFFSET $${paginationParamStart + 1}`;
@@ -73,7 +185,37 @@ router.get('/', asyncHandler(async (req, res) => {
     });
 }));
 
-// POST /projects - Create project (requires auth)
+/**
+ * @swagger
+ * /projects:
+ *   post:
+ *     summary: Crear un nuevo proyecto
+ *     tags: [Projects]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ProjectInput'
+ *           example:
+ *             code: "PRY"
+ *             name: "Mi Proyecto"
+ *             description: "Descripción del proyecto"
+ *             color: "#6366f1"
+ *     responses:
+ *       201:
+ *         description: Proyecto creado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Project'
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autenticado
+ */
 router.post('/', verifyToken, createLimiter, validateProject, asyncHandler(async (req, res) => {
     const { code, name, description, color } = req.body;
 
@@ -85,7 +227,38 @@ router.post('/', verifyToken, createLimiter, validateProject, asyncHandler(async
     res.status(201).json(result.rows[0]);
 }));
 
-// PUT /projects/:id - Update project (owner only)
+/**
+ * @swagger
+ * /projects/{id}:
+ *   put:
+ *     summary: Actualizar un proyecto
+ *     tags: [Projects]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ProjectInput'
+ *     responses:
+ *       200:
+ *         description: Proyecto actualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Project'
+ *       403:
+ *         description: No autorizado (no es el propietario)
+ *       404:
+ *         description: Proyecto no encontrado
+ */
 router.put('/:id', verifyToken, validateProjectId, validateProject, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { code, name, description, color } = req.body;
@@ -107,7 +280,35 @@ router.put('/:id', verifyToken, validateProjectId, validateProject, asyncHandler
     res.json(result.rows[0]);
 }));
 
-// DELETE /projects/:id - Delete project (owner only)
+/**
+ * @swagger
+ * /projects/{id}:
+ *   delete:
+ *     summary: Eliminar un proyecto
+ *     tags: [Projects]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Proyecto eliminado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: No autorizado (no es el propietario)
+ *       404:
+ *         description: Proyecto no encontrado
+ */
 router.delete('/:id', verifyToken, validateProjectId, asyncHandler(async (req, res) => {
     const { id } = req.params;
 

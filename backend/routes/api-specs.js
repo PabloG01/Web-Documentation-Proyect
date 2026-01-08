@@ -6,6 +6,85 @@ const { parseSwaggerComments, extractSpecPreview } = require('../services/swagge
 const multer = require('multer');
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: API Specs
+ *   description: Gestión de especificaciones OpenAPI/Swagger
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ApiSpec:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID único de la especificación
+ *         project_id:
+ *           type: integer
+ *           description: ID del proyecto asociado
+ *         user_id:
+ *           type: integer
+ *           description: ID del usuario creador
+ *         name:
+ *           type: string
+ *           description: Nombre de la especificación
+ *         description:
+ *           type: string
+ *           description: Descripción de la especificación
+ *         spec_content:
+ *           type: object
+ *           description: Contenido OpenAPI en formato JSON
+ *         source_type:
+ *           type: string
+ *           description: Tipo de fuente (json, swagger-comments)
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *     ApiSpecInput:
+ *       type: object
+ *       required:
+ *         - project_id
+ *         - name
+ *         - spec_content
+ *       properties:
+ *         project_id:
+ *           type: integer
+ *           description: ID del proyecto (requerido)
+ *         name:
+ *           type: string
+ *           description: Nombre de la especificación
+ *         description:
+ *           type: string
+ *           description: Descripción opcional
+ *         spec_content:
+ *           type: object
+ *           description: Especificación OpenAPI en formato JSON
+ *     ParseSwaggerResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *         spec:
+ *           type: object
+ *           description: Especificación OpenAPI generada
+ *         preview:
+ *           type: object
+ *           description: Vista previa de endpoints y schemas
+ *         fileName:
+ *           type: string
+ *         sourceCode:
+ *           type: string
+ *         message:
+ *           type: string
+ */
+
 // Configure multer for file upload
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -64,7 +143,32 @@ const optionalVerifyToken = (req, res, next) => {
     next();
 };
 
-// GET /api-specs - List all API specs (visible to all authenticated users)
+/**
+ * @swagger
+ * /api-specs:
+ *   get:
+ *     summary: Listar todas las especificaciones API
+ *     tags: [API Specs]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: project_id
+ *         schema:
+ *           type: integer
+ *         description: Filtrar por ID de proyecto
+ *     responses:
+ *       200:
+ *         description: Lista de especificaciones API
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ApiSpec'
+ *       401:
+ *         description: No autenticado
+ */
 router.get('/', verifyToken, asyncHandler(async (req, res) => {
     const { project_id } = req.query;
 
@@ -90,7 +194,34 @@ router.get('/', verifyToken, asyncHandler(async (req, res) => {
     res.json(result.rows);
 }));
 
-// GET /api-specs/:id - Get a single API spec by ID (visible to all authenticated users)
+
+/**
+ * @swagger
+ * /api-specs/{id}:
+ *   get:
+ *     summary: Obtener una especificación API por ID
+ *     tags: [API Specs]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la especificación
+ *     responses:
+ *       200:
+ *         description: Especificación API encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSpec'
+ *       404:
+ *         description: Especificación no encontrada
+ *       401:
+ *         description: No autenticado
+ */
 router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -111,7 +242,37 @@ router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     res.json(result.rows[0]);
 }));
 
-// POST /api-specs/parse-swagger - Parse JavaScript file with Swagger comments
+/**
+ * @swagger
+ * /api-specs/parse-swagger:
+ *   post:
+ *     summary: Parsear archivo JavaScript con comentarios Swagger
+ *     tags: [API Specs]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Archivo JavaScript (.js) con comentarios Swagger
+ *     responses:
+ *       200:
+ *         description: Archivo parseado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ParseSwaggerResponse'
+ *       400:
+ *         description: Error en el archivo o formato inválido
+ *       401:
+ *         description: No autenticado
+ */
 router.post('/parse-swagger', verifyToken, createLimiter, upload.single('file'), asyncHandler(async (req, res) => {
     if (!req.file) {
         throw new AppError('No file uploaded', 400);
@@ -141,11 +302,39 @@ router.post('/parse-swagger', verifyToken, createLimiter, upload.single('file'),
     }
 }));
 
-// POST /api-specs - Create a new API spec
+/**
+ * @swagger
+ * /api-specs:
+ *   post:
+ *     summary: Crear una nueva especificación API
+ *     tags: [API Specs]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ApiSpecInput'
+ *     responses:
+ *       201:
+ *         description: Especificación creada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSpec'
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autenticado
+ */
 router.post('/', verifyToken, createLimiter, asyncHandler(async (req, res) => {
     const { project_id, name, description, spec_content } = req.body;
 
     // Validate required fields
+    if (!project_id) {
+        throw new AppError('El proyecto es requerido', 400);
+    }
     if (!name || !name.trim()) {
         throw new AppError('El nombre es requerido', 400);
     }
@@ -154,27 +343,56 @@ router.post('/', verifyToken, createLimiter, asyncHandler(async (req, res) => {
     }
 
     // Validate project exists
-    if (project_id) {
-        const projectCheck = await pool.query(
-            'SELECT id FROM projects WHERE id = $1',
-            [project_id]
-        );
-        if (projectCheck.rows.length === 0) {
-            throw new AppError('Proyecto no encontrado', 404);
-        }
+    const projectCheck = await pool.query(
+        'SELECT id FROM projects WHERE id = $1',
+        [project_id]
+    );
+    if (projectCheck.rows.length === 0) {
+        throw new AppError('Proyecto no encontrado', 404);
     }
 
     const result = await pool.query(
         `INSERT INTO api_specs (project_id, user_id, name, description, spec_content) 
          VALUES ($1, $2, $3, $4, $5) 
          RETURNING *`,
-        [project_id || null, req.user.id, name.trim(), description || '', spec_content]
+        [project_id, req.user.id, name.trim(), description || '', spec_content]
     );
 
     res.status(201).json(result.rows[0]);
 }));
 
-// PUT /api-specs/:id - Update an API spec
+/**
+ * @swagger
+ * /api-specs/{id}:
+ *   put:
+ *     summary: Actualizar una especificación API
+ *     tags: [API Specs]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ApiSpecInput'
+ *     responses:
+ *       200:
+ *         description: Especificación actualizada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSpec'
+ *       403:
+ *         description: No autorizado (no es el propietario)
+ *       404:
+ *         description: Especificación no encontrada
+ */
 router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { project_id, name, description, spec_content } = req.body;
@@ -221,7 +439,35 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     res.json(result.rows[0]);
 }));
 
-// DELETE /api-specs/:id - Delete an API spec
+/**
+ * @swagger
+ * /api-specs/{id}:
+ *   delete:
+ *     summary: Eliminar una especificación API
+ *     tags: [API Specs]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Especificación eliminada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: No autorizado (no es el propietario)
+ *       404:
+ *         description: Especificación no encontrada
+ */
 router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 

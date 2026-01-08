@@ -189,6 +189,10 @@ function ApiTestPage() {
             alert('Por favor ingresa un nombre para la especificación');
             return;
         }
+        if (!selectedProjectId) {
+            alert('Por favor selecciona un proyecto');
+            return;
+        }
 
         setSaving(true);
         try {
@@ -196,7 +200,7 @@ function ApiTestPage() {
             const { _metadata, ...cleanSpec } = spec;
 
             const specData = {
-                project_id: selectedProjectId || null,
+                project_id: selectedProjectId,
                 name: specName.trim(),
                 description: specDescription.trim(),
                 spec_content: cleanSpec,
@@ -458,12 +462,13 @@ function ApiTestPage() {
                         </div>
 
                         <div className="form-group">
-                            <label>Proyecto (opcional)</label>
+                            <label>Proyecto *</label>
                             <select
                                 value={selectedProjectId}
                                 onChange={(e) => setSelectedProjectId(e.target.value)}
+                                required
                             >
-                                <option value="">Sin proyecto</option>
+                                <option value="">-- Selecciona un proyecto --</option>
                                 {projects.map((project) => (
                                     <option key={project.id} value={project.id}>
                                         {project.code} - {project.name}
@@ -483,7 +488,7 @@ function ApiTestPage() {
                             <button
                                 className="btn btn-primary"
                                 onClick={handleSaveSpec}
-                                disabled={saving || !specName.trim()}
+                                disabled={saving || !specName.trim() || !selectedProjectId}
                             >
                                 {saving ? '⏳ Guardando...' : '💾 Guardar'}
                             </button>
