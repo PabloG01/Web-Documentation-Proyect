@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectsAPI, documentsAPI } from '../services/api';
 import Pagination from '../components/Pagination';
@@ -18,11 +18,7 @@ function ProjectsPage() {
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [pagination, setPagination] = useState(null);
 
-  useEffect(() => {
-    loadData();
-  }, [currentPage, itemsPerPage]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [projectsRes, docsRes] = await Promise.all([
@@ -45,7 +41,11 @@ function ProjectsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Manejador de cambio de página
   const handlePageChange = (newPage, newItemsPerPage) => {

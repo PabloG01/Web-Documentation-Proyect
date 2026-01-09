@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { projectsAPI } from '../services/api';
-import { AuthContext } from '../context/AuthContext';
 import '../styles/ProjectSelector.css';
 import '../styles/LoadingStates.css';
 
@@ -8,7 +7,6 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
   const [projects, setProjects] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { user } = useContext(AuthContext);
   const [newProject, setNewProject] = useState({
     code: '',
     name: '',

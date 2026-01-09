@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { documentsAPI, projectsAPI, apiSpecsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
@@ -29,15 +29,7 @@ function DocumentsListPage() {
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [pagination, setPagination] = useState(null);
 
-  useEffect(() => {
-    loadDocuments();
-    loadProjects();
-    if (user) {
-      loadApiSpecs();
-    }
-  }, [currentPage, itemsPerPage, filterProject, viewMode, user]);
-
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     try {
       setLoading(true);
       let response;
@@ -67,9 +59,9 @@ function DocumentsListPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterProject, viewMode, currentPage, itemsPerPage]);
 
-  const loadApiSpecs = async () => {
+  const loadApiSpecs = useCallback(async () => {
     try {
       const response = await apiSpecsAPI.getAll();
       setApiSpecs(response.data || []);
@@ -77,9 +69,9 @@ function DocumentsListPage() {
       console.error('Error al cargar API specs:', err);
       setApiSpecs([]);
     }
-  };
+  }, []);
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       const response = await projectsAPI.getAll(1, 100);
       // Manejar formato de respuesta paginada
@@ -87,7 +79,15 @@ function DocumentsListPage() {
     } catch (err) {
       console.error('Error al cargar proyectos:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadDocuments();
+    loadProjects();
+    if (user) {
+      loadApiSpecs();
+    }
+  }, [loadDocuments, loadProjects, loadApiSpecs, user]);
 
   // Manejador de cambio de página
   const handlePageChange = (newPage, newItemsPerPage) => {
