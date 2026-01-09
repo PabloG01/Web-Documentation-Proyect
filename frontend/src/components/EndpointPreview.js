@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SpecEditor from './SpecEditor';
 import '../styles/EndpointPreview.css';
 
 /**
@@ -13,6 +14,7 @@ function EndpointPreview({
     filePath = ''
 }) {
     const [editedEndpoints, setEditedEndpoints] = useState([]);
+    const [editingEndpoint, setEditingEndpoint] = useState(null);
 
     useEffect(() => {
         // Initialize with all endpoints selected
@@ -23,7 +25,10 @@ function EndpointPreview({
                 included: true,
                 method: ep.method || 'GET',
                 path: ep.path || '/',
-                summary: ep.summary || `${ep.method} ${ep.path}`
+                summary: ep.summary || `${ep.method} ${ep.path}`,
+                parameters: ep.parameters || [],
+                requestBody: ep.requestBody || null,
+                responses: ep.responses || [{ code: '200', description: 'Successful response' }]
             }))
         );
     }, [endpoints]);
@@ -38,6 +43,19 @@ function EndpointPreview({
         setEditedEndpoints(prev =>
             prev.map(ep => ep.id === id ? { ...ep, [field]: value } : ep)
         );
+    };
+
+    // Open the detailed editor
+    const openEditor = (endpoint) => {
+        setEditingEndpoint(endpoint);
+    };
+
+    // Save from detailed editor
+    const handleEditorSave = (updatedEndpoint) => {
+        setEditedEndpoints(prev =>
+            prev.map(ep => ep.id === editingEndpoint.id ? { ...updatedEndpoint, id: ep.id, included: true } : ep)
+        );
+        setEditingEndpoint(null);
     };
 
     const selectAll = () => {
@@ -62,6 +80,17 @@ function EndpointPreview({
         PATCH: '#8b5cf6',
         DELETE: '#ef4444'
     };
+
+    // If editing a specific endpoint, show the spec editor
+    if (editingEndpoint) {
+        return (
+            <SpecEditor
+                endpoint={editingEndpoint}
+                onSave={handleEditorSave}
+                onCancel={() => setEditingEndpoint(null)}
+            />
+        );
+    }
 
     return (
         <div className="endpoint-preview-overlay">
@@ -97,6 +126,7 @@ function EndpointPreview({
                                 <th className="col-method">Método</th>
                                 <th className="col-path">Path</th>
                                 <th className="col-summary">Descripción</th>
+                                <th className="col-edit">Editar</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -145,6 +175,16 @@ function EndpointPreview({
                                             className="summary-input"
                                         />
                                     </td>
+                                    <td className="col-edit">
+                                        <button
+                                            className="btn btn-small btn-icon"
+                                            onClick={() => openEditor(ep)}
+                                            disabled={!ep.included}
+                                            title="Editar detalles completos"
+                                        >
+                                            ⚙️
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -160,7 +200,7 @@ function EndpointPreview({
                 <div className="preview-footer">
                     <div className="footer-info">
                         <span className="info-badge">
-                            💡 Puedes editar método, path y descripción antes de guardar
+                            💡 Haz clic en ⚙️ para editar parámetros, body y respuestas
                         </span>
                     </div>
                     <div className="footer-actions">
@@ -182,3 +222,4 @@ function EndpointPreview({
 }
 
 export default EndpointPreview;
+

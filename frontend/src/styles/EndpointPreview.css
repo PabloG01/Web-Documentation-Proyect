@@ -151,6 +151,30 @@
     width: auto;
 }
 
+.col-edit {
+    width: 60px;
+    text-align: center;
+}
+
+.col-edit .btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.375rem;
+    font-size: 1rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.col-edit .btn-icon:hover:not(:disabled) {
+    background: var(--border-color, #e2e8f0);
+}
+
+.col-edit .btn-icon:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Inputs */
 .endpoints-table input[type="checkbox"] {
     width: 18px;
