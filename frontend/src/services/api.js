@@ -65,4 +65,16 @@ export const reposAPI = {
     delete: (id) => api.delete(`/repos/${id}`)
 };
 
+// GitHub API
+export const githubAPI = {
+    getStatus: () => api.get('/github/auth/github/status'),
+    disconnect: () => api.post('/github/auth/github/disconnect'),
+    getRepos: (visibility = 'all', page = 1, perPage = 30) =>
+        api.get(`/github/repos?visibility=${visibility}&page=${page}&per_page=${perPage}`),
+    analyzeRepo: (owner, repo, projectId, branch = 'main') =>
+        api.post(`/github/repos/${owner}/${repo}/analyze`, { project_id: projectId, branch }),
+    // OAuth redirect URL (used by frontend to initiate flow)
+    getOAuthUrl: () => `${API_URL}/github/auth/github`
+};
+
 export default api;

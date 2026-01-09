@@ -4,6 +4,7 @@ import { reposAPI, projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import EndpointPreview from '../components/EndpointPreview';
 import ScoreBreakdown from '../components/ScoreBreakdown';
+import GitHubConnect from '../components/GitHubConnect';
 import '../styles/ReposPage.css';
 
 function ReposPage() {
@@ -274,6 +275,18 @@ function ReposPage() {
                     filePath={previewFile.file_path}
                 />
             )}
+
+            {/* GitHub Connect - Descomentar cuando se configuren GITHUB_CLIENT_ID y GITHUB_CLIENT_SECRET
+            <div className="github-section">
+                <GitHubConnect
+                    projectId={selectedProjectId || projects[0]?.id}
+                    onRepoSelect={(result) => {
+                        loadRepos();
+                        setAnalysisResult(result.analysis);
+                    }}
+                />
+            </div>
+            */}
 
             {/* Analysis Form */}
             {showAnalyzeForm && (

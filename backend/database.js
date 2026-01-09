@@ -28,9 +28,32 @@ const initializeDatabase = async () => {
                   username VARCHAR(50) UNIQUE NOT NULL,
                   email VARCHAR(100) UNIQUE NOT NULL,
                   password_hash VARCHAR(255) NOT NULL,
+                  github_id VARCHAR(50),
+                  github_username VARCHAR(100),
+                  github_token TEXT,
+                  github_connected_at TIMESTAMP,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )
           `);
+
+      // Add GitHub columns if they don't exist (for existing installations)
+      await pool.query(`
+          DO $$ 
+          BEGIN 
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_id') THEN
+                  ALTER TABLE users ADD COLUMN github_id VARCHAR(50);
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_username') THEN
+                  ALTER TABLE users ADD COLUMN github_username VARCHAR(100);
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_token') THEN
+                  ALTER TABLE users ADD COLUMN github_token TEXT;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_connected_at') THEN
+                  ALTER TABLE users ADD COLUMN github_connected_at TIMESTAMP;
+              END IF;
+          END $$;
+      `);
 
       // Create Projects Table
       await pool.query(`

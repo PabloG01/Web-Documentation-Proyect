@@ -10,6 +10,7 @@ const projectRoutes = require('./routes/projects');
 const documentRoutes = require('./routes/documents');
 const apiSpecsRoutes = require('./routes/api-specs');
 const reposRoutes = require('./routes/repos');
+const githubAuthRoutes = require('./routes/github-auth');
 require('dotenv').config();
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
@@ -26,7 +27,7 @@ const options = {
             version: '1.0.0',
         },
     },
-    apis: ['./routes/auth.js', './routes/projects.js', './routes/documents.js', './routes/api-specs.js', './routes/repos.js'],
+    apis: ['./routes/auth.js', './routes/projects.js', './routes/documents.js', './routes/api-specs.js', './routes/repos.js', './routes/github-auth.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options); // Corregido: era swaggerOptions
@@ -63,6 +64,7 @@ app.use('/projects', projectRoutes);
 app.use('/documents', documentRoutes);
 app.use('/api-specs', apiSpecsRoutes);
 app.use('/repos', reposRoutes);
+app.use('/github', githubAuthRoutes);
 
 // Error handling middleware (MUST be after all routes)
 app.use(errorHandler);
