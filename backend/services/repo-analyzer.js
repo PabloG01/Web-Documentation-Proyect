@@ -609,20 +609,29 @@ function extractPathParams(routePath) {
 }
 
 /**
- * Calculate quality score for a spec (0-100)
+ * Calculate quality score for a spec (0-100) with detailed breakdown
  */
-function calculateQualityScore(spec) {
-    let score = 0;
-    let maxScore = 0;
+function calculateQualityScore(spec, detailed = false) {
+    const breakdown = {
+        routes: { score: 0, max: 20, label: 'Rutas detectadas', icon: '🛤️' },
+        descriptions: { score: 0, max: 20, label: 'Descripciones', icon: '📝' },
+        parameters: { score: 0, max: 15, label: 'Parámetros', icon: '🔧' },
+        responses: { score: 0, max: 15, label: 'Respuestas', icon: '📤' },
+        examples: { score: 0, max: 10, label: 'Ejemplos', icon: '💡' },
+        schemas: { score: 0, max: 10, label: 'Schemas', icon: '📋' },
+        info: { score: 0, max: 10, label: 'Info completa', icon: 'ℹ️' }
+    };
 
-    // Has paths (20 points)
-    maxScore += 20;
-    if (spec.paths && Object.keys(spec.paths).length > 0) {
-        score += 20;
-    }
-
+    const suggestions = [];
     const paths = spec.paths || {};
     const pathCount = Object.keys(paths).length;
+
+    // Routes (20 points)
+    if (pathCount > 0) {
+        breakdown.routes.score = 20;
+    } else {
+        suggestions.push('Añadir endpoints a la especificación');
+    }
 
     if (pathCount > 0) {
         let descriptionsCount = 0;
@@ -630,6 +639,8 @@ function calculateQualityScore(spec) {
         let responsesCount = 0;
         let examplesCount = 0;
         let totalOperations = 0;
+        let missingDescriptions = 0;
+        let missingResponses = 0;
 
         for (const pathKey of Object.keys(paths)) {
             const pathItem = paths[pathKey];
@@ -641,6 +652,10 @@ function calculateQualityScore(spec) {
                     // Has description (not TODO)
                     if (operation.description && !operation.description.includes('[TODO]')) {
                         descriptionsCount++;
+                    } else if (operation.summary && !operation.summary.includes('[TODO]')) {
+                        descriptionsCount++;
+                    } else {
+                        missingDescriptions++;
                     }
 
                     // Has parameters documented
@@ -660,6 +675,8 @@ function calculateQualityScore(spec) {
                         );
                         if (hasSchema) {
                             responsesCount++;
+                        } else {
+                            missingResponses++;
                         }
                     }
 
@@ -679,40 +696,70 @@ function calculateQualityScore(spec) {
 
         if (totalOperations > 0) {
             // Descriptions (20 points)
-            maxScore += 20;
-            score += Math.round((descriptionsCount / totalOperations) * 20);
+            breakdown.descriptions.score = Math.round((descriptionsCount / totalOperations) * 20);
+            if (missingDescriptions > 0) {
+                suggestions.push(`Añadir descripción a ${missingDescriptions} endpoint(s)`);
+            }
 
             // Parameters (15 points)
-            maxScore += 15;
-            score += Math.round((parametersCount / totalOperations) * 15);
+            breakdown.parameters.score = Math.round((parametersCount / totalOperations) * 15);
 
             // Responses (15 points)
-            maxScore += 15;
-            score += Math.round((responsesCount / totalOperations) * 15);
+            breakdown.responses.score = Math.round((responsesCount / totalOperations) * 15);
+            if (missingResponses > 0) {
+                suggestions.push(`Documentar respuestas en ${missingResponses} endpoint(s)`);
+            }
 
             // Examples (10 points)
-            maxScore += 10;
-            score += Math.round((examplesCount / totalOperations) * 10);
+            breakdown.examples.score = Math.round((examplesCount / totalOperations) * 10);
+            if (examplesCount < totalOperations) {
+                suggestions.push('Incluir ejemplos de request/response');
+            }
         }
     }
 
-    // Has schemas (10 points)
-    maxScore += 10;
+    // Schemas (10 points)
     if (spec.components?.schemas && Object.keys(spec.components.schemas).length > 0) {
-        score += 10;
+        breakdown.schemas.score = 10;
+    } else {
+        suggestions.push('Definir schemas reutilizables en components');
     }
 
-    // Has info complete (10 points)
-    maxScore += 10;
+    // Info complete (10 points)
     if (spec.info) {
         let infoScore = 0;
         if (spec.info.title && !spec.info.title.includes('[TODO]')) infoScore += 3;
         if (spec.info.description && !spec.info.description.includes('[TODO]')) infoScore += 4;
         if (spec.info.version) infoScore += 3;
-        score += infoScore;
+        breakdown.info.score = infoScore;
+
+        if (infoScore < 10) {
+            suggestions.push('Completar información de la API (título, descripción, versión)');
+        }
     }
 
-    return Math.round((score / maxScore) * 100);
+    // Calculate total
+    let totalScore = 0;
+    let totalMax = 0;
+    for (const key of Object.keys(breakdown)) {
+        totalScore += breakdown[key].score;
+        totalMax += breakdown[key].max;
+        breakdown[key].percentage = Math.round((breakdown[key].score / breakdown[key].max) * 100);
+    }
+
+    const finalScore = Math.round((totalScore / totalMax) * 100);
+
+    // Return detailed or simple score
+    if (detailed) {
+        return {
+            total: finalScore,
+            breakdown,
+            suggestions: suggestions.slice(0, 5), // Max 5 suggestions
+            level: getQualityLevel(finalScore)
+        };
+    }
+
+    return finalScore;
 }
 
 /**

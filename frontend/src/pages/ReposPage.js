@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { reposAPI, projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import EndpointPreview from '../components/EndpointPreview';
+import ScoreBreakdown from '../components/ScoreBreakdown';
 import '../styles/ReposPage.css';
 
 function ReposPage() {
@@ -31,6 +32,9 @@ function ReposPage() {
     // State for endpoint preview
     const [previewFile, setPreviewFile] = useState(null);
     const [previewEndpoints, setPreviewEndpoints] = useState([]);
+
+    // State for score breakdown
+    const [expandedScoreFileId, setExpandedScoreFileId] = useState(null);
 
     const loadRepos = useCallback(async () => {
         try {
@@ -451,8 +455,24 @@ function ReposPage() {
                                                     <span className="swagger-badge">📝 Swagger</span>
                                                 )}
                                                 <span className="endpoints-count">{file.endpoints_count} endpoints</span>
-                                                {getQualityBadge(file.quality_score)}
+                                                <ScoreBreakdown
+                                                    score={file.quality_score}
+                                                    breakdown={file.quality_breakdown}
+                                                    suggestions={file.quality_suggestions}
+                                                    compact={true}
+                                                    onExpand={(expanded) => setExpandedScoreFileId(expanded ? file.id : null)}
+                                                />
                                             </div>
+                                            {expandedScoreFileId === file.id && (
+                                                <div className="file-score-detail">
+                                                    <ScoreBreakdown
+                                                        score={file.quality_score}
+                                                        breakdown={file.quality_breakdown}
+                                                        suggestions={file.quality_suggestions}
+                                                        compact={false}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="file-actions">
                                             {file.has_spec ? (

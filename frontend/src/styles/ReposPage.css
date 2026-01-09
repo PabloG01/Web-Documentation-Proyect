@@ -390,6 +390,28 @@
     font-style: italic;
 }
 
+/* Score Detail Expanded */
+.file-score-detail {
+    margin-top: 0.75rem;
+    border-top: 1px dashed var(--border-color, #e2e8f0);
+    padding-top: 0.75rem;
+}
+
+.file-item {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.file-item>.file-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.file-item>.file-actions {
+    margin-top: 0.5rem;
+    margin-left: 0;
+}
+
 /* Empty State */
 .empty-state {
     text-align: center;

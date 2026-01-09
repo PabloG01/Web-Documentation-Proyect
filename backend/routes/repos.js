@@ -260,9 +260,38 @@ router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
         [id]
     );
 
+    // Add detailed breakdown to each file
+    const filesWithBreakdown = filesResult.rows.map(file => {
+        let breakdown = null;
+        let suggestions = [];
+        let calculatedScore = file.quality_score; // Default to DB value
+
+        if (file.parsed_content) {
+            try {
+                const spec = typeof file.parsed_content === 'string'
+                    ? JSON.parse(file.parsed_content)
+                    : file.parsed_content;
+
+                const detailedScore = calculateQualityScore(spec, true);
+                breakdown = detailedScore.breakdown;
+                suggestions = detailedScore.suggestions;
+                calculatedScore = detailedScore.total; // Use calculated score
+            } catch (err) {
+                console.error('Error parsing spec for breakdown:', err.message);
+            }
+        }
+
+        return {
+            ...file,
+            quality_score: calculatedScore, // Override with calculated
+            quality_breakdown: breakdown,
+            quality_suggestions: suggestions
+        };
+    });
+
     res.json({
         repo: repoResult.rows[0],
-        files: filesResult.rows
+        files: filesWithBreakdown
     });
 }));
 
