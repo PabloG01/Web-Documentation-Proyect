@@ -68,6 +68,9 @@ function SpecEditor({
 
     const [activeTab, setActiveTab] = useState('basic');
     const [showSuggestions, setShowSuggestions] = useState(null);
+    const [jsonMode, setJsonMode] = useState(false);
+    const [jsonText, setJsonText] = useState('');
+    const [jsonError, setJsonError] = useState('');
 
     useEffect(() => {
         if (endpoint) {
@@ -220,6 +223,11 @@ function SpecEditor({
                 delete properties[oldName];
                 properties[value] = fieldData;
 
+                // Update required array if needed
+                if (schema.required) {
+                    schema.required = schema.required.map(r => r === oldName ? value : r);
+                }
+
                 // Auto-fill from suggestions
                 if (COMMON_PARAM_SUGGESTIONS[value]) {
                     const suggestion = COMMON_PARAM_SUGGESTIONS[value];
@@ -234,6 +242,10 @@ function SpecEditor({
                 properties[oldName] = { ...properties[oldName], type: value };
             } else if (field === 'description') {
                 properties[oldName] = { ...properties[oldName], description: value };
+            } else if (field === 'format') {
+                properties[oldName] = { ...properties[oldName], format: value || undefined };
+            } else if (field === 'example') {
+                properties[oldName] = { ...properties[oldName], example: value };
             }
 
             schema.properties = properties;
@@ -248,9 +260,33 @@ function SpecEditor({
             const schema = body.content['application/json'].schema;
             const properties = { ...schema.properties };
             delete properties[name];
+            // Also remove from required
+            if (schema.required) {
+                schema.required = schema.required.filter(r => r !== name);
+            }
             schema.properties = properties;
             return { ...prev, requestBody: body };
         });
+    };
+
+    // Get example value based on type
+    const getExampleValue = (type, format) => {
+        if (format === 'email') return 'user@example.com';
+        if (format === 'password') return '********';
+        if (format === 'date') return '2024-01-15';
+        if (format === 'date-time') return '2024-01-15T10:30:00Z';
+        if (format === 'uri') return 'https://example.com';
+        if (format === 'uuid') return '550e8400-e29b-41d4-a716-446655440000';
+
+        switch (type) {
+            case 'string': return 'string';
+            case 'integer': return 0;
+            case 'number': return 0.0;
+            case 'boolean': return true;
+            case 'array': return [];
+            case 'object': return {};
+            default: return null;
+        }
     };
 
     const handleSave = () => {
@@ -305,6 +341,16 @@ function SpecEditor({
                         onClick={() => setActiveTab('responses')}
                     >
                         📤 Respuestas
+                    </button>
+                    <button
+                        className={`tab ${activeTab === 'json' ? 'active' : ''}`}
+                        onClick={() => {
+                            setActiveTab('json');
+                            setJsonText(JSON.stringify(editedEndpoint, null, 2));
+                            setJsonError('');
+                        }}
+                    >
+                        { } JSON
                     </button>
                 </div>
 
@@ -468,22 +514,58 @@ function SpecEditor({
                         <div className="tab-content">
                             <div className="section-header">
                                 <h4>Request Body</h4>
-                                <button
-                                    className={`btn btn-small ${editedEndpoint.requestBody ? 'btn-danger' : ''}`}
-                                    onClick={toggleRequestBody}
-                                >
-                                    {editedEndpoint.requestBody ? '✕ Eliminar Body' : '+ Añadir Body'}
-                                </button>
-                            </div>
-
-                            {editedEndpoint.requestBody ? (
-                                <>
-                                    <div className="body-fields">
-                                        <div className="fields-header">
-                                            <span>Campos del Body (JSON)</span>
+                                <div className="body-actions">
+                                    {!editedEndpoint.requestBody && (
+                                        <button className="btn btn-small btn-primary" onClick={toggleRequestBody}>
+                                            + Añadir Body
+                                        </button>
+                                    )}
+                                    {editedEndpoint.requestBody && (
+                                        <>
                                             <button className="btn btn-small" onClick={addBodyField}>
                                                 + Campo
                                             </button>
+                                            <button className="btn btn-small btn-danger" onClick={toggleRequestBody}>
+                                                ✕ Eliminar Body
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {editedEndpoint.requestBody ? (
+                                <div className="body-editor">
+                                    {/* Body description */}
+                                    <div className="form-group">
+                                        <label>Descripción del Body</label>
+                                        <input
+                                            type="text"
+                                            value={editedEndpoint.requestBody.description || ''}
+                                            onChange={(e) => {
+                                                setEditedEndpoint(prev => ({
+                                                    ...prev,
+                                                    requestBody: { ...prev.requestBody, description: e.target.value }
+                                                }));
+                                            }}
+                                            placeholder="Datos para crear/actualizar el recurso"
+                                        />
+                                    </div>
+
+                                    {/* Content type */}
+                                    <div className="content-type-badge">
+                                        Content-Type: application/json
+                                    </div>
+
+                                    {/* Fields table */}
+                                    <div className="body-fields">
+                                        <div className="fields-table-header">
+                                            <span className="th-name">Campo</span>
+                                            <span className="th-type">Tipo</span>
+                                            <span className="th-format">Formato</span>
+                                            <span className="th-req">Req.</span>
+                                            <span className="th-desc">Descripción</span>
+                                            <span className="th-example">Ejemplo</span>
+                                            <span className="th-actions"></span>
                                         </div>
 
                                         {Object.entries(editedEndpoint.requestBody.content?.['application/json']?.schema?.properties || {}).map(([fieldName, fieldData]) => (
@@ -505,6 +587,43 @@ function SpecEditor({
                                                         <option key={t.type} value={t.type}>{t.type}</option>
                                                     ))}
                                                 </select>
+                                                <select
+                                                    value={fieldData.format || ''}
+                                                    onChange={(e) => updateBodyField(fieldName, 'format', e.target.value)}
+                                                    className="field-format"
+                                                >
+                                                    <option value="">-</option>
+                                                    <option value="email">email</option>
+                                                    <option value="password">password</option>
+                                                    <option value="date">date</option>
+                                                    <option value="date-time">date-time</option>
+                                                    <option value="uri">uri</option>
+                                                    <option value="uuid">uuid</option>
+                                                    <option value="int32">int32</option>
+                                                    <option value="int64">int64</option>
+                                                    <option value="float">float</option>
+                                                    <option value="double">double</option>
+                                                </select>
+                                                <label className="field-required">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={(editedEndpoint.requestBody.content?.['application/json']?.schema?.required || []).includes(fieldName)}
+                                                        onChange={(e) => {
+                                                            setEditedEndpoint(prev => {
+                                                                const body = { ...prev.requestBody };
+                                                                const schema = body.content['application/json'].schema;
+                                                                let required = schema.required || [];
+                                                                if (e.target.checked) {
+                                                                    required = [...required, fieldName];
+                                                                } else {
+                                                                    required = required.filter(r => r !== fieldName);
+                                                                }
+                                                                schema.required = required;
+                                                                return { ...prev, requestBody: body };
+                                                            });
+                                                        }}
+                                                    />
+                                                </label>
                                                 <input
                                                     type="text"
                                                     value={fieldData.description || ''}
@@ -512,9 +631,17 @@ function SpecEditor({
                                                     placeholder="Descripción"
                                                     className="field-desc"
                                                 />
+                                                <input
+                                                    type="text"
+                                                    value={fieldData.example || ''}
+                                                    onChange={(e) => updateBodyField(fieldName, 'example', e.target.value)}
+                                                    placeholder="ej: valor"
+                                                    className="field-example"
+                                                />
                                                 <button
                                                     className="btn-icon danger"
                                                     onClick={() => removeBodyField(fieldName)}
+                                                    title="Eliminar campo"
                                                 >
                                                     🗑️
                                                 </button>
@@ -526,11 +653,61 @@ function SpecEditor({
                                             ))}
                                         </datalist>
                                     </div>
-                                </>
+
+                                    {/* Quick add common fields */}
+                                    <div className="quick-add-section">
+                                        <span className="quick-add-label">Añadir rápido:</span>
+                                        <div className="quick-add-buttons">
+                                            {['email', 'password', 'name', 'description', 'id', 'status'].map(field => (
+                                                <button
+                                                    key={field}
+                                                    className="btn btn-xs"
+                                                    onClick={() => {
+                                                        if (!editedEndpoint.requestBody) return;
+                                                        const suggestion = COMMON_PARAM_SUGGESTIONS[field];
+                                                        setEditedEndpoint(prev => {
+                                                            const body = { ...prev.requestBody };
+                                                            const schema = body.content['application/json'].schema;
+                                                            schema.properties = {
+                                                                ...schema.properties,
+                                                                [field]: {
+                                                                    type: suggestion?.type || 'string',
+                                                                    format: suggestion?.format,
+                                                                    description: suggestion?.description || ''
+                                                                }
+                                                            };
+                                                            return { ...prev, requestBody: body };
+                                                        });
+                                                    }}
+                                                    disabled={Object.keys(editedEndpoint.requestBody?.content?.['application/json']?.schema?.properties || {}).includes(field)}
+                                                >
+                                                    {field}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* JSON Preview */}
+                                    <div className="json-preview">
+                                        <div className="preview-header">
+                                            <span>📋 Vista previa JSON</span>
+                                        </div>
+                                        <pre className="json-code">
+                                            {JSON.stringify(
+                                                Object.fromEntries(
+                                                    Object.entries(editedEndpoint.requestBody?.content?.['application/json']?.schema?.properties || {})
+                                                        .map(([key, val]) => [key, val.example || getExampleValue(val.type, val.format)])
+                                                ),
+                                                null,
+                                                2
+                                            )}
+                                        </pre>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="empty-message">
-                                    Este endpoint no tiene request body.
-                                    Los métodos POST, PUT y PATCH típicamente requieren un body.
+                                    <p>Este endpoint no tiene request body.</p>
+                                    <p className="hint">Los métodos POST, PUT y PATCH típicamente requieren un body para enviar datos.</p>
                                 </div>
                             )}
                         </div>
@@ -587,6 +764,82 @@ function SpecEditor({
 
                             <div className="suggestions-hint">
                                 💡 Los códigos 2xx indican éxito, 4xx errores del cliente, 5xx errores del servidor
+                            </div>
+                        </div>
+                    )}
+
+                    {/* JSON Raw Editor Tab */}
+                    {activeTab === 'json' && (
+                        <div className="tab-content">
+                            <div className="json-editor-section">
+                                <div className="json-editor-header">
+                                    <h4>Edición JSON Avanzada</h4>
+                                    <div className="json-actions">
+                                        <button
+                                            className="btn btn-small"
+                                            onClick={() => {
+                                                setJsonText(JSON.stringify(editedEndpoint, null, 2));
+                                                setJsonError('');
+                                            }}
+                                        >
+                                            🔄 Resetear
+                                        </button>
+                                        <button
+                                            className="btn btn-small btn-primary"
+                                            onClick={() => {
+                                                try {
+                                                    const parsed = JSON.parse(jsonText);
+                                                    setEditedEndpoint(parsed);
+                                                    setJsonError('');
+                                                    setActiveTab('basic');
+                                                } catch (e) {
+                                                    setJsonError('JSON inválido: ' + e.message);
+                                                }
+                                            }}
+                                        >
+                                            ✅ Aplicar Cambios
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {jsonError && (
+                                    <div className="json-error">
+                                        ⚠️ {jsonError}
+                                    </div>
+                                )}
+
+                                <div className="json-editor-info">
+                                    💡 Edita directamente el JSON para control total sobre el endpoint.
+                                    Puedes añadir cualquier campo compatible con OpenAPI 3.0
+                                </div>
+
+                                <textarea
+                                    className="json-textarea"
+                                    value={jsonText}
+                                    onChange={(e) => {
+                                        setJsonText(e.target.value);
+                                        setJsonError('');
+                                    }}
+                                    spellCheck={false}
+                                    placeholder='{"method": "GET", "path": "/api/resource", ...}'
+                                />
+
+                                <div className="json-editor-help">
+                                    <strong>Campos disponibles:</strong>
+                                    <ul>
+                                        <li><code>method</code> - GET, POST, PUT, PATCH, DELETE</li>
+                                        <li><code>path</code> - Ruta del endpoint (ej: /api/users/{'{id}'})</li>
+                                        <li><code>summary</code> - Resumen corto</li>
+                                        <li><code>description</code> - Descripción detallada</li>
+                                        <li><code>tags</code> - Array de etiquetas</li>
+                                        <li><code>parameters</code> - Array de parámetros (query, path, header)</li>
+                                        <li><code>requestBody</code> - Objeto con schema del body</li>
+                                        <li><code>responses</code> - Array de respuestas</li>
+                                        <li><code>security</code> - Requisitos de seguridad</li>
+                                        <li><code>operationId</code> - ID único de la operación</li>
+                                        <li><code>deprecated</code> - Marcar como deprecado (true/false)</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     )}

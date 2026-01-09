@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import OpenApiViewer from '../components/OpenApiViewer';
+import SpecEditor from '../components/SpecEditor';
 import { projectsAPI, apiSpecsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/ApiTestPage.css';
@@ -25,6 +26,8 @@ function ApiTestPage() {
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [viewerKey, setViewerKey] = useState(0); // Key para forzar recreación del visor
     const [expandedProjects, setExpandedProjects] = useState({}); // Estado para carpetas expandidas
+    const [editingEndpoint, setEditingEndpoint] = useState(null); // Endpoint being edited
+    const [isEditing, setIsEditing] = useState(false); // Edit mode active
 
     // Cargar proyectos y specs guardadas
     useEffect(() => {
@@ -298,6 +301,164 @@ function ApiTestPage() {
         }));
     };
 
+    // Edit an endpoint in the current spec
+    const handleEditEndpoint = (path, method) => {
+        if (!spec || !spec.paths || !spec.paths[path]) return;
+
+        const operation = spec.paths[path][method.toLowerCase()];
+        if (!operation) return;
+
+        setEditingEndpoint({
+            path,
+            method: method.toUpperCase(),
+            summary: operation.summary || '',
+            description: operation.description || '',
+            tags: operation.tags || [],
+            parameters: operation.parameters || [],
+            requestBody: operation.requestBody || null,
+            responses: Object.entries(operation.responses || {}).map(([code, data]) => ({
+                code,
+                description: data.description || ''
+            })),
+            requiresAuth: !!operation.security?.length
+        });
+        setIsEditing(true);
+    };
+
+    // Save edited endpoint back to spec
+    const handleSaveEndpoint = (updatedEndpoint) => {
+        if (!spec || !editingEndpoint) return;
+
+        const newSpec = { ...spec };
+        const originalPath = editingEndpoint.path;
+        const originalMethod = editingEndpoint.method.toLowerCase();
+
+        // Build the operation object
+        const operation = {
+            summary: updatedEndpoint.summary,
+            description: updatedEndpoint.description,
+            tags: updatedEndpoint.tags || [],
+            parameters: updatedEndpoint.parameters || [],
+            responses: {}
+        };
+
+        // Add auth if required
+        if (updatedEndpoint.requiresAuth) {
+            operation.security = [{ bearerAuth: [] }];
+        }
+
+        // Add request body if present
+        if (updatedEndpoint.requestBody) {
+            operation.requestBody = updatedEndpoint.requestBody;
+        }
+
+        // Build responses
+        (updatedEndpoint.responses || []).forEach(resp => {
+            operation.responses[resp.code] = {
+                description: resp.description
+            };
+        });
+
+        // Handle path/method change
+        if (updatedEndpoint.path !== originalPath) {
+            // Path changed - create new path entry
+            if (!newSpec.paths[updatedEndpoint.path]) {
+                newSpec.paths[updatedEndpoint.path] = {};
+            }
+            newSpec.paths[updatedEndpoint.path][updatedEndpoint.method.toLowerCase()] = operation;
+
+            // Remove from old path
+            delete newSpec.paths[originalPath][originalMethod];
+            if (Object.keys(newSpec.paths[originalPath]).length === 0) {
+                delete newSpec.paths[originalPath];
+            }
+        } else if (updatedEndpoint.method.toLowerCase() !== originalMethod) {
+            // Only method changed
+            newSpec.paths[originalPath][updatedEndpoint.method.toLowerCase()] = operation;
+            delete newSpec.paths[originalPath][originalMethod];
+        } else {
+            // Same path and method - just update
+            newSpec.paths[originalPath][originalMethod] = operation;
+        }
+
+        setSpec(newSpec);
+        setViewerKey(prev => prev + 1);
+        setEditingEndpoint(null);
+        setIsEditing(false);
+    };
+
+    // Add new endpoint
+    const handleAddEndpoint = () => {
+        setEditingEndpoint({
+            path: '/new-endpoint',
+            method: 'GET',
+            summary: '',
+            description: '',
+            tags: [],
+            parameters: [],
+            requestBody: null,
+            responses: [{ code: '200', description: 'Successful response' }],
+            requiresAuth: false
+        });
+        setIsEditing(true);
+    };
+
+    // Add new endpoint to spec
+    const handleSaveNewEndpoint = (newEndpoint) => {
+        if (!spec) return;
+
+        const newSpec = { ...spec };
+        if (!newSpec.paths) newSpec.paths = {};
+        if (!newSpec.paths[newEndpoint.path]) {
+            newSpec.paths[newEndpoint.path] = {};
+        }
+
+        const operation = {
+            summary: newEndpoint.summary,
+            description: newEndpoint.description,
+            tags: newEndpoint.tags || [],
+            parameters: newEndpoint.parameters || [],
+            responses: {}
+        };
+
+        if (newEndpoint.requiresAuth) {
+            operation.security = [{ bearerAuth: [] }];
+        }
+
+        if (newEndpoint.requestBody) {
+            operation.requestBody = newEndpoint.requestBody;
+        }
+
+        (newEndpoint.responses || []).forEach(resp => {
+            operation.responses[resp.code] = {
+                description: resp.description
+            };
+        });
+
+        newSpec.paths[newEndpoint.path][newEndpoint.method.toLowerCase()] = operation;
+
+        setSpec(newSpec);
+        setViewerKey(prev => prev + 1);
+        setEditingEndpoint(null);
+        setIsEditing(false);
+    };
+
+    // Delete an endpoint from spec
+    const handleDeleteEndpoint = (path, method) => {
+        if (!window.confirm(`¿Eliminar endpoint ${method.toUpperCase()} ${path}?`)) return;
+
+        const newSpec = { ...spec };
+        if (newSpec.paths && newSpec.paths[path]) {
+            delete newSpec.paths[path][method.toLowerCase()];
+            // If no more methods in this path, remove the path
+            if (Object.keys(newSpec.paths[path]).length === 0) {
+                delete newSpec.paths[path];
+            }
+        }
+        setSpec(newSpec);
+        setViewerKey(prev => prev + 1);
+    };
+
     const groupedSpecs = groupSpecsByProject(savedSpecs);
 
     return (
@@ -418,8 +579,82 @@ function ApiTestPage() {
 
                     {spec && (
                         <div className="viewer-section">
+                            <div className="viewer-toolbar">
+                                <button
+                                    className="btn btn-small btn-primary"
+                                    onClick={handleAddEndpoint}
+                                    title="Añadir nuevo endpoint"
+                                >
+                                    ➕ Añadir Endpoint
+                                </button>
+                                {currentSpecId && (
+                                    <button
+                                        className="btn btn-small"
+                                        onClick={() => setShowSaveModal(true)}
+                                    >
+                                        💾 Guardar Cambios
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Editable Endpoints List */}
+                            <div className="endpoints-editor">
+                                <h4>📝 Endpoints ({Object.keys(spec.paths || {}).reduce((acc, path) => acc + Object.keys(spec.paths[path]).length, 0)})</h4>
+                                <div className="endpoints-list">
+                                    {Object.entries(spec.paths || {}).map(([path, methods]) => (
+                                        Object.entries(methods).map(([method, operation]) => {
+                                            if (['parameters', 'servers', 'summary', 'description'].includes(method)) return null;
+                                            const methodColors = {
+                                                get: '#22c55e', post: '#3b82f6', put: '#f59e0b',
+                                                patch: '#8b5cf6', delete: '#ef4444'
+                                            };
+                                            return (
+                                                <div
+                                                    key={`${path}-${method}`}
+                                                    className="endpoint-edit-row"
+                                                    onClick={() => handleEditEndpoint(path, method)}
+                                                >
+                                                    <span
+                                                        className="method-tag"
+                                                        style={{ backgroundColor: methodColors[method] || '#6b7280' }}
+                                                    >
+                                                        {method.toUpperCase()}
+                                                    </span>
+                                                    <span className="endpoint-path">{path}</span>
+                                                    <span className="endpoint-summary">{operation.summary || '-'}</span>
+                                                    <button className="btn-edit" title="Editar endpoint">✏️</button>
+                                                    <button
+                                                        className="btn-delete"
+                                                        title="Eliminar endpoint"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteEndpoint(path, method);
+                                                        }}
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            );
+                                        })
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Swagger Viewer */}
                             <OpenApiViewer key={viewerKey} spec={spec} />
                         </div>
+                    )}
+
+                    {/* Spec Editor Modal */}
+                    {isEditing && editingEndpoint && (
+                        <SpecEditor
+                            endpoint={editingEndpoint}
+                            onSave={editingEndpoint.path === '/new-endpoint' && !spec?.paths?.['/new-endpoint']
+                                ? handleSaveNewEndpoint
+                                : handleSaveEndpoint}
+                            onCancel={() => { setIsEditing(false); setEditingEndpoint(null); }}
+                            mode={editingEndpoint.path === '/new-endpoint' ? 'create' : 'edit'}
+                        />
                     )}
 
                     {!spec && !error && (
