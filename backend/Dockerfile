@@ -6,6 +6,9 @@ WORKDIR /app
 # Copiamos package.json y package-lock.json
 COPY package*.json ./
 
+# Instalamos git (requerido por simple-git para clonar repos)
+RUN apk add --no-cache git
+
 # Instalamos dependencias incluyendo las nuevas de Swagger
 RUN npm install
 

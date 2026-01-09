@@ -78,6 +78,39 @@ const initializeDatabase = async () => {
               )
           `);
 
+      // Create Repo Connections Table
+      await pool.query(`
+              CREATE TABLE IF NOT EXISTS repo_connections (
+                  id SERIAL PRIMARY KEY,
+                  project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                  repo_url VARCHAR(500) NOT NULL,
+                  repo_name VARCHAR(200),
+                  branch VARCHAR(100) DEFAULT 'main',
+                  detected_framework VARCHAR(50),
+                  last_sync TIMESTAMP,
+                  status VARCHAR(20) DEFAULT 'pending',
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+          `);
+
+      // Create Repo Files Table
+      await pool.query(`
+              CREATE TABLE IF NOT EXISTS repo_files (
+                  id SERIAL PRIMARY KEY,
+                  repo_connection_id INTEGER REFERENCES repo_connections(id) ON DELETE CASCADE,
+                  file_path VARCHAR(500) NOT NULL,
+                  file_type VARCHAR(50),
+                  has_swagger_comments BOOLEAN DEFAULT FALSE,
+                  endpoints_count INTEGER DEFAULT 0,
+                  quality_score INTEGER DEFAULT 0,
+                  api_spec_id INTEGER REFERENCES api_specs(id) ON DELETE SET NULL,
+                  parsed_content JSONB,
+                  last_parsed TIMESTAMP,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+          `);
+
       console.log('✅ Database tables initialized successfully');
       return; // Success, exit function
 

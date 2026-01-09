@@ -12,6 +12,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ApiTestPage from './pages/ApiTestPage';
 import OpenApiGuidePage from './pages/OpenApiGuidePage';
+import ReposPage from './pages/ReposPage';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import './styles/global.css';
 
@@ -71,6 +72,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ApiTestPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/repos"
+              element={
+                <ProtectedRoute>
+                  <ReposPage />
                 </ProtectedRoute>
               }
             />

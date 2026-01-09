@@ -31,6 +31,7 @@ function Header() {
               <Link to="/proyectos" className={isActive('/proyectos')}>Proyectos</Link>
               <Link to="/mis-documentos" className={isActive('/mis-documentos')}>Mis Documentos</Link>
               <Link to="/crear" className={isActive('/crear')}>Crear</Link>
+              <Link to="/repos" className={isActive('/repos')}>Repositorios</Link>
               <Link to="/api-test" className={isActive('/api-test')}>API Testing</Link>
               <Link to="/openapi-guide" className={isActive('/openapi-guide')}>Guía OpenAPI</Link>
               <button onClick={handleLogout} className="btn btn-secondary" style={{ marginLeft: '1rem' }}>

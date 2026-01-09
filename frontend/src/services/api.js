@@ -52,4 +52,17 @@ export const apiSpecsAPI = {
     }
 };
 
+// Repos API
+export const reposAPI = {
+    analyze: (repoUrl, projectId, branch = 'main') =>
+        api.post('/repos/analyze', { repo_url: repoUrl, project_id: projectId, branch }),
+    getAll: (projectId = null) =>
+        api.get(`/repos${projectId ? `?project_id=${projectId}` : ''}`),
+    getById: (id) => api.get(`/repos/${id}`),
+    generateSpec: (repoId, fileId, data) =>
+        api.post(`/repos/${repoId}/files/${fileId}/generate-spec`, data),
+    resync: (id) => api.post(`/repos/${id}/resync`),
+    delete: (id) => api.delete(`/repos/${id}`)
+};
+
 export default api;
