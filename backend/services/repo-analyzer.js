@@ -9,6 +9,14 @@ const path = require('path');
 const os = require('os');
 const { parseSwaggerComments, extractSpecPreview } = require('./swagger-parser');
 
+// Framework-specific parsers
+const expressParser = require('./parsers/express-parser');
+const laravelParser = require('./parsers/laravel-parser');
+const symfonyParser = require('./parsers/symfony-parser');
+const nextjsParser = require('./parsers/nextjs-parser');
+const nodejsParser = require('./parsers/nodejs-parser');
+const astParser = require('./parsers/ast-parser');
+
 // Supported file extensions by framework type
 const FILE_PATTERNS = {
     node: ['.js', '.ts', '.mjs'],
@@ -31,7 +39,17 @@ const FRAMEWORK_PATTERNS = {
     fastify: {
         type: 'node',
         packageDeps: ['fastify'],
-        codePatterns: [/fastify\.(get|post|put|delete|patch)\s*\(/g]
+        codePatterns: [/fastify\.(get|post|put|delete|patch)\s*\(/g, /\.route\s*\(\s*\{/g]
+    },
+    koa: {
+        type: 'node',
+        packageDeps: ['koa', '@koa/router', 'koa-router'],
+        codePatterns: [/router\.(get|post|put|delete|patch|del)\s*\(/g]
+    },
+    hapi: {
+        type: 'node',
+        packageDeps: ['@hapi/hapi', 'hapi'],
+        codePatterns: [/server\.route\s*\(\s*\{/g]
     },
     nextjs: {
         type: 'node',
@@ -312,27 +330,47 @@ function analyzeFileContent(content, framework = null) {
         result.swaggerBlocks = swaggerMatches.length;
     }
 
-    // Check for route definitions based on framework
+    // Check for route definitions based on framework - just check if it's an API file
     const patternsToCheck = framework
         ? [FRAMEWORK_PATTERNS[framework]?.codePatterns].filter(Boolean).flat()
         : Object.values(FRAMEWORK_PATTERNS).flatMap(f => f.codePatterns || []);
 
     for (const pattern of patternsToCheck) {
-        const matches = content.match(pattern);
-        if (matches) {
+        if (pattern.test(content)) {
             result.isApiFile = true;
-            result.endpointsCount += matches.length;
+            break;  // Just need to know if it's an API file, don't count here
         }
     }
 
-    // Extract basic endpoint info (for Express/Node.js)
-    const routeRegex = /\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi;
-    let match;
-    while ((match = routeRegex.exec(content)) !== null) {
-        result.endpoints.push({
-            method: match[1].toUpperCase(),
-            path: match[2]
-        });
+    // Extract unique endpoints using Set to avoid duplicates
+    const seenEndpoints = new Set();
+    const routePatterns = [
+        /(?:router|app)\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+        /Route::(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+        /fastify\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi
+    ];
+
+    for (const pattern of routePatterns) {
+        let match;
+        const regex = new RegExp(pattern.source, pattern.flags);
+        while ((match = regex.exec(content)) !== null) {
+            const method = match[1].toUpperCase();
+            const path = match[2];
+            const key = `${method}:${path}`;
+
+            if (!seenEndpoints.has(key)) {
+                seenEndpoints.add(key);
+                result.endpoints.push({
+                    method,
+                    path
+                });
+            }
+        }
+    }
+
+    result.endpointsCount = result.endpoints.length;
+    if (result.endpointsCount > 0) {
+        result.isApiFile = true;
     }
 
     return result;
@@ -367,6 +405,18 @@ async function parseFile(filePath, framework = null) {
             }
         }
 
+        // Use framework-specific parser if available
+        if (framework && analysis.isApiFile) {
+            try {
+                const frameworkSpec = await parseWithFrameworkParser(content, filePath, framework);
+                if (frameworkSpec && frameworkSpec.success) {
+                    return frameworkSpec;
+                }
+            } catch (err) {
+                console.error(`Error with ${framework} parser:`, err);
+            }
+        }
+
         // Otherwise, generate a basic spec from detected endpoints
         if (analysis.endpoints.length > 0) {
             const inferredSpec = generateInferredSpec(analysis.endpoints, fileName);
@@ -394,6 +444,81 @@ async function parseFile(filePath, framework = null) {
             message: 'Failed to parse file'
         };
     }
+}
+
+/**
+ * Parse with framework-specific parser
+ */
+async function parseWithFrameworkParser(content, filePath, framework) {
+    const fileName = path.basename(filePath);
+    let parseResult, spec;
+
+    switch (framework) {
+        case 'express': {
+            // Try AST parser first for more accuracy
+            const astResult = astParser.parseWithAST(content, filePath);
+            if (astResult && astResult.endpoints.length > 0) {
+                parseResult = astResult;
+                spec = astParser.generateOpenApiSpec(astResult, fileName);
+            } else {
+                // Fallback to regex parser
+                parseResult = expressParser.parseExpressFile(content, filePath);
+                if (parseResult.endpoints.length > 0) {
+                    spec = expressParser.generateOpenApiSpec(parseResult, fileName);
+                }
+            }
+            break;
+        }
+
+        case 'laravel':
+            parseResult = laravelParser.parseLaravelFile(content, filePath);
+            if (parseResult.endpoints.length > 0) {
+                spec = laravelParser.generateOpenApiSpec(parseResult, fileName);
+            }
+            break;
+
+        case 'symfony':
+            parseResult = symfonyParser.parseSymfonyFile(content, filePath);
+            if (parseResult.endpoints.length > 0) {
+                spec = symfonyParser.generateOpenApiSpec(parseResult, fileName);
+            }
+            break;
+
+        case 'nextjs':
+            parseResult = nextjsParser.parseNextjsFile(content, filePath);
+            if (parseResult.endpoints.length > 0) {
+                spec = nextjsParser.generateOpenApiSpec(parseResult, fileName);
+            }
+            break;
+
+        case 'fastify':
+        case 'koa':
+        case 'hapi':
+            parseResult = nodejsParser.parseNodejsFile(content, filePath);
+            if (parseResult.endpoints.length > 0) {
+                spec = nodejsParser.generateOpenApiSpec(parseResult, fileName);
+            }
+            break;
+
+        default:
+            return null;
+    }
+
+    if (spec && Object.keys(spec.paths || {}).length > 0) {
+        const endpointsCount = parseResult?.endpoints?.length || 0;
+        return {
+            success: true,
+            method: `${framework}-parser`,
+            spec,
+            preview: extractSpecPreview(spec),
+            qualityScore: calculateQualityScore(spec),
+            endpoints: parseResult?.endpoints || [],
+            hasAuth: parseResult?.hasAuth || false,
+            message: `Parsed ${endpointsCount} endpoints using ${framework} parser`
+        };
+    }
+
+    return null;
 }
 
 /**

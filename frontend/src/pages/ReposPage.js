@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reposAPI, projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import EndpointPreview from '../components/EndpointPreview';
 import '../styles/ReposPage.css';
 
 function ReposPage() {
@@ -26,6 +27,10 @@ function ReposPage() {
     const [selectedRepo, setSelectedRepo] = useState(null);
     const [repoFiles, setRepoFiles] = useState([]);
     const [loadingFiles, setLoadingFiles] = useState(false);
+
+    // State for endpoint preview
+    const [previewFile, setPreviewFile] = useState(null);
+    const [previewEndpoints, setPreviewEndpoints] = useState([]);
 
     const loadRepos = useCallback(async () => {
         try {
@@ -74,7 +79,7 @@ function ReposPage() {
         try {
             const response = await reposAPI.analyze(repoUrl, selectedProjectId, branch);
             setAnalysisResult(response.data);
-            loadRepos(); // Reload list
+            loadRepos();
             setShowAnalyzeForm(false);
             setRepoUrl('');
             setBranch('main');
@@ -99,6 +104,64 @@ function ReposPage() {
         }
     };
 
+    // Open preview modal for a file
+    const handlePreviewEndpoints = (file) => {
+        // Parse endpoints from parsed_content if available
+        let endpoints = [];
+        if (file.parsed_content) {
+            try {
+                const parsed = typeof file.parsed_content === 'string'
+                    ? JSON.parse(file.parsed_content)
+                    : file.parsed_content;
+
+                // Extract endpoints from OpenAPI paths
+                if (parsed.paths) {
+                    for (const [path, methods] of Object.entries(parsed.paths)) {
+                        for (const [method, details] of Object.entries(methods)) {
+                            if (['get', 'post', 'put', 'patch', 'delete'].includes(method)) {
+                                endpoints.push({
+                                    method: method.toUpperCase(),
+                                    path: path,
+                                    summary: details.summary || `${method.toUpperCase()} ${path}`
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error parsing endpoints:', err);
+            }
+        }
+
+        setPreviewFile(file);
+        setPreviewEndpoints(endpoints);
+    };
+
+    // Handle confirmed endpoints from preview
+    const handleConfirmEndpoints = async (editedEndpoints) => {
+        if (!previewFile || !selectedRepo) return;
+
+        try {
+            // Generate spec with edited endpoints
+            await reposAPI.generateSpec(selectedRepo.id, previewFile.id, {
+                name: `API - ${previewFile.file_path}`,
+                description: `Generado desde repositorio`,
+                editedEndpoints: editedEndpoints
+            });
+            alert('✅ Especificación API generada correctamente');
+            setPreviewFile(null);
+            setPreviewEndpoints([]);
+            handleViewRepo(selectedRepo);
+        } catch (err) {
+            alert('Error: ' + (err.response?.data?.error || err.message));
+        }
+    };
+
+    const handleCancelPreview = () => {
+        setPreviewFile(null);
+        setPreviewEndpoints([]);
+    };
+
     const handleGenerateSpec = async (repoId, fileId, filePath) => {
         try {
             await reposAPI.generateSpec(repoId, fileId, {
@@ -106,7 +169,6 @@ function ReposPage() {
                 description: `Generado desde repositorio`
             });
             alert('✅ Especificación API generada correctamente');
-            // Reload files to update state
             handleViewRepo(selectedRepo);
         } catch (err) {
             alert('Error: ' + (err.response?.data?.error || err.message));
@@ -197,6 +259,17 @@ function ReposPage() {
                     {showAnalyzeForm ? '✕ Cancelar' : '➕ Conectar Repositorio'}
                 </button>
             </div>
+
+            {/* Endpoint Preview Modal */}
+            {previewFile && (
+                <EndpointPreview
+                    endpoints={previewEndpoints}
+                    onConfirm={handleConfirmEndpoints}
+                    onCancel={handleCancelPreview}
+                    repoName={selectedRepo?.repo_name}
+                    filePath={previewFile.file_path}
+                />
+            )}
 
             {/* Analysis Form */}
             {showAnalyzeForm && (
@@ -390,12 +463,22 @@ function ReposPage() {
                                                     👁️ Ver Spec
                                                 </button>
                                             ) : file.parsed_content ? (
-                                                <button
-                                                    className="btn btn-small btn-primary"
-                                                    onClick={() => handleGenerateSpec(selectedRepo.id, file.id, file.file_path)}
-                                                >
-                                                    ⚡ Generar Spec
-                                                </button>
+                                                <div className="action-buttons">
+                                                    <button
+                                                        className="btn btn-small"
+                                                        onClick={() => handlePreviewEndpoints(file)}
+                                                        title="Revisar endpoints antes de generar"
+                                                    >
+                                                        📝 Revisar
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-small btn-primary"
+                                                        onClick={() => handleGenerateSpec(selectedRepo.id, file.id, file.file_path)}
+                                                        title="Generar spec directamente"
+                                                    >
+                                                        ⚡ Generar
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <span className="no-content">Sin contenido</span>
                                             )}
@@ -412,3 +495,4 @@ function ReposPage() {
 }
 
 export default ReposPage;
+
