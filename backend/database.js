@@ -52,6 +52,40 @@ const initializeDatabase = async () => {
               IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_connected_at') THEN
                   ALTER TABLE users ADD COLUMN github_connected_at TIMESTAMP;
               END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_id') THEN
+                  ALTER TABLE users ADD COLUMN bitbucket_id VARCHAR(50);
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_username') THEN
+                  ALTER TABLE users ADD COLUMN bitbucket_username VARCHAR(100);
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_token') THEN
+                  ALTER TABLE users ADD COLUMN bitbucket_token TEXT;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_refresh_token') THEN
+                  ALTER TABLE users ADD COLUMN bitbucket_refresh_token TEXT;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_connected_at') THEN
+                  ALTER TABLE users ADD COLUMN bitbucket_connected_at TIMESTAMP;
+              END IF;
+              -- Per-user OAuth app credentials (encrypted)
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_client_id') THEN
+                  ALTER TABLE users ADD COLUMN github_client_id TEXT;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_client_secret') THEN
+                  ALTER TABLE users ADD COLUMN github_client_secret TEXT;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_callback_url') THEN
+                  ALTER TABLE users ADD COLUMN github_callback_url TEXT;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_client_id') THEN
+                  ALTER TABLE users ADD COLUMN bitbucket_client_id TEXT;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_client_secret') THEN
+                  ALTER TABLE users ADD COLUMN bitbucket_client_secret TEXT;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_callback_url') THEN
+                  ALTER TABLE users ADD COLUMN bitbucket_callback_url TEXT;
+              END IF;
           END $$;
       `);
 

@@ -5,12 +5,7 @@ const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const router = express.Router();
 
-// GitHub OAuth configuration
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
-const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
-const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || 'http://localhost:3000/api/auth/github/callback';
-
-// Simple encryption for tokens (use a proper solution in production)
+// Simple encryption for tokens
 const ENCRYPTION_KEY = process.env.JWT_SECRET || 'default-key-change-this';
 
 function encryptToken(token) {
@@ -63,104 +58,137 @@ const verifyToken = (req, res, next) => {
 
 /**
  * @swagger
- * /auth/github:
+ * /auth/github/setup:
  *   get:
- *     summary: Initiate GitHub OAuth flow
+ *     summary: Get user's GitHub OAuth setup
  *     tags: [GitHub]
- *     security:
- *       - cookieAuth: []
- *     responses:
- *       302:
- *         description: Redirects to GitHub authorization page
  */
-router.get('/github', verifyToken, (req, res) => {
-    if (!GITHUB_CLIENT_ID) {
-        return res.status(500).json({
-            error: 'GitHub OAuth no configurado. Configure GITHUB_CLIENT_ID en las variables de entorno.'
-        });
+router.get('/auth/github/setup', verifyToken, asyncHandler(async (req, res) => {
+    const result = await pool.query(
+        'SELECT github_client_id, github_callback_url FROM users WHERE id = $1',
+        [req.user.id]
+    );
+    const user = result.rows[0];
+    res.json({
+        configured: !!user?.github_client_id,
+        clientId: user?.github_client_id ? '***configurado***' : null,
+        callbackUrl: user?.github_callback_url || null
+    });
+}));
+
+/**
+ * @swagger
+ * /auth/github/setup:
+ *   post:
+ *     summary: Save user's GitHub OAuth credentials
+ *     tags: [GitHub]
+ */
+router.post('/auth/github/setup', verifyToken, asyncHandler(async (req, res) => {
+    const { client_id, client_secret, callback_url } = req.body;
+
+    if (!client_id || !client_secret || !callback_url) {
+        throw new AppError('client_id, client_secret y callback_url son requeridos', 400);
     }
 
-    // Store user ID in state to retrieve after callback
+    // Encrypt the client_secret
+    const encryptedSecret = encryptToken(client_secret);
+
+    await pool.query(
+        `UPDATE users 
+         SET github_client_id = $1, github_client_secret = $2, github_callback_url = $3
+         WHERE id = $4`,
+        [client_id, encryptedSecret, callback_url, req.user.id]
+    );
+
+    res.json({ success: true, message: 'Credenciales de GitHub guardadas' });
+}));
+
+/**
+ * @swagger
+ * /auth/github:
+ *   get:
+ *     summary: Initiate GitHub OAuth flow (uses per-user credentials)
+ *     tags: [GitHub]
+ */
+router.get('/auth/github', verifyToken, asyncHandler(async (req, res) => {
+    // Get user's OAuth credentials
+    const result = await pool.query(
+        'SELECT github_client_id, github_callback_url FROM users WHERE id = $1',
+        [req.user.id]
+    );
+
+    const user = result.rows[0];
+    if (!user?.github_client_id || !user?.github_callback_url) {
+        throw new AppError('GitHub OAuth no configurado. Configura tus credenciales primero.', 400);
+    }
+
     const state = Buffer.from(JSON.stringify({ userId: req.user.id })).toString('base64');
 
     const params = new URLSearchParams({
-        client_id: GITHUB_CLIENT_ID,
-        redirect_uri: GITHUB_CALLBACK_URL,
-        scope: 'repo read:user', // Access to public and private repos
+        client_id: user.github_client_id,
+        redirect_uri: user.github_callback_url,
+        scope: 'repo read:user',
         state: state
     });
 
     res.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
-});
+}));
 
 /**
  * @swagger
  * /auth/github/callback:
  *   get:
- *     summary: GitHub OAuth callback
+ *     summary: GitHub OAuth callback (uses per-user credentials)
  *     tags: [GitHub]
- *     parameters:
- *       - in: query
- *         name: code
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: state
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       302:
- *         description: Redirects to frontend with success/error
  */
-router.get('/github/callback', asyncHandler(async (req, res) => {
+router.get('/auth/github/callback', asyncHandler(async (req, res) => {
     const { code, state, error } = req.query;
-
-    // Frontend URL to redirect to
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
     if (error) {
-        return res.redirect(`${frontendUrl}/repos?github_error=${encodeURIComponent(error)}`);
+        return res.redirect(`${frontendUrl}/workspace?section=repos&github_error=${encodeURIComponent(error)}`);
     }
 
     if (!code || !state) {
-        return res.redirect(`${frontendUrl}/repos?github_error=missing_params`);
-    }
-
-    if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
-        return res.redirect(`${frontendUrl}/repos?github_error=not_configured`);
+        return res.redirect(`${frontendUrl}/workspace?section=repos&github_error=missing_params`);
     }
 
     try {
-        // Decode state to get user ID
         const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
         const userId = stateData.userId;
 
         if (!userId) {
-            return res.redirect(`${frontendUrl}/repos?github_error=invalid_state`);
+            return res.redirect(`${frontendUrl}/workspace?section=repos&github_error=invalid_state`);
         }
+
+        // Get user's OAuth credentials
+        const userResult = await pool.query(
+            'SELECT github_client_id, github_client_secret, github_callback_url FROM users WHERE id = $1',
+            [userId]
+        );
+
+        const user = userResult.rows[0];
+        if (!user?.github_client_id || !user?.github_client_secret) {
+            return res.redirect(`${frontendUrl}/workspace?section=repos&github_error=not_configured`);
+        }
+
+        const clientSecret = decryptToken(user.github_client_secret);
 
         // Exchange code for access token
         const tokenResponse = await axios.post(
             'https://github.com/login/oauth/access_token',
             {
-                client_id: GITHUB_CLIENT_ID,
-                client_secret: GITHUB_CLIENT_SECRET,
+                client_id: user.github_client_id,
+                client_secret: clientSecret,
                 code: code
             },
-            {
-                headers: {
-                    Accept: 'application/json'
-                }
-            }
+            { headers: { Accept: 'application/json' } }
         );
 
         const { access_token, error: tokenError } = tokenResponse.data;
 
         if (tokenError || !access_token) {
-            console.error('GitHub token error:', tokenResponse.data);
-            return res.redirect(`${frontendUrl}/repos?github_error=token_exchange_failed`);
+            return res.redirect(`${frontendUrl}/workspace?section=repos&github_error=token_exchange_failed`);
         }
 
         // Get user info from GitHub
@@ -172,8 +200,6 @@ router.get('/github/callback', asyncHandler(async (req, res) => {
         });
 
         const githubUser = userResponse.data;
-
-        // Encrypt and store token
         const encryptedToken = encryptToken(access_token);
 
         await pool.query(
@@ -183,12 +209,11 @@ router.get('/github/callback', asyncHandler(async (req, res) => {
             [githubUser.id.toString(), githubUser.login, encryptedToken, userId]
         );
 
-        // Redirect to frontend with success
-        res.redirect(`${frontendUrl}/repos?github_connected=true`);
+        res.redirect(`${frontendUrl}/workspace?section=repos&github_connected=true`);
 
     } catch (err) {
         console.error('GitHub OAuth error:', err.message);
-        res.redirect(`${frontendUrl}/repos?github_error=server_error`);
+        res.redirect(`${frontendUrl}/workspace?section=repos&github_error=server_error`);
     }
 }));
 

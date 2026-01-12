@@ -109,7 +109,7 @@ const verifyToken = (req, res, next) => {
  *         description: URL inválida
  */
 router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res) => {
-    const { repo_url, project_id, branch = 'main' } = req.body;
+    const { repo_url, project_id, branch = 'main', auth_token } = req.body;
 
     // Validate inputs
     if (!repo_url) {
@@ -134,9 +134,28 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
     // Extract repo name from URL
     const repoName = repo_url.split('/').slice(-2).join('/').replace('.git', '');
 
+    // Build clone URL with auth token if provided (for private repos)
+    let cloneUrl = repo_url;
+    if (auth_token) {
+        // Detect platform and format accordingly
+        if (repo_url.includes('github.com')) {
+            // GitHub: https://TOKEN@github.com/owner/repo.git
+            cloneUrl = repo_url.replace('https://github.com', `https://${auth_token}@github.com`);
+        } else if (repo_url.includes('bitbucket.org')) {
+            // Bitbucket: https://x-token-auth:TOKEN@bitbucket.org/owner/repo.git
+            cloneUrl = repo_url.replace('https://bitbucket.org', `https://x-token-auth:${auth_token}@bitbucket.org`);
+        } else if (repo_url.includes('gitlab.com')) {
+            // GitLab: https://oauth2:TOKEN@gitlab.com/owner/repo.git
+            cloneUrl = repo_url.replace('https://gitlab.com', `https://oauth2:${auth_token}@gitlab.com`);
+        }
+        if (!cloneUrl.endsWith('.git')) {
+            cloneUrl += '.git';
+        }
+    }
+
     // Analyze the repository
     console.log(`Starting analysis of ${repo_url}...`);
-    const analysisResult = await analyzeRepository(repo_url, branch);
+    const analysisResult = await analyzeRepository(cloneUrl, branch);
 
     if (!analysisResult.success) {
         throw new AppError(analysisResult.error || 'Error al analizar el repositorio', 400);

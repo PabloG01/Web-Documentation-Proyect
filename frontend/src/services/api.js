@@ -58,8 +58,8 @@ export const apiSpecsAPI = {
 
 // Repos API
 export const reposAPI = {
-    analyze: (repoUrl, projectId, branch = 'main') =>
-        api.post('/repos/analyze', { repo_url: repoUrl, project_id: projectId, branch }),
+    analyze: (repoUrl, projectId, branch = 'main', authToken = null) =>
+        api.post('/repos/analyze', { repo_url: repoUrl, project_id: projectId, branch, auth_token: authToken }),
     getAll: (projectId = null) =>
         api.get(`/repos${projectId ? `?project_id=${projectId}` : ''}`),
     getById: (id) => api.get(`/repos/${id}`),
@@ -77,8 +77,27 @@ export const githubAPI = {
         api.get(`/github/repos?visibility=${visibility}&page=${page}&per_page=${perPage}`),
     analyzeRepo: (owner, repo, projectId, branch = 'main') =>
         api.post(`/github/repos/${owner}/${repo}/analyze`, { project_id: projectId, branch }),
-    // OAuth redirect URL (used by frontend to initiate flow)
-    getOAuthUrl: () => `${API_URL}/github/auth/github`
+    getOAuthUrl: () => `${API_URL}/github/auth/github`,
+    // Per-user OAuth setup
+    getSetup: () => api.get('/github/auth/github/setup'),
+    saveSetup: (clientId, clientSecret, callbackUrl) =>
+        api.post('/github/auth/github/setup', { client_id: clientId, client_secret: clientSecret, callback_url: callbackUrl })
+};
+
+// Bitbucket API
+export const bitbucketAPI = {
+    getStatus: () => api.get('/bitbucket/auth/bitbucket/status'),
+    disconnect: () => api.post('/bitbucket/auth/bitbucket/disconnect'),
+    getRepos: (role = 'member', page = 1, pagelen = 25) =>
+        api.get(`/bitbucket/repos?role=${role}&page=${page}&pagelen=${pagelen}`),
+    analyzeRepo: (workspace, repo, projectId, branch = 'main') =>
+        api.post(`/bitbucket/repos/${workspace}/${repo}/analyze`, { project_id: projectId, branch }),
+    getOAuthUrl: () => `${API_URL}/bitbucket/auth/bitbucket`,
+    // Per-user OAuth setup
+    getSetup: () => api.get('/bitbucket/auth/bitbucket/setup'),
+    saveSetup: (clientId, clientSecret, callbackUrl) =>
+        api.post('/bitbucket/auth/bitbucket/setup', { client_id: clientId, client_secret: clientSecret, callback_url: callbackUrl })
 };
 
 export default api;
+

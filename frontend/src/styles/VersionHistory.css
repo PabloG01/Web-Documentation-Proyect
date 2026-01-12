@@ -34,7 +34,7 @@
 .version-history-modal .modal-header h2 {
     margin: 0;
     font-size: 1.25rem;
-    color: var(--text-primary, #1e293b);
+    color: #1e293b;
 }
 
 .version-history-modal .close-btn {
@@ -69,7 +69,7 @@
 
 .list-header {
     font-size: 0.8rem;
-    color: var(--text-secondary, #64748b);
+    color: #475569;
     margin-bottom: 0.75rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border-color, #e2e8f0);
@@ -121,7 +121,7 @@
 
 .version-summary {
     font-size: 0.8rem;
-    color: var(--text-primary, #1e293b);
+    color: #334155;
     margin-bottom: 0.5rem;
 }
 
@@ -175,15 +175,17 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: var(--text-secondary, #64748b);
+    color: #475569;
     font-style: italic;
+    background: #f1f5f9;
+    border-radius: 8px;
 }
 
 .loading,
 .empty-state {
     text-align: center;
     padding: 2rem;
-    color: var(--text-secondary, #64748b);
+    color: #475569;
 }
 
 .empty-state .hint {

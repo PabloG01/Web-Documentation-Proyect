@@ -20,6 +20,7 @@ function ReposPage({ embedded = false }) {
     const [repoUrl, setRepoUrl] = useState('');
     const [selectedProjectId, setSelectedProjectId] = useState('');
     const [branch, setBranch] = useState('main');
+    const [authToken, setAuthToken] = useState('');
     const [projects, setProjects] = useState([]);
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState(null);
@@ -82,12 +83,13 @@ function ReposPage({ embedded = false }) {
         setAnalysisResult(null);
 
         try {
-            const response = await reposAPI.analyze(repoUrl, selectedProjectId, branch);
+            const response = await reposAPI.analyze(repoUrl, selectedProjectId, branch, authToken || null);
             setAnalysisResult(response.data);
             loadRepos();
             setShowAnalyzeForm(false);
             setRepoUrl('');
             setBranch('main');
+            setAuthToken('');
         } catch (err) {
             setError(err.response?.data?.error || 'Error al analizar el repositorio');
         } finally {
@@ -333,6 +335,18 @@ function ReposPage({ embedded = false }) {
                                     disabled={analyzing}
                                 />
                             </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label>🔑 Token de acceso (opcional)</label>
+                            <input
+                                type="password"
+                                value={authToken}
+                                onChange={(e) => setAuthToken(e.target.value)}
+                                placeholder="Requerido para repositorios privados"
+                                disabled={analyzing}
+                            />
+                            <small>Personal Access Token de GitHub/Bitbucket/GitLab para repos privados</small>
                         </div>
 
                         {error && <div className="error-message">⚠️ {error}</div>}
