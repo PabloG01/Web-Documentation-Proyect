@@ -107,3 +107,11 @@ main {
   margin: 0 auto;
   width: 100%;
 }
+
+/* Full-width layout for workspace and guide */
+main:has(.workspace-page),
+main:has(.openapi-guide-page) {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}

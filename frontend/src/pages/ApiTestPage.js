@@ -2,11 +2,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import OpenApiViewer from '../components/OpenApiViewer';
 import SpecEditor from '../components/SpecEditor';
+import VersionHistory from '../components/VersionHistory';
 import { projectsAPI, apiSpecsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/ApiTestPage.css';
 
-function ApiTestPage() {
+function ApiTestPage({ embedded = false }) {
     const { user } = useContext(AuthContext);
     const [searchParams] = useSearchParams();
     const [spec, setSpec] = useState(null);
@@ -28,6 +29,7 @@ function ApiTestPage() {
     const [expandedProjects, setExpandedProjects] = useState({}); // Estado para carpetas expandidas
     const [editingEndpoint, setEditingEndpoint] = useState(null); // Endpoint being edited
     const [isEditing, setIsEditing] = useState(false); // Edit mode active
+    const [showVersionHistory, setShowVersionHistory] = useState(false); // Version history modal
 
     // Cargar proyectos y specs guardadas
     useEffect(() => {
@@ -588,12 +590,21 @@ function ApiTestPage() {
                                     ➕ Añadir Endpoint
                                 </button>
                                 {currentSpecId && (
-                                    <button
-                                        className="btn btn-small"
-                                        onClick={() => setShowSaveModal(true)}
-                                    >
-                                        💾 Guardar Cambios
-                                    </button>
+                                    <>
+                                        <button
+                                            className="btn btn-small"
+                                            onClick={() => setShowSaveModal(true)}
+                                        >
+                                            💾 Guardar Cambios
+                                        </button>
+                                        <button
+                                            className="btn btn-small"
+                                            onClick={() => setShowVersionHistory(true)}
+                                            title="Ver historial de versiones"
+                                        >
+                                            📜 Historial
+                                        </button>
+                                    </>
                                 )}
                             </div>
 
@@ -730,6 +741,18 @@ function ApiTestPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Version History Modal */}
+            {showVersionHistory && currentSpecId && (
+                <VersionHistory
+                    specId={currentSpecId}
+                    onRestore={(restoredSpec) => {
+                        setSpec(restoredSpec.spec_content);
+                        setViewerKey(prev => prev + 1);
+                    }}
+                    onClose={() => setShowVersionHistory(false)}
+                />
             )}
         </div>
     );

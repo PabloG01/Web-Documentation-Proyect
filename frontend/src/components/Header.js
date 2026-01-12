@@ -15,6 +15,9 @@ function Header() {
 
   // Función para determinar si un enlace está activo
   const isActive = (path) => {
+    if (path === '/workspace') {
+      return location.pathname.startsWith('/workspace') ? 'nav-link active' : 'nav-link';
+    }
     return location.pathname === path ? 'nav-link active' : 'nav-link';
   };
 
@@ -28,11 +31,8 @@ function Header() {
           <Link to="/" className={isActive('/')}>Inicio</Link>
           {user ? (
             <>
-              <Link to="/proyectos" className={isActive('/proyectos')}>Proyectos</Link>
-              <Link to="/mis-documentos" className={isActive('/mis-documentos')}>Mis Documentos</Link>
+              <Link to="/workspace" className={isActive('/workspace')}>Workspace</Link>
               <Link to="/crear" className={isActive('/crear')}>Crear</Link>
-              <Link to="/repos" className={isActive('/repos')}>Repositorios</Link>
-              <Link to="/api-test" className={isActive('/api-test')}>API Testing</Link>
               <Link to="/openapi-guide" className={isActive('/openapi-guide')}>Guía OpenAPI</Link>
               <button onClick={handleLogout} className="btn btn-secondary" style={{ marginLeft: '1rem' }}>
                 Cerrar Sesión ({user.username})
@@ -51,3 +51,4 @@ function Header() {
 }
 
 export default Header;
+

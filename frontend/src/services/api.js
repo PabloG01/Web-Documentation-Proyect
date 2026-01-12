@@ -49,7 +49,11 @@ export const apiSpecsAPI = {
                 'Content-Type': 'multipart/form-data'
             }
         });
-    }
+    },
+    // Version management
+    getVersions: (specId) => api.get(`/api-specs/${specId}/versions`),
+    getVersion: (specId, versionId) => api.get(`/api-specs/${specId}/versions/${versionId}`),
+    restoreVersion: (specId, versionId) => api.post(`/api-specs/${specId}/versions/${versionId}/restore`)
 };
 
 // Repos API

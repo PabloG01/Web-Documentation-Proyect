@@ -2,27 +2,27 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_DATABASE,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_DATABASE,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
 });
 
 const initializeDatabase = async () => {
-  const maxRetries = 10;
-  const retryDelay = 3000; // 3 seconds
+    const maxRetries = 10;
+    const retryDelay = 3000; // 3 seconds
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`Attempting to connect to database (attempt ${attempt}/${maxRetries})...`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Attempting to connect to database (attempt ${attempt}/${maxRetries})...`);
 
-      // Test the connection first
-      await pool.query('SELECT NOW()');
-      console.log('Database connection established successfully');
+            // Test the connection first
+            await pool.query('SELECT NOW()');
+            console.log('Database connection established successfully');
 
-      // Create Users Table
-      await pool.query(`
+            // Create Users Table
+            await pool.query(`
               CREATE TABLE IF NOT EXISTS users (
                   id SERIAL PRIMARY KEY,
                   username VARCHAR(50) UNIQUE NOT NULL,
@@ -36,8 +36,8 @@ const initializeDatabase = async () => {
               )
           `);
 
-      // Add GitHub columns if they don't exist (for existing installations)
-      await pool.query(`
+            // Add GitHub columns if they don't exist (for existing installations)
+            await pool.query(`
           DO $$ 
           BEGIN 
               IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_id') THEN
@@ -55,8 +55,8 @@ const initializeDatabase = async () => {
           END $$;
       `);
 
-      // Create Projects Table
-      await pool.query(`
+            // Create Projects Table
+            await pool.query(`
               CREATE TABLE IF NOT EXISTS projects (
                   id SERIAL PRIMARY KEY,
                   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -68,8 +68,8 @@ const initializeDatabase = async () => {
               )
           `);
 
-      // Create Documents Table
-      await pool.query(`
+            // Create Documents Table
+            await pool.query(`
               CREATE TABLE IF NOT EXISTS documents (
                   id SERIAL PRIMARY KEY,
                   project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
@@ -85,8 +85,8 @@ const initializeDatabase = async () => {
               )
           `);
 
-      // Create API Specs Table
-      await pool.query(`
+            // Create API Specs Table
+            await pool.query(`
               CREATE TABLE IF NOT EXISTS api_specs (
                   id SERIAL PRIMARY KEY,
                   project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
@@ -101,8 +101,8 @@ const initializeDatabase = async () => {
               )
           `);
 
-      // Create Repo Connections Table
-      await pool.query(`
+            // Create Repo Connections Table
+            await pool.query(`
               CREATE TABLE IF NOT EXISTS repo_connections (
                   id SERIAL PRIMARY KEY,
                   project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
@@ -117,8 +117,8 @@ const initializeDatabase = async () => {
               )
           `);
 
-      // Create Repo Files Table
-      await pool.query(`
+            // Create Repo Files Table
+            await pool.query(`
               CREATE TABLE IF NOT EXISTS repo_files (
                   id SERIAL PRIMARY KEY,
                   repo_connection_id INTEGER REFERENCES repo_connections(id) ON DELETE CASCADE,
@@ -134,21 +134,40 @@ const initializeDatabase = async () => {
               )
           `);
 
-      console.log('✅ Database tables initialized successfully');
-      return; // Success, exit function
+            // Create API Spec Versions Table (for version history)
+            await pool.query(`
+              CREATE TABLE IF NOT EXISTS api_spec_versions (
+                  id SERIAL PRIMARY KEY,
+                  api_spec_id INTEGER REFERENCES api_specs(id) ON DELETE CASCADE,
+                  version_number INTEGER NOT NULL,
+                  spec_content JSONB NOT NULL,
+                  change_summary VARCHAR(255),
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  UNIQUE(api_spec_id, version_number)
+              )
+          `);
 
-    } catch (err) {
-      console.error(`❌ Error on attempt ${attempt}/${maxRetries}:`, err.message);
+            // Create index for faster version queries
+            await pool.query(`
+          CREATE INDEX IF NOT EXISTS idx_spec_versions_api_spec_id 
+          ON api_spec_versions(api_spec_id, version_number DESC)
+      `);
 
-      if (attempt === maxRetries) {
-        console.error('❌ Failed to initialize database after maximum retries');
-        process.exit(1); // Exit if we can't connect after all retries
-      }
+            console.log('✅ Database tables initialized successfully');
+            return; // Success, exit function
 
-      console.log(`⏳ Retrying in ${retryDelay / 1000} seconds...`);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+        } catch (err) {
+            console.error(`❌ Error on attempt ${attempt}/${maxRetries}:`, err.message);
+
+            if (attempt === maxRetries) {
+                console.error('❌ Failed to initialize database after maximum retries');
+                process.exit(1); // Exit if we can't connect after all retries
+            }
+
+            console.log(`⏳ Retrying in ${retryDelay / 1000} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
     }
-  }
 };
 
 module.exports = { pool, initializeDatabase };

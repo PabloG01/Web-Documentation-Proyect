@@ -5,7 +5,7 @@ import Pagination from '../components/Pagination';
 import '../styles/ProjectsPage.css';
 import '../styles/LoadingStates.css';
 
-function ProjectsPage() {
+function ProjectsPage({ embedded = false }) {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [documents, setDocuments] = useState([]);

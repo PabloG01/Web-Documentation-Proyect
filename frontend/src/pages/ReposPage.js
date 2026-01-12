@@ -7,7 +7,7 @@ import ScoreBreakdown from '../components/ScoreBreakdown';
 import GitHubConnect from '../components/GitHubConnect';
 import '../styles/ReposPage.css';
 
-function ReposPage() {
+function ReposPage({ embedded = false }) {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
 

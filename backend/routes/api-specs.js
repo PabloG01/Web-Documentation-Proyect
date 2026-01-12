@@ -397,9 +397,9 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { project_id, name, description, spec_content } = req.body;
 
-    // Check ownership
+    // Check ownership and get current content
     const check = await pool.query(
-        'SELECT user_id FROM api_specs WHERE id = $1',
+        'SELECT user_id, spec_content FROM api_specs WHERE id = $1',
         [id]
     );
     if (check.rows.length === 0) {
@@ -428,6 +428,38 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
         }
     }
 
+    // Save current version before updating (max 4 versions)
+    const MAX_VERSIONS = 4;
+    const currentContent = check.rows[0].spec_content;
+
+    // Get next version number
+    const versionResult = await pool.query(
+        'SELECT COALESCE(MAX(version_number), 0) + 1 as next_version FROM api_spec_versions WHERE api_spec_id = $1',
+        [id]
+    );
+    const nextVersion = versionResult.rows[0].next_version;
+
+    // Save version
+    await pool.query(
+        `INSERT INTO api_spec_versions (api_spec_id, version_number, spec_content, change_summary)
+         VALUES ($1, $2, $3, $4)`,
+        [id, nextVersion, currentContent, `Version ${nextVersion} - Auto-saved`]
+    );
+
+    // Delete old versions if exceeds limit
+    await pool.query(
+        `DELETE FROM api_spec_versions 
+         WHERE api_spec_id = $1 
+         AND version_number NOT IN (
+             SELECT version_number FROM api_spec_versions 
+             WHERE api_spec_id = $1 
+             ORDER BY version_number DESC 
+             LIMIT $2
+         )`,
+        [id, MAX_VERSIONS]
+    );
+
+    // Update the spec
     const result = await pool.query(
         `UPDATE api_specs 
          SET project_id = $1, name = $2, description = $3, spec_content = $4, updated_at = CURRENT_TIMESTAMP
@@ -437,6 +469,163 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     );
 
     res.json(result.rows[0]);
+}));
+
+/**
+ * @swagger
+ * /api-specs/{id}/versions:
+ *   get:
+ *     summary: Listar versiones de una especificación
+ *     tags: [API Specs]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de versiones
+ */
+router.get('/:id/versions', verifyToken, asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    // Check ownership
+    const check = await pool.query(
+        'SELECT user_id FROM api_specs WHERE id = $1',
+        [id]
+    );
+    if (check.rows.length === 0) {
+        throw new AppError('API Spec no encontrada', 404);
+    }
+    if (check.rows[0].user_id !== req.user.id) {
+        throw new AppError('No autorizado', 403);
+    }
+
+    const result = await pool.query(
+        `SELECT id, version_number, change_summary, created_at 
+         FROM api_spec_versions 
+         WHERE api_spec_id = $1 
+         ORDER BY version_number DESC`,
+        [id]
+    );
+
+    res.json(result.rows);
+}));
+
+/**
+ * @swagger
+ * /api-specs/{id}/versions/{versionId}:
+ *   get:
+ *     summary: Obtener contenido de una versión específica
+ *     tags: [API Specs]
+ */
+router.get('/:id/versions/:versionId', verifyToken, asyncHandler(async (req, res) => {
+    const { id, versionId } = req.params;
+
+    // Check ownership
+    const check = await pool.query(
+        'SELECT user_id FROM api_specs WHERE id = $1',
+        [id]
+    );
+    if (check.rows.length === 0) {
+        throw new AppError('API Spec no encontrada', 404);
+    }
+    if (check.rows[0].user_id !== req.user.id) {
+        throw new AppError('No autorizado', 403);
+    }
+
+    const result = await pool.query(
+        `SELECT * FROM api_spec_versions 
+         WHERE api_spec_id = $1 AND id = $2`,
+        [id, versionId]
+    );
+
+    if (result.rows.length === 0) {
+        throw new AppError('Versión no encontrada', 404);
+    }
+
+    res.json(result.rows[0]);
+}));
+
+/**
+ * @swagger
+ * /api-specs/{id}/versions/{versionId}/restore:
+ *   post:
+ *     summary: Restaurar una versión anterior
+ *     tags: [API Specs]
+ */
+router.post('/:id/versions/:versionId/restore', verifyToken, asyncHandler(async (req, res) => {
+    const { id, versionId } = req.params;
+
+    // Check ownership
+    const check = await pool.query(
+        'SELECT user_id, spec_content FROM api_specs WHERE id = $1',
+        [id]
+    );
+    if (check.rows.length === 0) {
+        throw new AppError('API Spec no encontrada', 404);
+    }
+    if (check.rows[0].user_id !== req.user.id) {
+        throw new AppError('No autorizado', 403);
+    }
+
+    // Get version to restore
+    const versionResult = await pool.query(
+        'SELECT spec_content, version_number FROM api_spec_versions WHERE api_spec_id = $1 AND id = $2',
+        [id, versionId]
+    );
+
+    if (versionResult.rows.length === 0) {
+        throw new AppError('Versión no encontrada', 404);
+    }
+
+    const versionToRestore = versionResult.rows[0];
+
+    // Save current as new version before restoring
+    const MAX_VERSIONS = 4;
+    const currentContent = check.rows[0].spec_content;
+
+    const nextVersionResult = await pool.query(
+        'SELECT COALESCE(MAX(version_number), 0) + 1 as next_version FROM api_spec_versions WHERE api_spec_id = $1',
+        [id]
+    );
+    const nextVersion = nextVersionResult.rows[0].next_version;
+
+    await pool.query(
+        `INSERT INTO api_spec_versions (api_spec_id, version_number, spec_content, change_summary)
+         VALUES ($1, $2, $3, $4)`,
+        [id, nextVersion, currentContent, `Before restore to v${versionToRestore.version_number}`]
+    );
+
+    // Cleanup old versions
+    await pool.query(
+        `DELETE FROM api_spec_versions 
+         WHERE api_spec_id = $1 
+         AND version_number NOT IN (
+             SELECT version_number FROM api_spec_versions 
+             WHERE api_spec_id = $1 
+             ORDER BY version_number DESC 
+             LIMIT $2
+         )`,
+        [id, MAX_VERSIONS]
+    );
+
+    // Restore the spec content
+    const result = await pool.query(
+        `UPDATE api_specs 
+         SET spec_content = $1, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2 
+         RETURNING *`,
+        [versionToRestore.spec_content, id]
+    );
+
+    res.json({
+        message: `Restaurado a versión ${versionToRestore.version_number}`,
+        spec: result.rows[0]
+    });
 }));
 
 /**
@@ -488,3 +677,4 @@ router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+

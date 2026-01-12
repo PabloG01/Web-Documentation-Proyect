@@ -7,7 +7,7 @@ import Pagination from '../components/Pagination';
 import '../styles/DocumentsListPage.css';
 import '../styles/LoadingStates.css';
 
-function DocumentsListPage() {
+function DocumentsListPage({ embedded = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

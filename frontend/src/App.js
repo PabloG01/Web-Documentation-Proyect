@@ -5,14 +5,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import CreatePage from './pages/CreatePage';
-import DocumentsListPage from './pages/DocumentsListPage';
 import DocumentViewPage from './pages/DocumentViewPage';
-import ProjectsPage from './pages/ProjectsPage';
+import WorkspacePage from './pages/WorkspacePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import ApiTestPage from './pages/ApiTestPage';
 import OpenApiGuidePage from './pages/OpenApiGuidePage';
-import ReposPage from './pages/ReposPage';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import './styles/global.css';
 
@@ -44,10 +41,10 @@ function App() {
               }
             />
             <Route
-              path="/mis-documentos"
+              path="/workspace"
               element={
                 <ProtectedRoute>
-                  <DocumentsListPage />
+                  <WorkspacePage />
                 </ProtectedRoute>
               }
             />
@@ -59,31 +56,12 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/proyectos"
-              element={
-                <ProtectedRoute>
-                  <ProjectsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/api-test"
-              element={
-                <ProtectedRoute>
-                  <ApiTestPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/repos"
-              element={
-                <ProtectedRoute>
-                  <ReposPage />
-                </ProtectedRoute>
-              }
-            />
             <Route path="/openapi-guide" element={<OpenApiGuidePage />} />
+            {/* Redirects for old routes */}
+            <Route path="/proyectos" element={<Navigate to="/workspace?section=projects" replace />} />
+            <Route path="/mis-documentos" element={<Navigate to="/workspace?section=documents" replace />} />
+            <Route path="/api-test" element={<Navigate to="/workspace?section=apis" replace />} />
+            <Route path="/repos" element={<Navigate to="/workspace?section=repos" replace />} />
           </Routes>
         </main>
       </Router>
@@ -92,3 +70,4 @@ function App() {
 }
 
 export default App;
+
