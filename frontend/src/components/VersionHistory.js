@@ -11,6 +11,7 @@ function VersionHistory({ specId, onRestore, onClose }) {
 
     useEffect(() => {
         loadVersions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [specId]);
 
     const loadVersions = async () => {

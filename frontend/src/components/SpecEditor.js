@@ -67,19 +67,17 @@ function SpecEditor({
     });
 
     const [activeTab, setActiveTab] = useState('basic');
-    const [showSuggestions, setShowSuggestions] = useState(null);
-    const [jsonMode, setJsonMode] = useState(false);
     const [jsonText, setJsonText] = useState('');
     const [jsonError, setJsonError] = useState('');
 
     useEffect(() => {
         if (endpoint) {
-            setEditedEndpoint({
-                ...editedEndpoint,
+            setEditedEndpoint(prev => ({
+                ...prev,
                 ...endpoint,
                 parameters: endpoint.parameters || [],
                 responses: endpoint.responses || [{ code: '200', description: 'Successful response' }]
-            });
+            }));
         }
     }, [endpoint]);
 

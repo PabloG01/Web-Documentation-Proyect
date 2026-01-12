@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { projectsAPI, documentsAPI, apiSpecsAPI, reposAPI } from '../services/api';
 import '../styles/WorkspacePage.css';
@@ -13,7 +13,6 @@ import ReposPage from './ReposPage';
 function WorkspacePage() {
     const { user } = useContext(AuthContext);
     const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
 
     // Active section from URL or default
     const [activeSection, setActiveSection] = useState(searchParams.get('section') || 'projects');
@@ -35,7 +34,7 @@ function WorkspacePage() {
     // Update URL when section changes
     useEffect(() => {
         setSearchParams({ section: activeSection });
-    }, [activeSection]);
+    }, [activeSection, setSearchParams]);
 
     const loadStats = async () => {
         try {

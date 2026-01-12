@@ -4,7 +4,7 @@ import { reposAPI, projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import EndpointPreview from '../components/EndpointPreview';
 import ScoreBreakdown from '../components/ScoreBreakdown';
-import GitHubConnect from '../components/GitHubConnect';
+// import GitHubConnect from '../components/GitHubConnect'; // Uncomment when GitHub OAuth is configured
 import '../styles/ReposPage.css';
 
 function ReposPage({ embedded = false }) {
