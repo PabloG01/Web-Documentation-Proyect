@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
-const { pool } = require('../database');
+const { reposRepository, projectsRepository } = require('../repositories');
+const { pool } = require('../database'); // Needed for api_specs table until migrated
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/verifyToken');
 const { createLimiter } = require('../middleware/rateLimiter');
@@ -144,8 +145,8 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
     }
 
     // Check project exists
-    const projectCheck = await pool.query('SELECT id FROM projects WHERE id = $1', [project_id]);
-    if (projectCheck.rows.length === 0) {
+    const projectExists = await projectsRepository.exists(project_id);
+    if (!projectExists) {
         throw new AppError('Proyecto no encontrado', 404);
     }
 
@@ -183,44 +184,19 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
     const encryptedAuthToken = auth_token ? encryptToken(auth_token) : null;
     const isPrivate = !!auth_token;
 
-    const repoResult = await pool.query(
-        `INSERT INTO repo_connections 
-         (project_id, user_id, repo_url, repo_name, branch, detected_framework, auth_token_encrypted, is_private, status, last_sync)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
-         RETURNING *`,
-        [
-            project_id,
-            req.user.id,
-            repo_url,
-            repoName,
-            analysisResult.branch || branch,
-            analysisResult.framework?.primary || null,
-            encryptedAuthToken,
-            isPrivate,
-            'analyzed'
-        ]
-    );
-
-    const repoConnection = repoResult.rows[0];
+    const repoConnection = await reposRepository.createRepo({
+        projectId: project_id,
+        userId: req.user.id,
+        repoUrl: repo_url,
+        repoName: repoName,
+        branch: analysisResult.branch || branch,
+        detectedFramework: analysisResult.framework?.primary || null,
+        authTokenEncrypted: encryptedAuthToken,
+        isPrivate
+    });
 
     // Save detected files
-    for (const file of analysisResult.files) {
-        await pool.query(
-            `INSERT INTO repo_files 
-             (repo_connection_id, file_path, file_type, has_swagger_comments, 
-              endpoints_count, quality_score, parsed_content, last_parsed)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
-            [
-                repoConnection.id,
-                file.path,
-                file.method || 'unknown',
-                file.hasSwaggerComments,
-                file.endpointsCount,
-                file.qualityScore || 0,
-                file.spec ? JSON.stringify(file.spec) : null
-            ]
-        );
-    }
+    await reposRepository.addFiles(repoConnection.id, analysisResult.files);
 
     res.json({
         success: true,
@@ -250,24 +226,11 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
 router.get('/', verifyToken, asyncHandler(async (req, res) => {
     const { project_id } = req.query;
 
-    let query = `
-        SELECT rc.*, p.name as project_name, p.code as project_code,
-               (SELECT COUNT(*) FROM repo_files WHERE repo_connection_id = rc.id) as files_count
-        FROM repo_connections rc
-        LEFT JOIN projects p ON rc.project_id = p.id
-        WHERE rc.user_id = $1
-    `;
-    const params = [req.user.id];
-
-    if (project_id) {
-        query += ` AND rc.project_id = $2`;
-        params.push(project_id);
-    }
-
-    query += ' ORDER BY rc.created_at DESC';
-
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    const result = await reposRepository.findAll({
+        userId: req.user.id,
+        projectId: project_id
+    });
+    res.json(result);
 }));
 
 /**
@@ -277,33 +240,21 @@ router.get('/', verifyToken, asyncHandler(async (req, res) => {
  *     summary: Obtener detalles de un repositorio
  *     tags: [Repositories]
  */
+// GET /repos/:id - Get repo details
 router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const repoResult = await pool.query(
-        `SELECT rc.*, p.name as project_name, p.code as project_code
-         FROM repo_connections rc
-         LEFT JOIN projects p ON rc.project_id = p.id
-         WHERE rc.id = $1 AND rc.user_id = $2`,
-        [id, req.user.id]
-    );
+    const repo = await reposRepository.findByIdWithDetails(id, req.user.id);
 
-    if (repoResult.rows.length === 0) {
+    if (!repo) {
         throw new AppError('Repositorio no encontrado', 404);
     }
 
     // Get files for this repo
-    const filesResult = await pool.query(
-        `SELECT rf.*, 
-                CASE WHEN rf.api_spec_id IS NOT NULL THEN true ELSE false END as has_spec
-         FROM repo_files rf
-         WHERE rf.repo_connection_id = $1
-         ORDER BY rf.quality_score DESC`,
-        [id]
-    );
+    const files = await reposRepository.getFiles(id);
 
     // Add detailed breakdown to each file
-    const filesWithBreakdown = filesResult.rows.map(file => {
+    const filesWithBreakdown = files.map(file => {
         let breakdown = null;
         let suggestions = [];
         let calculatedScore = file.quality_score; // Default to DB value
@@ -332,7 +283,7 @@ router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     });
 
     res.json({
-        repo: repoResult.rows[0],
+        repo,
         files: filesWithBreakdown
     });
 }));
@@ -344,35 +295,34 @@ router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
  *     summary: Generar API spec desde un archivo del repo
  *     tags: [Repositories]
  */
+// POST /repos/:id/files/:fileId/generate-spec - Generate API spec from repo file
 router.post('/:id/files/:fileId/generate-spec', verifyToken, asyncHandler(async (req, res) => {
     const { id, fileId } = req.params;
     const { name, description } = req.body;
 
-    // Get repo and file
-    const repoResult = await pool.query(
-        'SELECT * FROM repo_connections WHERE id = $1 AND user_id = $2',
-        [id, req.user.id]
-    );
-    if (repoResult.rows.length === 0) {
+    // Get repo and check ownership
+    const repo = await reposRepository.findById(id);
+    if (!repo) {
         throw new AppError('Repositorio no encontrado', 404);
     }
-
-    const fileResult = await pool.query(
-        'SELECT * FROM repo_files WHERE id = $1 AND repo_connection_id = $2',
-        [fileId, id]
-    );
-    if (fileResult.rows.length === 0) {
-        throw new AppError('Archivo no encontrado', 404);
+    const isOwner = await reposRepository.checkOwnership(id, req.user.id);
+    if (!isOwner) {
+        throw new AppError('No autorizado', 403);
     }
 
-    const repo = repoResult.rows[0];
-    const file = fileResult.rows[0];
+    // Get file
+    const file = await reposRepository.getFileById(fileId, id);
+    if (!file) {
+        throw new AppError('Archivo no encontrado', 404);
+    }
 
     if (!file.parsed_content) {
         throw new AppError('El archivo no tiene contenido parseado', 400);
     }
 
     // Create API spec from parsed content
+    // Note: We are keeping direct pool query for api_specs table for now
+    // as it belongs to a different domain (ApiSpecs) which will be migrated separately.
     const specResult = await pool.query(
         `INSERT INTO api_specs 
          (project_id, user_id, name, description, spec_content, source_type)
@@ -389,10 +339,7 @@ router.post('/:id/files/:fileId/generate-spec', verifyToken, asyncHandler(async 
     );
 
     // Update repo_file with api_spec_id
-    await pool.query(
-        'UPDATE repo_files SET api_spec_id = $1 WHERE id = $2',
-        [specResult.rows[0].id, fileId]
-    );
+    await reposRepository.linkApiSpec(fileId, specResult.rows[0].id);
 
     res.status(201).json(specResult.rows[0]);
 }));
@@ -404,19 +351,22 @@ router.post('/:id/files/:fileId/generate-spec', verifyToken, asyncHandler(async 
  *     summary: Re-sincronizar un repositorio
  *     tags: [Repositories]
  */
+// POST /repos/:id/resync - Resync repository
 router.post('/:id/resync', verifyToken, createLimiter, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // Get repo with auth token
-    const repoResult = await pool.query(
-        'SELECT * FROM repo_connections WHERE id = $1 AND user_id = $2',
-        [id, req.user.id]
-    );
-    if (repoResult.rows.length === 0) {
+    const repo = await reposRepository.findById(id);
+
+    if (!repo) {
         throw new AppError('Repositorio no encontrado', 404);
     }
 
-    const repo = repoResult.rows[0];
+    // Check ownership
+    const isOwner = await reposRepository.checkOwnership(id, req.user.id);
+    if (!isOwner) {
+        throw new AppError('No autorizado', 403);
+    }
 
     // Build clone URL with stored token if it's a private repo
     let cloneUrl = repo.repo_url;
@@ -446,33 +396,15 @@ router.post('/:id/resync', verifyToken, createLimiter, asyncHandler(async (req, 
     }
 
     // Update repo connection
-    await pool.query(
-        `UPDATE repo_connections 
-         SET detected_framework = $1, last_sync = CURRENT_TIMESTAMP, status = 'synced'
-         WHERE id = $2`,
-        [analysisResult.framework?.primary || null, id]
-    );
+    await reposRepository.update(id, {
+        detected_framework: analysisResult.framework?.primary || null,
+        last_sync: new Date(),
+        status: 'synced'
+    });
 
     // Delete old files and insert new ones
-    await pool.query('DELETE FROM repo_files WHERE repo_connection_id = $1', [id]);
-
-    for (const file of analysisResult.files) {
-        await pool.query(
-            `INSERT INTO repo_files 
-             (repo_connection_id, file_path, file_type, has_swagger_comments, 
-              endpoints_count, quality_score, parsed_content, last_parsed)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
-            [
-                id,
-                file.path,
-                file.method || 'unknown',
-                file.hasSwaggerComments,
-                file.endpointsCount,
-                file.qualityScore || 0,
-                file.spec ? JSON.stringify(file.spec) : null
-            ]
-        );
-    }
+    await reposRepository.clearFiles(id);
+    await reposRepository.addFiles(id, analysisResult.files);
 
     res.json({
         success: true,
@@ -488,22 +420,17 @@ router.post('/:id/resync', verifyToken, createLimiter, asyncHandler(async (req, 
  *     summary: Eliminar conexión a repositorio
  *     tags: [Repositories]
  */
+// DELETE /repos/:id - Delete repo connection
 router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // Check ownership
-    const check = await pool.query(
-        'SELECT user_id FROM repo_connections WHERE id = $1',
-        [id]
-    );
-    if (check.rows.length === 0) {
-        throw new AppError('Repositorio no encontrado', 404);
-    }
-    if (check.rows[0].user_id !== req.user.id) {
-        throw new AppError('No autorizado', 403);
+    const isOwner = await reposRepository.checkOwnership(id, req.user.id);
+    if (!isOwner) {
+        throw new AppError(isOwner === null ? 'Repositorio no encontrado' : 'No autorizado', isOwner === null ? 404 : 403);
     }
 
-    await pool.query('DELETE FROM repo_connections WHERE id = $1', [id]);
+    await reposRepository.delete(id);
     res.json({ message: 'Repositorio eliminado correctamente' });
 }));
 
