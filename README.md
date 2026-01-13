@@ -51,7 +51,25 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 - Navegación por tags, paths, endpoints y schemas
 - Testing de APIs directamente desde la interfaz
 - Importación y almacenamiento de specs
+- **Editor avanzado de endpoints en tiempo real**
+- **Historial de versiones con restauración**
+- **Puntuación de calidad con sugerencias de mejora**
 - Guía completa de implementación incluida
+
+### 🔗 **Análisis de Repositorios Git**
+- Conexión a repositorios GitHub, GitLab y Bitbucket
+- **Detección automática de frameworks** (Express, NestJS, Laravel, Symfony, FastAPI, Flask, Next.js, Fastify, Koa, Hapi)
+- **Parsers especializados por framework**
+- Extracción automática de endpoints y rutas
+- Generación de especificaciones OpenAPI desde código
+- Soporte para repositorios privados con tokens de acceso
+- Re-sincronización de repositorios
+
+### 🏠 **Workspace Unificado**
+- Dashboard centralizado con navegación por secciones
+- Sidebar colapsable con estadísticas en tiempo real
+- Secciones: Proyectos, Documentos, APIs, Repositorios
+- Navegación fluida entre componentes
 
 ### 🚀 **API REST con Swagger**
 - Documentación automática con Swagger UI
@@ -206,19 +224,27 @@ Web-Documentation-Proyect/
 │   │   │   ├── MarkdownEditor.js   # Editor con vista previa
 │   │   │   ├── MarkdownRenderer.js # Renderizador MD
 │   │   │   ├── MarkdownToPdf.js    # Exportador PDF
-│   │   │   ├── OpenApiViewer.js    # Visor OpenAPI
+│   │   │   ├── OpenApiViewer.js    # Visor OpenAPI dinámico
 │   │   │   ├── Pagination.js       # Controles de paginación
 │   │   │   ├── ProjectSelector.js  # Selector de proyectos
+│   │   │   ├── SpecEditor.js       # Editor avanzado de endpoints
+│   │   │   ├── VersionHistory.js   # Historial de versiones
+│   │   │   ├── ScoreBreakdown.js   # Puntuación de calidad
+│   │   │   ├── EndpointPreview.js  # Vista previa de endpoints
+│   │   │   ├── GitHubConnect.js    # Conexión OAuth GitHub
+│   │   │   ├── BitbucketConnect.js # Conexión OAuth Bitbucket
 │   │   │   └── ...
 │   │   ├── pages/
 │   │   │   ├── HomePage.js         # Página de inicio
 │   │   │   ├── LoginPage.js        # Inicio de sesión
 │   │   │   ├── RegisterPage.js     # Registro de usuario
-│   │   │   ├── CreatePage.js       # Creación de documentos
-│   │   │   ├── DocumentsListPage.js # Lista con paginación
+│   │   │   ├── CreatePage.js       # Creación guiada de documentos
+│   │   │   ├── DocumentsListPage.js # Lista con tabs y paginación
 │   │   │   ├── DocumentViewPage.js # Vista/edición documento
-│   │   │   ├── ProjectsPage.js     # Gestión proyectos
-│   │   │   ├── ApiTestPage.js      # Testing de APIs
+│   │   │   ├── ProjectsPage.js     # Gestión proyectos con edición inline
+│   │   │   ├── ApiTestPage.js      # Testing y edición de APIs
+│   │   │   ├── WorkspacePage.js    # Dashboard unificado
+│   │   │   ├── ReposPage.js        # Análisis de repositorios
 │   │   │   └── OpenApiGuidePage.js # Guía de OpenAPI
 │   │   ├── context/
 │   │   │   └── AuthContext.js      # Contexto de autenticación
@@ -330,6 +356,25 @@ Las tablas se crean automáticamente al iniciar el backend mediante la función 
 - `POST /api-specs/parse-swagger` - Parsear archivo JS con comentarios Swagger
 - `PUT /api-specs/:id` - Actualizar especificación
 - `DELETE /api-specs/:id` - Eliminar especificación
+- `GET /api-specs/:id/versions` - Obtener historial de versiones
+- `GET /api-specs/:id/versions/:versionId` - Obtener versión específica
+- `POST /api-specs/:id/versions/:versionId/restore` - Restaurar versión anterior
+
+### Repositorios Git
+- `POST /repos/analyze` - Analizar repositorio Git
+- `GET /repos` - Listar repositorios conectados
+- `GET /repos/:id` - Obtener detalles de repositorio con archivos
+- `POST /repos/:repoId/files/:fileId/generate-spec` - Generar spec desde archivo
+- `POST /repos/:id/resync` - Re-sincronizar repositorio
+- `DELETE /repos/:id` - Eliminar conexión de repositorio
+
+### OAuth (GitHub/Bitbucket)
+- `GET /github/auth` - Iniciar OAuth con GitHub
+- `GET /github/callback` - Callback de GitHub
+- `GET /github/status` - Estado de conexión GitHub
+- `GET /github/repos` - Listar repositorios del usuario
+- `POST /github/disconnect` - Desconectar cuenta GitHub
+- (Endpoints equivalentes para Bitbucket en `/bitbucket/*`)
 
 ### Documentación
 - `GET /api-docs` - Swagger UI interactiva
@@ -459,20 +504,30 @@ La aplicación utiliza un tema claro moderno con los siguientes colores:
 - [x] Despliegue con Docker Compose
 - [x] Hot reload en desarrollo
 - [x] Manejo de errores centralizado
+- [x] **Workspace unificado con sidebar navegable**
+- [x] **Análisis de repositorios Git (GitHub, GitLab, Bitbucket)**
+- [x] **Detección automática de frameworks** (Express, NestJS, Laravel, Symfony, FastAPI, Flask, Next.js, etc.)
+- [x] **Parsers especializados por framework**
+- [x] **Generación automática de specs OpenAPI desde código**
+- [x] **Historial de versiones para API specs**
+- [x] **Editor avanzado de endpoints con sugerencias**
+- [x] **Puntuación de calidad de especificaciones**
+- [x] **OAuth con GitHub y Bitbucket**
+- [x] **Flujo guiado de creación de proyectos/documentos**
 
 ### 📋 Próximas Funcionalidades
 - [ ] Búsqueda full-text en contenido de documentos
 - [ ] Versionado detallado de documentos (historial)
 - [ ] Colaboración en tiempo real (WebSockets)
 - [ ] Templates personalizados por usuario
-- [ ] Integración con repositorios Git
 - [ ] Tags y categorías personalizadas
 - [ ] Notificaciones en tiempo real
 - [ ] Sistema de permisos por proyecto
 - [ ] Comentarios en documentos
 - [ ] Exportación a más formatos (Word, HTML)
-- [ ] Dashboard con estadísticas
+- [ ] Dashboard con estadísticas avanzadas
 - [ ] API pública con rate limiting por usuario
+- [ ] Soporte para más frameworks (Django, Spring Boot, etc.)
 
 ## 📚 Guías Adicionales
 

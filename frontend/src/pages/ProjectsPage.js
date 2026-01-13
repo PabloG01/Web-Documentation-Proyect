@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectsAPI, documentsAPI } from '../services/api';
+import { Plus, Folder, FileText, Pencil, Trash2, Check, X } from '../components/Icons';
 import Pagination from '../components/Pagination';
 import '../styles/ProjectsPage.css';
 import '../styles/LoadingStates.css';
@@ -113,7 +114,7 @@ function ProjectsPage({ embedded = false }) {
           <p>Organiza tus documentos por código de proyecto</p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/crear')}>
-          ➕ Nuevo Proyecto
+          <Plus size={18} /> Nuevo Proyecto
         </button>
       </div>
 
@@ -124,7 +125,7 @@ function ProjectsPage({ embedded = false }) {
         </div>
       ) : projects.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📁</div>
+          <div className="empty-icon"><Folder size={48} /></div>
           <h3>No tienes proyectos aún</h3>
           <p>Crea tu primer proyecto para organizar la documentación</p>
         </div>
@@ -180,10 +181,10 @@ function ProjectsPage({ embedded = false }) {
 
                   <div className="edit-actions">
                     <button className="btn btn-small btn-primary" onClick={handleSaveEdit}>
-                      ✅ Guardar
+                      <Check size={16} /> Guardar
                     </button>
                     <button className="btn btn-small btn-secondary" onClick={() => setEditingId(null)}>
-                      ❌ Cancelar
+                      <X size={16} /> Cancelar
                     </button>
                   </div>
                 </div>
@@ -202,7 +203,7 @@ function ProjectsPage({ embedded = false }) {
                     </div>
                     <div className="project-stats">
                       <span className="stat-badge">
-                        📄 {getDocumentCount(project.id)} documento(s)
+                        <FileText size={14} /> {getDocumentCount(project.id)} documento(s)
                       </span>
                     </div>
                   </div>
@@ -218,13 +219,13 @@ function ProjectsPage({ embedded = false }) {
                       className="btn btn-small btn-secondary"
                       onClick={() => handleEdit(project)}
                     >
-                      ✏️ Editar
+                      <Pencil size={14} /> Editar
                     </button>
                     <button
                       className="btn btn-small btn-secondary"
                       onClick={() => handleDelete(project.id)}
                     >
-                      🗑️ Eliminar
+                      <Trash2 size={14} /> Eliminar
                     </button>
                   </div>
                 </>

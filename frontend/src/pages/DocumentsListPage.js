@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { documentsAPI, projectsAPI, apiSpecsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import { FileText, Globe, Folder, Code, Search, Calendar, User, Eye, Trash2, Inbox } from '../components/Icons';
 import DocumentCard from '../components/DocumentCard';
 import Pagination from '../components/Pagination';
 import '../styles/DocumentsListPage.css';
@@ -173,13 +174,13 @@ function DocumentsListPage({ embedded = false }) {
           className={`content-tab ${contentType === 'documents' ? 'active' : ''}`}
           onClick={() => setContentType('documents')}
         >
-          📄 Documentos
+          <FileText size={16} /> Documentos
         </button>
         <button
           className={`content-tab ${contentType === 'api-specs' ? 'active' : ''}`}
           onClick={() => setContentType('api-specs')}
         >
-          🔌 API Specs (Swagger)
+          <Code size={16} /> API Specs (Swagger)
         </button>
       </div>
 
@@ -190,22 +191,23 @@ function DocumentsListPage({ embedded = false }) {
             className={`view-tab ${viewMode === 'mine' ? 'active' : ''}`}
             onClick={() => handleViewModeChange('mine')}
           >
-            📄 Mis Documentos
+            <FileText size={14} /> Mis Documentos
           </button>
           <button
             className={`view-tab ${viewMode === 'all' ? 'active' : ''}`}
             onClick={() => handleViewModeChange('all')}
           >
-            🌐 Todos los Documentos
+            <Globe size={14} /> Todos los Documentos
           </button>
         </div>
       )}
 
       <div className="filters">
         <div className="search-box">
+          <Search size={16} className="search-icon" />
           <input
             type="text"
-            placeholder={contentType === 'documents' ? "🔍 Buscar documentos..." : "🔍 Buscar API specs..."}
+            placeholder={contentType === 'documents' ? "Buscar documentos..." : "Buscar API specs..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -220,7 +222,7 @@ function DocumentsListPage({ embedded = false }) {
                 setCurrentPage(1);
               }}
             >
-              <option value="todos">📁 Todos los proyectos</option>
+              <option value="todos">Todos los proyectos</option>
               {projects.map(project => (
                 <option key={project.id} value={project.id}>
                   {project.code} - {project.name}
@@ -255,7 +257,7 @@ function DocumentsListPage({ embedded = false }) {
         // DOCUMENTOS
         filteredDocuments.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📭</div>
+            <div className="empty-icon"><Inbox size={48} /></div>
             <h2>No se encontraron documentos</h2>
             <p>
               {viewMode === 'mine'
@@ -288,7 +290,7 @@ function DocumentsListPage({ embedded = false }) {
         // API SPECS
         filteredSpecs.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🔌</div>
+            <div className="empty-icon"><Code size={48} /></div>
             <h2>No hay API specs guardadas</h2>
             <p>Ve a "API Testing" para subir y guardar especificaciones OpenAPI</p>
           </div>
@@ -297,7 +299,7 @@ function DocumentsListPage({ embedded = false }) {
             {filteredSpecs.map(spec => (
               <div key={spec.id} className="spec-card">
                 <div className="spec-card-header">
-                  <span className="spec-icon">🔌</span>
+                  <span className="spec-icon"><Code size={20} /></span>
                   {spec.project_code && (
                     <span className="spec-project-badge">{spec.project_code}</span>
                   )}
@@ -307,9 +309,9 @@ function DocumentsListPage({ embedded = false }) {
                   <p className="spec-card-description">{spec.description}</p>
                 )}
                 <div className="spec-card-meta">
-                  <span>📅 {new Date(spec.created_at).toLocaleDateString('es-ES')}</span>
+                  <span><Calendar size={14} /> {new Date(spec.created_at).toLocaleDateString('es-ES')}</span>
                   {spec.creator_username && (
-                    <span className="spec-creator">👤 {spec.creator_username}</span>
+                    <span className="spec-creator"><User size={14} /> {spec.creator_username}</span>
                   )}
                 </div>
                 <div className="spec-card-actions">
@@ -317,14 +319,14 @@ function DocumentsListPage({ embedded = false }) {
                     className="btn btn-small btn-primary"
                     onClick={() => handleViewSpec(spec.id)}
                   >
-                    🔍 Ver con Swagger
+                    <Eye size={14} /> Ver con Swagger
                   </button>
                   {user?.id === spec.user_id && (
                     <button
                       className="btn btn-small btn-secondary"
                       onClick={() => handleDeleteSpec(spec.id)}
                     >
-                      🗑️ Eliminar
+                      <Trash2 size={14} /> Eliminar
                     </button>
                   )}
                 </div>

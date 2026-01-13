@@ -5,6 +5,7 @@ import SpecEditor from '../components/SpecEditor';
 import VersionHistory from '../components/VersionHistory';
 import { projectsAPI, apiSpecsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import { ClipboardList, Folder, FileText, Trash2, Upload, Save, History, Plus, Pencil, AlertTriangle, CheckCircle, Code, ChevronRight, Loader } from '../components/Icons';
 import '../styles/ApiTestPage.css';
 
 function ApiTestPage({ embedded = false }) {
@@ -474,7 +475,7 @@ function ApiTestPage({ embedded = false }) {
                 {/* Panel izquierdo - Specs guardadas */}
                 {user && (
                     <div className="saved-specs-panel">
-                        <h3>📋 Specs Guardadas</h3>
+                        <h3><ClipboardList size={18} /> Specs Guardadas</h3>
                         {loadingSpecs ? (
                             <p className="loading-text">Cargando...</p>
                         ) : savedSpecs.length === 0 ? (
@@ -491,7 +492,7 @@ function ApiTestPage({ embedded = false }) {
                                             <span className={`folder-toggle-icon ${expandedProjects[group.id] ? 'expanded' : ''}`}>
                                                 ▶
                                             </span>
-                                            <span className="folder-icon">📁</span>
+                                            <span className="folder-icon"><Folder size={16} /></span>
                                             <span className="folder-name">
                                                 {group.code ? `${group.code} - ${group.name}` : group.name}
                                             </span>
@@ -504,7 +505,7 @@ function ApiTestPage({ embedded = false }) {
                                                     className={`folder-spec-item ${currentSpecId === savedSpec.id ? 'active' : ''}`}
                                                 >
                                                     <div className="spec-info" onClick={() => handleLoadSpec(savedSpec)}>
-                                                        <span className="spec-icon">📄</span>
+                                                        <span className="spec-icon"><FileText size={14} /></span>
                                                         <span className="spec-name">{savedSpec.name}</span>
                                                     </div>
                                                     <button
@@ -512,7 +513,7 @@ function ApiTestPage({ embedded = false }) {
                                                         onClick={(e) => { e.stopPropagation(); handleDeleteSpec(savedSpec.id); }}
                                                         title="Eliminar"
                                                     >
-                                                        🗑️
+                                                        <Trash2 size={14} />
                                                     </button>
                                                 </div>
                                             ))}
@@ -529,7 +530,7 @@ function ApiTestPage({ embedded = false }) {
                     <div className="upload-section">
                         <div className="upload-card">
                             <label htmlFor="file-input" className="upload-label">
-                                <div className="upload-icon">📄</div>
+                                <div className="upload-icon"><Upload size={32} /></div>
                                 <div className="upload-text">
                                     {fileName ? fileName : 'Selecciona un archivo .json o .js'}
                                 </div>
@@ -548,12 +549,12 @@ function ApiTestPage({ embedded = false }) {
                             <div className="upload-actions">
                                 {fileName && (
                                     <button className="btn btn-secondary" onClick={handleClear}>
-                                        🗑️ Limpiar
+                                        <Trash2 size={16} /> Limpiar
                                     </button>
                                 )}
                                 {spec && user && (
                                     <button className="btn btn-primary" onClick={() => setShowSaveModal(true)}>
-                                        💾 {currentSpecId ? 'Actualizar' : 'Guardar'}
+                                        <Save size={16} /> {currentSpecId ? 'Actualizar' : 'Guardar'}
                                     </button>
                                 )}
                             </div>
@@ -561,7 +562,7 @@ function ApiTestPage({ embedded = false }) {
 
                         {error && (
                             <div className="error-message">
-                                ⚠️ {error}
+                                <AlertTriangle size={16} /> {error}
                             </div>
                         )}
 
@@ -573,7 +574,7 @@ function ApiTestPage({ embedded = false }) {
 
                         {spec && !error && (
                             <div className="success-message">
-                                ✅ Especificación cargada correctamente
+                                <CheckCircle size={16} /> Especificación cargada correctamente
                                 {currentSpecId && <span> (guardada)</span>}
                             </div>
                         )}
@@ -587,7 +588,7 @@ function ApiTestPage({ embedded = false }) {
                                     onClick={handleAddEndpoint}
                                     title="Añadir nuevo endpoint"
                                 >
-                                    ➕ Añadir Endpoint
+                                    <Plus size={16} /> Añadir Endpoint
                                 </button>
                                 {currentSpecId && (
                                     <>
@@ -595,14 +596,14 @@ function ApiTestPage({ embedded = false }) {
                                             className="btn btn-small"
                                             onClick={() => setShowSaveModal(true)}
                                         >
-                                            💾 Guardar Cambios
+                                            <Save size={16} /> Guardar Cambios
                                         </button>
                                         <button
                                             className="btn btn-small"
                                             onClick={() => setShowVersionHistory(true)}
                                             title="Ver historial de versiones"
                                         >
-                                            📜 Historial
+                                            <History size={16} /> Historial
                                         </button>
                                     </>
                                 )}
@@ -610,7 +611,7 @@ function ApiTestPage({ embedded = false }) {
 
                             {/* Editable Endpoints List */}
                             <div className="endpoints-editor">
-                                <h4>📝 Endpoints ({Object.keys(spec.paths || {}).reduce((acc, path) => acc + Object.keys(spec.paths[path]).length, 0)})</h4>
+                                <h4><Pencil size={16} /> Endpoints ({Object.keys(spec.paths || {}).reduce((acc, path) => acc + Object.keys(spec.paths[path]).length, 0)})</h4>
                                 <div className="endpoints-list">
                                     {Object.entries(spec.paths || {}).map(([path, methods]) => (
                                         Object.entries(methods).map(([method, operation]) => {
@@ -633,7 +634,7 @@ function ApiTestPage({ embedded = false }) {
                                                     </span>
                                                     <span className="endpoint-path">{path}</span>
                                                     <span className="endpoint-summary">{operation.summary || '-'}</span>
-                                                    <button className="btn-edit" title="Editar endpoint">✏️</button>
+                                                    <button className="btn-edit" title="Editar endpoint"><Pencil size={14} /></button>
                                                     <button
                                                         className="btn-delete"
                                                         title="Eliminar endpoint"
@@ -642,7 +643,7 @@ function ApiTestPage({ embedded = false }) {
                                                             handleDeleteEndpoint(path, method);
                                                         }}
                                                     >
-                                                        🗑️
+                                                        <Trash2 size={14} />
                                                     </button>
                                                 </div>
                                             );
@@ -670,7 +671,7 @@ function ApiTestPage({ embedded = false }) {
 
                     {!spec && !error && (
                         <div className="placeholder">
-                            <div className="placeholder-icon">🔌</div>
+                            <div className="placeholder-icon"><Code size={48} /></div>
                             <h3>No hay especificación cargada</h3>
                             <p>Sube un archivo JSON con la especificación OpenAPI 3.0 para comenzar</p>
                             {user && savedSpecs.length > 0 && (
@@ -736,7 +737,7 @@ function ApiTestPage({ embedded = false }) {
                                 onClick={handleSaveSpec}
                                 disabled={saving || !specName.trim() || !selectedProjectId}
                             >
-                                {saving ? '⏳ Guardando...' : '💾 Guardar'}
+                                {saving ? <><Loader size={16} className="spin" /> Guardando...</> : <><Save size={16} /> Guardar</>}
                             </button>
                         </div>
                     </div>

@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { validateRegister, validateLogin } = require('../middleware/validators');
@@ -79,7 +80,7 @@ const router = express.Router();
  */
 
 // Middleware to verify token
-const verifyToken = (req, res, next) => {
+const verifyToken = asyncHandler(async (req, res, next) => {
     const token = req.cookies.auth_token;
     if (!token) {
         return next(new AppError('Acceso denegado', 401));
@@ -87,13 +88,38 @@ const verifyToken = (req, res, next) => {
 
     try {
         const verified = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Validate session token against database
+        if (verified.sessionToken) {
+            const userResult = await pool.query(
+                'SELECT active_session_token FROM users WHERE id = $1',
+                [verified.id]
+            );
+
+            if (userResult.rows.length === 0) {
+                return next(new AppError('Usuario no encontrado', 401));
+            }
+
+            const storedToken = userResult.rows[0].active_session_token;
+
+            // If session tokens don't match, session was invalidated by another login
+            if (storedToken !== verified.sessionToken) {
+                res.clearCookie('auth_token', {
+                    httpOnly: true,
+                    secure: false,
+                    sameSite: 'lax'
+                });
+                return next(new AppError('Sesión cerrada desde otro dispositivo', 401));
+            }
+        }
+
         req.user = verified;
         next();
     } catch (err) {
         console.error('Token verification error:', err);
         next(new AppError('Token inválido', 400));
     }
-};
+});
 
 /**
  * @swagger
@@ -209,8 +235,21 @@ router.post('/login', authLimiter, validateLogin, asyncHandler(async (req, res, 
         throw new AppError('Email o contraseña incorrectos', 400);
     }
 
-    // Create token
-    const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    // Generate unique session token
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+
+    // Store session token in database (invalidates any previous session)
+    await pool.query(
+        'UPDATE users SET active_session_token = $1 WHERE id = $2',
+        [sessionToken, user.id]
+    );
+
+    // Create token with session identifier
+    const token = jwt.sign(
+        { id: user.id, username: user.username, sessionToken },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+    );
 
     // Set cookie (CONFIGURACIÓN PARA LAN - HTTP)
     // NOTA: sameSite 'lax' funciona con HTTP, pero el usuario debe acceder 
@@ -244,14 +283,28 @@ router.post('/login', authLimiter, validateLogin, asyncHandler(async (req, res, 
  *                   example: "Logged out successfully"
  */
 // Logout
-router.post('/logout', (req, res) => {
+router.post('/logout', asyncHandler(async (req, res) => {
+    // Clear session token from database if user is authenticated
+    const token = req.cookies.auth_token;
+    if (token) {
+        try {
+            const verified = jwt.verify(token, process.env.JWT_SECRET);
+            await pool.query(
+                'UPDATE users SET active_session_token = NULL WHERE id = $1',
+                [verified.id]
+            );
+        } catch (err) {
+            // Token invalid, just clear cookie
+        }
+    }
+
     res.clearCookie('auth_token', {
         httpOnly: true,
         secure: false,
         sameSite: 'lax'
     });
     res.json({ message: 'Logged out successfully' });
-});
+}));
 
 /**
  * @swagger

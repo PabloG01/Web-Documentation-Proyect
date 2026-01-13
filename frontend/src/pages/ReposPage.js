@@ -4,6 +4,7 @@ import { reposAPI, projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import EndpointPreview from '../components/EndpointPreview';
 import ScoreBreakdown from '../components/ScoreBreakdown';
+import { GitBranch, Plus, X, Folder, FileText, RefreshCw, Trash2, Eye, Zap, Lock, AlertTriangle, CheckCircle, Package, Search, Pencil, Code } from '../components/Icons';
 // import GitHubConnect from '../components/GitHubConnect'; // Uncomment when GitHub OAuth is configured
 import '../styles/ReposPage.css';
 
@@ -245,7 +246,7 @@ function ReposPage({ embedded = false }) {
         return (
             <div className="repos-page">
                 <div className="auth-required">
-                    <h2>🔐 Inicia sesión</h2>
+                    <h2><Lock size={24} /> Inicia sesión</h2>
                     <p>Necesitas iniciar sesión para conectar repositorios</p>
                 </div>
             </div>
@@ -256,14 +257,14 @@ function ReposPage({ embedded = false }) {
         <div className="repos-page">
             <div className="page-header">
                 <div>
-                    <h1>🔗 Repositorios Git</h1>
+                    <h1><GitBranch size={24} /> Repositorios Git</h1>
                     <p>Conecta repositorios para generar documentación automáticamente</p>
                 </div>
                 <button
                     className="btn btn-primary"
                     onClick={() => setShowAnalyzeForm(!showAnalyzeForm)}
                 >
-                    {showAnalyzeForm ? '✕ Cancelar' : '➕ Conectar Repositorio'}
+                    {showAnalyzeForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Conectar Repositorio</>}
                 </button>
             </div>
 
@@ -409,7 +410,7 @@ function ReposPage({ embedded = false }) {
             <div className="repos-content">
                 {/* Repos List */}
                 <div className="repos-list">
-                    <h3>📦 Repositorios Conectados</h3>
+                    <h3><Package size={18} /> Repositorios Conectados</h3>
 
                     {loading ? (
                         <div className="loading">Cargando...</div>
@@ -427,7 +428,7 @@ function ReposPage({ embedded = false }) {
                                     onClick={() => handleViewRepo(repo)}
                                 >
                                     <div className="repo-header">
-                                        <span className="repo-icon">📁</span>
+                                        <span className="repo-icon"><Folder size={20} /></span>
                                         <div className="repo-info">
                                             <h4>{repo.repo_name}</h4>
                                             <span className="repo-project">{repo.project_code}</span>
@@ -442,13 +443,13 @@ function ReposPage({ embedded = false }) {
                                             className="btn btn-small"
                                             onClick={(e) => { e.stopPropagation(); handleResync(repo.id); }}
                                         >
-                                            🔄
+                                            <RefreshCw size={16} />
                                         </button>
                                         <button
                                             className="btn btn-small btn-danger"
                                             onClick={(e) => { e.stopPropagation(); handleDelete(repo.id); }}
                                         >
-                                            🗑️
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                 </div>
@@ -461,8 +462,8 @@ function ReposPage({ embedded = false }) {
                 {selectedRepo && (
                     <div className="files-panel">
                         <div className="panel-header">
-                            <h3>📄 Archivos de {selectedRepo.repo_name}</h3>
-                            <button onClick={() => setSelectedRepo(null)}>✕</button>
+                            <h3><FileText size={18} /> Archivos de {selectedRepo.repo_name}</h3>
+                            <button onClick={() => setSelectedRepo(null)}><X size={18} /></button>
                         </div>
 
                         {loadingFiles ? (
@@ -479,7 +480,7 @@ function ReposPage({ embedded = false }) {
                                             <span className="file-path">{file.file_path}</span>
                                             <div className="file-meta">
                                                 {file.has_swagger_comments && (
-                                                    <span className="swagger-badge">📝 Swagger</span>
+                                                    <span className="swagger-badge"><Pencil size={12} /> Swagger</span>
                                                 )}
                                                 <span className="endpoints-count">{file.endpoints_count} endpoints</span>
                                                 <ScoreBreakdown
@@ -507,7 +508,7 @@ function ReposPage({ embedded = false }) {
                                                     className="btn btn-small btn-success"
                                                     onClick={() => navigate('/api-test?spec=' + file.api_spec_id)}
                                                 >
-                                                    👁️ Ver Spec
+                                                    <Eye size={14} /> Ver Spec
                                                 </button>
                                             ) : file.parsed_content ? (
                                                 <div className="action-buttons">
@@ -516,14 +517,14 @@ function ReposPage({ embedded = false }) {
                                                         onClick={() => handlePreviewEndpoints(file)}
                                                         title="Revisar endpoints antes de generar"
                                                     >
-                                                        📝 Revisar
+                                                        <Pencil size={14} /> Revisar
                                                     </button>
                                                     <button
                                                         className="btn btn-small btn-primary"
                                                         onClick={() => handleGenerateSpec(selectedRepo.id, file.id, file.file_path)}
                                                         title="Generar spec directamente"
                                                     >
-                                                        ⚡ Generar
+                                                        <Zap size={14} /> Generar
                                                     </button>
                                                 </div>
                                             ) : (

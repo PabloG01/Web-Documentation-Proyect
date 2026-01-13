@@ -115,3 +115,55 @@ main:has(.openapi-guide-page) {
   max-width: none;
   margin: 0;
 }
+
+/* Icon utilities */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn svg {
+  flex-shrink: 0;
+}
+
+/* Spin animation for loaders */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Icon in headings and text */
+h1 svg,
+h2 svg,
+h3 svg,
+h4 svg {
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* Icon colors for status indicators */
+.icon-success {
+  color: var(--success-color);
+}
+
+.icon-warning {
+  color: var(--warning-color);
+}
+
+.icon-danger {
+  color: var(--danger-color);
+}
+
+.icon-muted {
+  color: var(--text-secondary);
+}

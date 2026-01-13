@@ -28,6 +28,7 @@ const initializeDatabase = async () => {
                   username VARCHAR(50) UNIQUE NOT NULL,
                   email VARCHAR(100) UNIQUE NOT NULL,
                   password_hash VARCHAR(255) NOT NULL,
+                  active_session_token VARCHAR(64),
                   github_id VARCHAR(50),
                   github_username VARCHAR(100),
                   github_token TEXT,
@@ -85,6 +86,10 @@ const initializeDatabase = async () => {
               END IF;
               IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_callback_url') THEN
                   ALTER TABLE users ADD COLUMN bitbucket_callback_url TEXT;
+              END IF;
+              -- Active session token for single-session authentication
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_session_token') THEN
+                  ALTER TABLE users ADD COLUMN active_session_token VARCHAR(64);
               END IF;
           END $$;
       `);

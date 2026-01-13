@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { projectsAPI, documentsAPI, apiSpecsAPI, reposAPI } from '../services/api';
+import { Folder, FileText, Globe, FolderOpen, User, ChevronLeft, ChevronRight } from '../components/Icons';
 import '../styles/WorkspacePage.css';
 
 // Import existing page components to reuse
@@ -62,28 +63,28 @@ function WorkspacePage() {
     const sidebarItems = [
         {
             id: 'projects',
-            icon: '📁',
+            icon: <Folder size={20} />,
             label: 'Proyectos',
             count: stats.projects,
             description: 'Gestiona tus proyectos'
         },
         {
             id: 'documents',
-            icon: '📄',
+            icon: <FileText size={20} />,
             label: 'Documentos',
             count: stats.documents,
             description: 'Todos tus documentos'
         },
         {
             id: 'apis',
-            icon: '🌐',
+            icon: <Globe size={20} />,
             label: 'APIs',
             count: stats.apis,
             description: 'Specs OpenAPI guardadas'
         },
         {
             id: 'repos',
-            icon: '📂',
+            icon: <FolderOpen size={20} />,
             label: 'Repositorios',
             count: stats.repos,
             description: 'Repos analizados'
@@ -116,7 +117,7 @@ function WorkspacePage() {
                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                         title={sidebarCollapsed ? 'Expandir' : 'Colapsar'}
                     >
-                        {sidebarCollapsed ? '→' : '←'}
+                        {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                     </button>
                 </div>
 
@@ -144,7 +145,7 @@ function WorkspacePage() {
                 {!sidebarCollapsed && (
                     <div className="sidebar-footer">
                         <div className="user-info">
-                            <span className="user-icon">👤</span>
+                            <span className="user-icon"><User size={18} /></span>
                             <span className="user-name">{user?.username}</span>
                         </div>
                     </div>
