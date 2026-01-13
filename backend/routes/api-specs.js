@@ -1,5 +1,5 @@
 const express = require('express');
-const { pool } = require('../database');
+const { apiSpecsRepository, projectsRepository } = require('../repositories');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/verifyToken');
 const { createLimiter } = require('../middleware/rateLimiter');
@@ -148,26 +148,10 @@ const optionalVerifyToken = (req, res, next) => {
 router.get('/', verifyToken, asyncHandler(async (req, res) => {
     const { project_id } = req.query;
 
-    let query = `
-        SELECT api_specs.*, projects.name as project_name, projects.code as project_code,
-               users.username as creator_username
-        FROM api_specs 
-        LEFT JOIN projects ON api_specs.project_id = projects.id
-        LEFT JOIN users ON api_specs.user_id = users.id
-    `;
-    let params = [];
-    let paramIndex = 1;
-
-    if (project_id) {
-        query += ` WHERE api_specs.project_id = $${paramIndex}`;
-        params.push(project_id);
-        paramIndex++;
-    }
-
-    query += ' ORDER BY api_specs.updated_at DESC';
-
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    const result = await apiSpecsRepository.findAll({
+        projectId: project_id
+    });
+    res.json(result);
 }));
 
 
@@ -201,21 +185,13 @@ router.get('/', verifyToken, asyncHandler(async (req, res) => {
 router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const result = await pool.query(
-        `SELECT api_specs.*, projects.name as project_name, projects.code as project_code,
-                users.username as creator_username
-         FROM api_specs 
-         LEFT JOIN projects ON api_specs.project_id = projects.id
-         LEFT JOIN users ON api_specs.user_id = users.id
-         WHERE api_specs.id = $1`,
-        [id]
-    );
+    const spec = await apiSpecsRepository.findByIdWithDetails(id);
 
-    if (result.rows.length === 0) {
+    if (!spec) {
         throw new AppError('API Spec no encontrada', 404);
     }
 
-    res.json(result.rows[0]);
+    res.json(spec);
 }));
 
 /**
@@ -319,22 +295,20 @@ router.post('/', verifyToken, createLimiter, asyncHandler(async (req, res) => {
     }
 
     // Validate project exists
-    const projectCheck = await pool.query(
-        'SELECT id FROM projects WHERE id = $1',
-        [project_id]
-    );
-    if (projectCheck.rows.length === 0) {
+    const projectExists = await projectsRepository.exists(project_id);
+    if (!projectExists) {
         throw new AppError('Proyecto no encontrado', 404);
     }
 
-    const result = await pool.query(
-        `INSERT INTO api_specs (project_id, user_id, name, description, spec_content) 
-         VALUES ($1, $2, $3, $4, $5) 
-         RETURNING *`,
-        [project_id, req.user.id, name.trim(), description || '', spec_content]
-    );
+    const newSpec = await apiSpecsRepository.createSpec({
+        projectId: project_id,
+        userId: req.user.id,
+        name: name.trim(),
+        description: description || '',
+        specContent: spec_content
+    });
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(newSpec);
 }));
 
 /**
@@ -373,17 +347,17 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { project_id, name, description, spec_content } = req.body;
 
-    // Check ownership and get current content
-    const check = await pool.query(
-        'SELECT user_id, spec_content FROM api_specs WHERE id = $1',
-        [id]
-    );
-    if (check.rows.length === 0) {
+    // Check ownership
+    const isOwner = await apiSpecsRepository.checkOwnership(id, req.user.id);
+    if (isOwner === null) {
         throw new AppError('API Spec no encontrada', 404);
     }
-    if (check.rows[0].user_id !== req.user.id) {
+    if (!isOwner) {
         throw new AppError('No autorizado', 403);
     }
+
+    // Get current spec to save version
+    const currentSpec = await apiSpecsRepository.findById(id);
 
     // Validate required fields
     if (!name || !name.trim()) {
@@ -395,56 +369,34 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
 
     // Validate project exists if provided
     if (project_id) {
-        const projectCheck = await pool.query(
-            'SELECT id FROM projects WHERE id = $1',
-            [project_id]
-        );
-        if (projectCheck.rows.length === 0) {
+        const projectExists = await projectsRepository.exists(project_id);
+        if (!projectExists) {
             throw new AppError('Proyecto no encontrado', 404);
         }
     }
 
-    // Save current version before updating (max 4 versions)
-    const MAX_VERSIONS = 4;
-    const currentContent = check.rows[0].spec_content;
-
-    // Get next version number
-    const versionResult = await pool.query(
-        'SELECT COALESCE(MAX(version_number), 0) + 1 as next_version FROM api_spec_versions WHERE api_spec_id = $1',
-        [id]
-    );
-    const nextVersion = versionResult.rows[0].next_version;
-
     // Save version
-    await pool.query(
-        `INSERT INTO api_spec_versions (api_spec_id, version_number, spec_content, change_summary)
-         VALUES ($1, $2, $3, $4)`,
-        [id, nextVersion, currentContent, `Version ${nextVersion} - Auto-saved`]
+    const nextVersion = await apiSpecsRepository.getNextVersionNumber(id);
+    await apiSpecsRepository.saveVersion(
+        id,
+        nextVersion,
+        currentSpec.spec_content,
+        `Version ${nextVersion} - Auto-saved`
     );
 
-    // Delete old versions if exceeds limit
-    await pool.query(
-        `DELETE FROM api_spec_versions 
-         WHERE api_spec_id = $1 
-         AND version_number NOT IN (
-             SELECT version_number FROM api_spec_versions 
-             WHERE api_spec_id = $1 
-             ORDER BY version_number DESC 
-             LIMIT $2
-         )`,
-        [id, MAX_VERSIONS]
-    );
+    // Cleanup old versions
+    await apiSpecsRepository.cleanupOldVersions(id, 4);
 
     // Update the spec
-    const result = await pool.query(
-        `UPDATE api_specs 
-         SET project_id = $1, name = $2, description = $3, spec_content = $4, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $5 
-         RETURNING *`,
-        [project_id || null, name.trim(), description || '', spec_content, id]
-    );
+    const updatedSpec = await apiSpecsRepository.update(id, {
+        project_id: project_id || null, // handle optional project
+        name: name.trim(),
+        description: description || '',
+        spec_content: spec_content,
+        updated_at: new Date()
+    });
 
-    res.json(result.rows[0]);
+    res.json(updatedSpec);
 }));
 
 /**
@@ -469,26 +421,16 @@ router.get('/:id/versions', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // Check ownership
-    const check = await pool.query(
-        'SELECT user_id FROM api_specs WHERE id = $1',
-        [id]
-    );
-    if (check.rows.length === 0) {
+    const isOwner = await apiSpecsRepository.checkOwnership(id, req.user.id);
+    if (isOwner === null) {
         throw new AppError('API Spec no encontrada', 404);
     }
-    if (check.rows[0].user_id !== req.user.id) {
+    if (!isOwner) {
         throw new AppError('No autorizado', 403);
     }
 
-    const result = await pool.query(
-        `SELECT id, version_number, change_summary, created_at 
-         FROM api_spec_versions 
-         WHERE api_spec_id = $1 
-         ORDER BY version_number DESC`,
-        [id]
-    );
-
-    res.json(result.rows);
+    const versions = await apiSpecsRepository.getVersions(id);
+    res.json(versions);
 }));
 
 /**
@@ -502,28 +444,21 @@ router.get('/:id/versions/:versionId', verifyToken, asyncHandler(async (req, res
     const { id, versionId } = req.params;
 
     // Check ownership
-    const check = await pool.query(
-        'SELECT user_id FROM api_specs WHERE id = $1',
-        [id]
-    );
-    if (check.rows.length === 0) {
+    const isOwner = await apiSpecsRepository.checkOwnership(id, req.user.id);
+    if (isOwner === null) {
         throw new AppError('API Spec no encontrada', 404);
     }
-    if (check.rows[0].user_id !== req.user.id) {
+    if (!isOwner) {
         throw new AppError('No autorizado', 403);
     }
 
-    const result = await pool.query(
-        `SELECT * FROM api_spec_versions 
-         WHERE api_spec_id = $1 AND id = $2`,
-        [id, versionId]
-    );
+    const version = await apiSpecsRepository.getVersion(id, versionId);
 
-    if (result.rows.length === 0) {
+    if (!version) {
         throw new AppError('Versión no encontrada', 404);
     }
 
-    res.json(result.rows[0]);
+    res.json(version);
 }));
 
 /**
@@ -537,70 +472,45 @@ router.post('/:id/versions/:versionId/restore', verifyToken, asyncHandler(async 
     const { id, versionId } = req.params;
 
     // Check ownership
-    const check = await pool.query(
-        'SELECT user_id, spec_content FROM api_specs WHERE id = $1',
-        [id]
-    );
-    if (check.rows.length === 0) {
+    const isOwner = await apiSpecsRepository.checkOwnership(id, req.user.id);
+    if (isOwner === null) {
         throw new AppError('API Spec no encontrada', 404);
     }
-    if (check.rows[0].user_id !== req.user.id) {
+    if (!isOwner) {
         throw new AppError('No autorizado', 403);
     }
 
     // Get version to restore
-    const versionResult = await pool.query(
-        'SELECT spec_content, version_number FROM api_spec_versions WHERE api_spec_id = $1 AND id = $2',
-        [id, versionId]
-    );
+    const versionToRestore = await apiSpecsRepository.getVersion(id, versionId);
 
-    if (versionResult.rows.length === 0) {
+    if (!versionToRestore) {
         throw new AppError('Versión no encontrada', 404);
     }
 
-    const versionToRestore = versionResult.rows[0];
+    // Get current spec to save as new version
+    const currentSpec = await apiSpecsRepository.findById(id);
 
     // Save current as new version before restoring
-    const MAX_VERSIONS = 4;
-    const currentContent = check.rows[0].spec_content;
-
-    const nextVersionResult = await pool.query(
-        'SELECT COALESCE(MAX(version_number), 0) + 1 as next_version FROM api_spec_versions WHERE api_spec_id = $1',
-        [id]
-    );
-    const nextVersion = nextVersionResult.rows[0].next_version;
-
-    await pool.query(
-        `INSERT INTO api_spec_versions (api_spec_id, version_number, spec_content, change_summary)
-         VALUES ($1, $2, $3, $4)`,
-        [id, nextVersion, currentContent, `Before restore to v${versionToRestore.version_number}`]
+    const nextVersion = await apiSpecsRepository.getNextVersionNumber(id);
+    await apiSpecsRepository.saveVersion(
+        id,
+        nextVersion,
+        currentSpec.spec_content,
+        `Before restore to v${versionToRestore.version_number}`
     );
 
     // Cleanup old versions
-    await pool.query(
-        `DELETE FROM api_spec_versions 
-         WHERE api_spec_id = $1 
-         AND version_number NOT IN (
-             SELECT version_number FROM api_spec_versions 
-             WHERE api_spec_id = $1 
-             ORDER BY version_number DESC 
-             LIMIT $2
-         )`,
-        [id, MAX_VERSIONS]
-    );
+    await apiSpecsRepository.cleanupOldVersions(id, 4);
 
     // Restore the spec content
-    const result = await pool.query(
-        `UPDATE api_specs 
-         SET spec_content = $1, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $2 
-         RETURNING *`,
-        [versionToRestore.spec_content, id]
-    );
+    const restoredSpec = await apiSpecsRepository.update(id, {
+        spec_content: versionToRestore.spec_content,
+        updated_at: new Date()
+    });
 
     res.json({
         message: `Restaurado a versión ${versionToRestore.version_number}`,
-        spec: result.rows[0]
+        spec: restoredSpec
     });
 }));
 
@@ -637,18 +547,15 @@ router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // Check ownership
-    const check = await pool.query(
-        'SELECT user_id FROM api_specs WHERE id = $1',
-        [id]
-    );
-    if (check.rows.length === 0) {
+    const isOwner = await apiSpecsRepository.checkOwnership(id, req.user.id);
+    if (isOwner === null) {
         throw new AppError('API Spec no encontrada', 404);
     }
-    if (check.rows[0].user_id !== req.user.id) {
+    if (!isOwner) {
         throw new AppError('No autorizado', 403);
     }
 
-    await pool.query('DELETE FROM api_specs WHERE id = $1', [id]);
+    await apiSpecsRepository.delete(id);
     res.json({ message: 'API Spec eliminada correctamente' });
 }));
 

@@ -1,35 +1,10 @@
 const express = require('express');
 const axios = require('axios');
-const crypto = require('crypto');
-const { pool } = require('../database');
+const { usersRepository, reposRepository } = require('../repositories');
+const { encryptToken, decryptToken } = require('../utils/encryption');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/verifyToken');
 const router = express.Router();
-
-// Encryption
-const ENCRYPTION_KEY = process.env.JWT_SECRET || 'default-key-change-this';
-
-const encryptToken = (token) => {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY.padEnd(32).slice(0, 32)), iv);
-    let encrypted = cipher.update(token, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
-};
-
-const decryptToken = (encryptedToken) => {
-    try {
-        const [ivHex, encrypted] = encryptedToken.split(':');
-        const iv = Buffer.from(ivHex, 'hex');
-        const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY.padEnd(32).slice(0, 32)), iv);
-        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        return decrypted;
-    } catch (e) {
-        console.error('Token decryption failed:', e.message);
-        return null;
-    }
-};
 
 /**
  * @swagger
@@ -40,11 +15,7 @@ const decryptToken = (encryptedToken) => {
 
 // Get OAuth setup status
 router.get('/auth/bitbucket/setup', verifyToken, asyncHandler(async (req, res) => {
-    const result = await pool.query(
-        'SELECT bitbucket_client_id, bitbucket_callback_url FROM users WHERE id = $1',
-        [req.user.id]
-    );
-    const user = result.rows[0];
+    const user = await usersRepository.getBitbucketCredentials(req.user.id);
     res.json({
         configured: !!user?.bitbucket_client_id,
         clientId: user?.bitbucket_client_id ? '***configurado***' : null,
@@ -62,24 +33,20 @@ router.post('/auth/bitbucket/setup', verifyToken, asyncHandler(async (req, res) 
 
     const encryptedSecret = encryptToken(client_secret);
 
-    await pool.query(
-        `UPDATE users 
-         SET bitbucket_client_id = $1, bitbucket_client_secret = $2, bitbucket_callback_url = $3
-         WHERE id = $4`,
-        [client_id, encryptedSecret, callback_url, req.user.id]
-    );
+    // Using generic update from BaseRepository
+    await usersRepository.update(req.user.id, {
+        bitbucket_client_id: client_id,
+        bitbucket_client_secret: encryptedSecret,
+        bitbucket_callback_url: callback_url
+    });
 
     res.json({ success: true, message: 'Credenciales de Bitbucket guardadas' });
 }));
 
 // Initiate OAuth flow (per-user credentials)
 router.get('/auth/bitbucket', verifyToken, asyncHandler(async (req, res) => {
-    const result = await pool.query(
-        'SELECT bitbucket_client_id, bitbucket_callback_url FROM users WHERE id = $1',
-        [req.user.id]
-    );
+    const user = await usersRepository.getBitbucketCredentials(req.user.id);
 
-    const user = result.rows[0];
     if (!user?.bitbucket_client_id || !user?.bitbucket_callback_url) {
         throw new AppError('Bitbucket OAuth no configurado. Configura tus credenciales primero.', 400);
     }
@@ -122,12 +89,8 @@ router.get('/auth/bitbucket/callback', asyncHandler(async (req, res) => {
         }
 
         // Get user's OAuth credentials
-        const userResult = await pool.query(
-            'SELECT bitbucket_client_id, bitbucket_client_secret, bitbucket_callback_url FROM users WHERE id = $1',
-            [userId]
-        );
+        const user = await usersRepository.getBitbucketCredentials(userId);
 
-        const user = userResult.rows[0];
         if (!user?.bitbucket_client_id || !user?.bitbucket_client_secret) {
             return res.redirect(`${frontendUrl}/workspace?section=repos&bitbucket_error=not_configured`);
         }
@@ -161,13 +124,14 @@ router.get('/auth/bitbucket/callback', asyncHandler(async (req, res) => {
         const encryptedToken = encryptToken(access_token);
         const encryptedRefresh = refresh_token ? encryptToken(refresh_token) : null;
 
-        await pool.query(
-            `UPDATE users 
-             SET bitbucket_id = $1, bitbucket_username = $2, bitbucket_token = $3, 
-                 bitbucket_refresh_token = $4, bitbucket_connected_at = CURRENT_TIMESTAMP
-             WHERE id = $5`,
-            [bitbucketUser.uuid, bitbucketUser.username, encryptedToken, encryptedRefresh, userId]
-        );
+
+        await usersRepository.update(userId, {
+            bitbucket_id: bitbucketUser.uuid,
+            bitbucket_username: bitbucketUser.username,
+            bitbucket_token: encryptedToken,
+            bitbucket_refresh_token: encryptedRefresh,
+            bitbucket_connected_at: new Date()
+        });
 
         res.redirect(`${frontendUrl}/workspace?section=repos&bitbucket_connected=true`);
 
@@ -179,31 +143,28 @@ router.get('/auth/bitbucket/callback', asyncHandler(async (req, res) => {
 
 // Get connection status
 router.get('/auth/bitbucket/status', verifyToken, asyncHandler(async (req, res) => {
-    const result = await pool.query(
-        'SELECT bitbucket_id, bitbucket_username, bitbucket_connected_at FROM users WHERE id = $1',
-        [req.user.id]
-    );
+    const user = await usersRepository.getBitbucketConnection(req.user.id);
 
-    if (result.rows.length === 0 || !result.rows[0].bitbucket_id) {
+    if (!user || !user.bitbucket_id) {
         return res.json({ connected: false });
     }
 
     res.json({
         connected: true,
-        username: result.rows[0].bitbucket_username,
-        connectedAt: result.rows[0].bitbucket_connected_at
+        username: user.bitbucket_username,
+        connectedAt: user.bitbucket_connected_at
     });
 }));
 
 // Disconnect account
 router.post('/auth/bitbucket/disconnect', verifyToken, asyncHandler(async (req, res) => {
-    await pool.query(
-        `UPDATE users 
-         SET bitbucket_id = NULL, bitbucket_username = NULL, bitbucket_token = NULL, 
-             bitbucket_refresh_token = NULL, bitbucket_connected_at = NULL
-         WHERE id = $1`,
-        [req.user.id]
-    );
+    await usersRepository.update(req.user.id, {
+        bitbucket_id: null,
+        bitbucket_username: null,
+        bitbucket_token: null,
+        bitbucket_refresh_token: null,
+        bitbucket_connected_at: null
+    });
     res.json({ success: true, message: 'Cuenta de Bitbucket desconectada' });
 }));
 
@@ -211,16 +172,13 @@ router.post('/auth/bitbucket/disconnect', verifyToken, asyncHandler(async (req, 
 router.get('/repos', verifyToken, asyncHandler(async (req, res) => {
     const { page = 1, pagelen = 25, role = 'member' } = req.query;
 
-    const userResult = await pool.query(
-        'SELECT bitbucket_token FROM users WHERE id = $1',
-        [req.user.id]
-    );
+    const user = await usersRepository.getBitbucketConnection(req.user.id);
 
-    if (!userResult.rows[0]?.bitbucket_token) {
+    if (!user?.bitbucket_token) {
         throw new AppError('Bitbucket no conectado', 401);
     }
 
-    const token = decryptToken(userResult.rows[0].bitbucket_token);
+    const token = decryptToken(user.bitbucket_token);
     if (!token) {
         throw new AppError('Error al acceder a Bitbucket. Reconecta tu cuenta.', 401);
     }
@@ -263,10 +221,10 @@ router.get('/repos', verifyToken, asyncHandler(async (req, res) => {
         console.error('Bitbucket API error:', err.response?.data || err.message);
 
         if (err.response?.status === 401) {
-            await pool.query(
-                'UPDATE users SET bitbucket_token = NULL, bitbucket_refresh_token = NULL WHERE id = $1',
-                [req.user.id]
-            );
+            await usersRepository.update(req.user.id, {
+                bitbucket_token: null,
+                bitbucket_refresh_token: null
+            });
             throw new AppError('Token de Bitbucket expirado. Reconecta tu cuenta.', 401);
         }
 
@@ -279,16 +237,13 @@ router.post('/repos/:workspace/:repo/analyze', verifyToken, asyncHandler(async (
     const { workspace, repo } = req.params;
     const { project_id, branch = 'main' } = req.body;
 
-    const userResult = await pool.query(
-        'SELECT bitbucket_token FROM users WHERE id = $1',
-        [req.user.id]
-    );
+    const user = await usersRepository.getBitbucketConnection(req.user.id);
 
-    if (!userResult.rows[0]?.bitbucket_token) {
+    if (!user?.bitbucket_token) {
         throw new AppError('Bitbucket no conectado', 401);
     }
 
-    const token = decryptToken(userResult.rows[0].bitbucket_token);
+    const token = decryptToken(user.bitbucket_token);
     if (!token) {
         throw new AppError('Error de autenticación con Bitbucket', 401);
     }
@@ -303,38 +258,20 @@ router.post('/repos/:workspace/:repo/analyze', verifyToken, asyncHandler(async (
         const result = await repoAnalyzer.analyzeRepository(cloneUrl, branch);
 
         // Save to database (similar to github flow)
-        const repoInsert = await pool.query(
-            `INSERT INTO repo_connections (project_id, user_id, repo_url, repo_name, branch, detected_framework, status, last_sync)
-             VALUES ($1, $2, $3, $4, $5, $6, 'analyzed', CURRENT_TIMESTAMP)
-             RETURNING id`,
-            [
-                project_id || null,
-                req.user.id,
-                `https://bitbucket.org/${workspace}/${repo}`,
-                `${workspace}/${repo}`,
-                branch,
-                result.framework || 'unknown'
-            ]
-        );
+        const repoConnection = await reposRepository.createRepo({
+            projectId: project_id || null,
+            userId: req.user.id,
+            repoUrl: `https://bitbucket.org/${workspace}/${repo}`,
+            repoName: `${workspace}/${repo}`,
+            branch: branch,
+            detectedFramework: result.framework || 'unknown',
+            status: 'analyzed'
+        });
 
-        const repoConnectionId = repoInsert.rows[0].id;
+        const repoConnectionId = repoConnection.id;
 
         // Insert files
-        for (const file of result.files || []) {
-            await pool.query(
-                `INSERT INTO repo_files (repo_connection_id, file_path, file_type, has_swagger_comments, endpoints_count, quality_score, parsed_content)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [
-                    repoConnectionId,
-                    file.path,
-                    file.type || 'unknown',
-                    file.hasSwaggerComments || false,
-                    file.endpointsCount || 0,
-                    file.qualityScore || 0,
-                    file.parsedContent || null
-                ]
-            );
-        }
+        await reposRepository.addFiles(repoConnectionId, result.files || []);
 
         res.json({
             success: true,

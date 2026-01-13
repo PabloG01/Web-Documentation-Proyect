@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { pool } = require('../database');
+const { usersRepository } = require('../repositories');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { validateRegister, validateLogin } = require('../middleware/validators');
 const { authLimiter, registerLimiter } = require('../middleware/rateLimiter');
@@ -90,17 +90,12 @@ const verifyToken = asyncHandler(async (req, res, next) => {
         const verified = jwt.verify(token, process.env.JWT_SECRET);
 
         // ALWAYS validate session token - reject old tokens without sessionToken
-        const userResult = await pool.query(
-            'SELECT active_session_token FROM users WHERE id = $1',
-            [verified.id]
-        );
+        const storedToken = await usersRepository.getSessionToken(verified.id);
 
-        if (userResult.rows.length === 0) {
+        if (!storedToken && storedToken !== '') { // Check if user exists (null returned)
             res.clearCookie('auth_token', { httpOnly: true, secure: false, sameSite: 'lax' });
             return next(new AppError('Usuario no encontrado', 401));
         }
-
-        const storedToken = userResult.rows[0].active_session_token;
 
         // If JWT doesn't have sessionToken, it's an old token - force re-login
         if (!verified.sessionToken) {
@@ -169,8 +164,8 @@ router.post('/register', registerLimiter, validateRegister, asyncHandler(async (
     const { username, email, password } = req.body;
 
     // Check if user exists
-    const userCheck = await pool.query('SELECT * FROM users WHERE email = $1 OR username = $2', [email, username]);
-    if (userCheck.rows.length > 0) {
+    const existingUser = await usersRepository.findByEmailOrUsername(email, username);
+    if (existingUser) {
         throw new AppError('El usuario ya existe', 400);
     }
 
@@ -179,12 +174,9 @@ router.post('/register', registerLimiter, validateRegister, asyncHandler(async (
     const hash = await bcrypt.hash(password, salt);
 
     // Insert user
-    const newUser = await pool.query(
-        'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email',
-        [username, email, hash]
-    );
+    const newUser = await usersRepository.createUser(username, email, hash);
 
-    res.status(201).json(newUser.rows[0]);
+    res.status(201).json(newUser);
 }));
 
 /**
@@ -231,11 +223,10 @@ router.post('/login', authLimiter, validateLogin, asyncHandler(async (req, res, 
     const { email, password } = req.body;
 
     // Check user
-    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (userResult.rows.length === 0) {
+    const user = await usersRepository.findByEmail(email);
+    if (!user) {
         throw new AppError('Email o contraseña incorrectos', 400);
     }
-    const user = userResult.rows[0];
 
     // Check password
     const validPass = await bcrypt.compare(password, user.password_hash);
@@ -247,10 +238,7 @@ router.post('/login', authLimiter, validateLogin, asyncHandler(async (req, res, 
     const sessionToken = crypto.randomBytes(32).toString('hex');
 
     // Store session token in database (invalidates any previous session)
-    await pool.query(
-        'UPDATE users SET active_session_token = $1 WHERE id = $2',
-        [sessionToken, user.id]
-    );
+    await usersRepository.updateSessionToken(user.id, sessionToken);
 
     // Create token with session identifier
     const token = jwt.sign(
@@ -297,10 +285,7 @@ router.post('/logout', asyncHandler(async (req, res) => {
     if (token) {
         try {
             const verified = jwt.verify(token, process.env.JWT_SECRET);
-            await pool.query(
-                'UPDATE users SET active_session_token = NULL WHERE id = $1',
-                [verified.id]
-            );
+            await usersRepository.updateSessionToken(verified.id, null);
         } catch (err) {
             // Token invalid, just clear cookie
         }
@@ -341,8 +326,18 @@ router.post('/logout', asyncHandler(async (req, res) => {
  */
 // Get Current User
 router.get('/me', verifyToken, asyncHandler(async (req, res, next) => {
-    const user = await pool.query('SELECT id, username, email FROM users WHERE id = $1', [req.user.id]);
-    res.json(user.rows[0]);
+    // Avoid sending password hash or tokens
+    const user = await usersRepository.findById(req.user.id);
+    if (user) {
+        delete user.password_hash;
+        delete user.active_session_token;
+        delete user.github_token;
+        delete user.github_client_secret;
+        delete user.bitbucket_token;
+        delete user.bitbucket_refresh_token;
+        delete user.bitbucket_client_secret;
+    }
+    res.json(user); // Send what's left (id, username, email, etc)
 }));
 
 module.exports = router;

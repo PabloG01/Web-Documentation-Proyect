@@ -121,8 +121,13 @@
 }
 
 /* Dar más espacio al editor en modo dividido */
-.editor-mode-split .editor-pane { flex: 2; }
-.editor-mode-split .preview-pane { flex: 1; }
+.editor-mode-split .editor-pane {
+  flex: 2;
+}
+
+.editor-mode-split .preview-pane {
+  flex: 1;
+}
 
 /* modo dividido */
 .editor-mode-split {
@@ -167,7 +172,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--background-color);
+  background: #ffffff !important;
+  color: #1e293b !important;
   height: 100%;
 }
 
@@ -212,47 +218,47 @@
 }
 
 /* Listas desordenadas */
-.content-ul-depth-0 { 
-  padding-left: 24px; 
+.content-ul-depth-0 {
+  padding-left: 24px;
   list-style-type: disc;
 }
 
-.content-ul-depth-1 { 
-  padding-left: 48px; 
+.content-ul-depth-1 {
+  padding-left: 48px;
   list-style-type: circle;
 }
 
-.content-ul-depth-2 { 
-  padding-left: 72px; 
+.content-ul-depth-2 {
+  padding-left: 72px;
   list-style-type: square;
 }
 
-.content-ul-depth-3 { 
-  padding-left: 96px; 
+.content-ul-depth-3 {
+  padding-left: 96px;
   list-style-type: disc;
 }
 
 /* Listas ordenadas con jerarquía decimal → alpha → roman */
-.content-ol-depth-0 { 
-  padding-left: 24px; 
+.content-ol-depth-0 {
+  padding-left: 24px;
   list-style-type: decimal;
   margin: 10px 0;
 }
 
-.content-ol-depth-1 { 
-  padding-left: 48px; 
+.content-ol-depth-1 {
+  padding-left: 48px;
   list-style-type: lower-alpha;
   margin: 8px 0;
 }
 
-.content-ol-depth-2 { 
-  padding-left: 72px; 
+.content-ol-depth-2 {
+  padding-left: 72px;
   list-style-type: lower-roman;
   margin: 8px 0;
 }
 
-.content-ol-depth-3 { 
-  padding-left: 96px; 
+.content-ol-depth-3 {
+  padding-left: 96px;
   list-style-type: decimal;
   margin: 8px 0;
 }

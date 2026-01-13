@@ -1,7 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const { reposRepository, projectsRepository } = require('../repositories');
-const { pool } = require('../database'); // Needed for api_specs table until migrated
+const { reposRepository, projectsRepository, apiSpecsRepository } = require('../repositories');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/verifyToken');
 const { createLimiter } = require('../middleware/rateLimiter');
@@ -321,27 +320,19 @@ router.post('/:id/files/:fileId/generate-spec', verifyToken, asyncHandler(async 
     }
 
     // Create API spec from parsed content
-    // Note: We are keeping direct pool query for api_specs table for now
-    // as it belongs to a different domain (ApiSpecs) which will be migrated separately.
-    const specResult = await pool.query(
-        `INSERT INTO api_specs 
-         (project_id, user_id, name, description, spec_content, source_type)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING *`,
-        [
-            repo.project_id,
-            req.user.id,
-            name || `API - ${file.file_path}`,
-            description || `Generado desde ${repo.repo_name}/${file.file_path}`,
-            file.parsed_content,
-            file.has_swagger_comments ? 'swagger-comments' : 'inferred'
-        ]
-    );
+    const newSpec = await apiSpecsRepository.createSpec({
+        projectId: repo.project_id,
+        userId: req.user.id,
+        name: name || `API - ${file.file_path}`,
+        description: description || `Generado desde ${repo.repo_name}/${file.file_path}`,
+        specContent: file.parsed_content,
+        sourceType: file.has_swagger_comments ? 'swagger-comments' : 'inferred'
+    });
 
     // Update repo_file with api_spec_id
-    await reposRepository.linkApiSpec(fileId, specResult.rows[0].id);
+    await reposRepository.linkApiSpec(fileId, newSpec.id);
 
-    res.status(201).json(specResult.rows[0]);
+    res.status(201).json(newSpec);
 }));
 
 /**
