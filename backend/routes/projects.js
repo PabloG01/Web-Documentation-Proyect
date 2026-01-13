@@ -1,7 +1,7 @@
 const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken } = require('../middleware/verifyToken');
 const { validateProject, validateProjectId } = require('../middleware/validators');
 const { createLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();

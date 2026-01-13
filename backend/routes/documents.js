@@ -1,7 +1,7 @@
 const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken } = require('../middleware/verifyToken');
 const { validateCreateDocument, validateUpdateDocument, validateDocumentId } = require('../middleware/validators');
 const { createLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
@@ -235,8 +235,10 @@ router.get('/', optionalVerifyToken, asyncHandler(async (req, res) => {
  * /documents/{id}:
  *   get:
  *     summary: Obtener documento por ID
- *     description: Retorna un documento específico con información del proyecto y usuario
+ *     description: Obtiene un documento específico por su ID. Requiere autenticación.
  *     tags: [Documents]
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -251,11 +253,13 @@ router.get('/', optionalVerifyToken, asyncHandler(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Document'
+ *       401:
+ *         description: No autenticado
  *       404:
  *         description: Documento no encontrado
  */
-// GET /documents/:id - Get a single document by ID
-router.get('/:id', validateDocumentId, asyncHandler(async (req, res) => {
+// GET /documents/:id - Get a single document by ID (requires auth to view, any user can see all)
+router.get('/:id', verifyToken, validateDocumentId, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
@@ -271,7 +275,11 @@ router.get('/:id', validateDocumentId, asyncHandler(async (req, res) => {
         throw new AppError('Documento no encontrado', 404);
     }
 
-    res.json(result.rows[0]);
+    // Add flag to indicate if current user can edit
+    const doc = result.rows[0];
+    doc.can_edit = doc.user_id === req.user.id;
+
+    res.json(doc);
 }));
 
 /**

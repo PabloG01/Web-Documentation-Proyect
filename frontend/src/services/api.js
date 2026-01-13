@@ -12,6 +12,24 @@ const api = axios.create({
     }
 });
 
+// Interceptor para manejar errores 401 y disparar evento de sesión cerrada
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            const errorMessage = error.response?.data?.error || '';
+            console.log('API 401 error:', errorMessage);
+
+            // Dispatch custom event for session invalidation
+            const event = new CustomEvent('session-invalidated', {
+                detail: { message: errorMessage }
+            });
+            window.dispatchEvent(event);
+        }
+        return Promise.reject(error);
+    }
+);
+
 // Projects API
 export const projectsAPI = {
     getAll: (page = 1, limit = 100) => api.get(`/projects?page=${page}&limit=${limit}`),

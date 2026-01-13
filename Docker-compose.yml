@@ -49,13 +49,24 @@ services:
     ports:
       - "0.0.0.0:3000:3000"
     environment:
-      # Frontend usa window.location.hostname dinamicamente
+      # Optimizaciones de memoria para desarrollo
       - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_OPTIONS=--max_old_space_size=512
+      - GENERATE_SOURCEMAP=false
+      - FAST_REFRESH=false
     volumes:
       - ./frontend:/app
       - /app/node_modules
     stdin_open: true
     tty: true
+    # Límites de memoria
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     depends_on:
       - backend
 

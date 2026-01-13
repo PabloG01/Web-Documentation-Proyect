@@ -26,17 +26,50 @@ export const AuthProvider = ({ children }) => {
         checkUserLoggedIn();
     }, []);
 
+    // Escuchar evento de sesión invalidada desde api.js
+    useEffect(() => {
+        const handleSessionEvent = (event) => {
+            const message = event.detail?.message || 'Sesión cerrada desde otro dispositivo';
+            console.log('Session invalidation event received:', message);
+
+            if (message.includes('Sesión cerrada') ||
+                message.includes('otro dispositivo') ||
+                message.includes('sesión expirada') ||
+                message.includes('Token inválido')) {
+                handleSessionInvalidated(message);
+            } else if (user) {
+                // Cualquier otro 401 con usuario logueado
+                handleSessionInvalidated(message || 'Tu sesión ha expirado');
+            }
+        };
+
+        window.addEventListener('session-invalidated', handleSessionEvent);
+        return () => window.removeEventListener('session-invalidated', handleSessionEvent);
+    }, [handleSessionInvalidated, user]);
+
     // Configurar interceptor de axios para manejar errores de sesión
     useEffect(() => {
         const interceptor = axios.interceptors.response.use(
             (response) => response,
             (error) => {
-                // Detectar error de sesión cerrada desde otro dispositivo
+                // Detectar cualquier error 401 (no autorizado)
                 if (error.response?.status === 401) {
-                    const errorMessage = error.response?.data?.error;
-                    if (errorMessage?.includes('Sesión cerrada') ||
-                        errorMessage?.includes('otro dispositivo')) {
+                    const errorMessage = error.response?.data?.error || '';
+
+                    // Si es error específico de sesión cerrada desde otro dispositivo
+                    if (errorMessage.includes('Sesión cerrada') ||
+                        errorMessage.includes('otro dispositivo') ||
+                        errorMessage.includes('sesión fue cerrada')) {
                         handleSessionInvalidated(errorMessage);
+                    } else if (errorMessage.includes('Sesión expirada') ||
+                        errorMessage.includes('Token inválido') ||
+                        errorMessage.includes('Token expirado')) {
+                        // Token expirado o inválido - limpiar silenciosamente
+                        setUser(null);
+                    } else if (user) {
+                        // Cualquier otro 401 cuando hay usuario logueado - limpiar sesión
+                        console.log('Session invalidated:', errorMessage);
+                        handleSessionInvalidated(errorMessage || 'Tu sesión ha expirado');
                     }
                 }
                 return Promise.reject(error);
@@ -46,7 +79,7 @@ export const AuthProvider = ({ children }) => {
         return () => {
             axios.interceptors.response.eject(interceptor);
         };
-    }, [handleSessionInvalidated]);
+    }, [handleSessionInvalidated, user]);
 
     const checkUserLoggedIn = async () => {
         try {

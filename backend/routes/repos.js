@@ -1,7 +1,8 @@
 const express = require('express');
+const crypto = require('crypto');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken } = require('../middleware/verifyToken');
 const { createLimiter } = require('../middleware/rateLimiter');
 const {
     analyzeRepository,
@@ -9,6 +10,40 @@ const {
     getQualityLevel
 } = require('../services/repo-analyzer');
 const router = express.Router();
+
+// Token encryption for private repos
+const ENCRYPTION_KEY = process.env.JWT_SECRET || 'default-key-change-this';
+
+function encryptToken(token) {
+    if (!token) return null;
+    try {
+        const iv = crypto.randomBytes(16);
+        const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+        const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+        let encrypted = cipher.update(token, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        return iv.toString('hex') + ':' + encrypted;
+    } catch (err) {
+        console.error('Token encryption error:', err.message);
+        return null;
+    }
+}
+
+function decryptToken(encryptedToken) {
+    if (!encryptedToken) return null;
+    try {
+        const [ivHex, encrypted] = encryptedToken.split(':');
+        const iv = Buffer.from(ivHex, 'hex');
+        const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+        const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+    } catch (err) {
+        console.error('Token decryption error:', err.message);
+        return null;
+    }
+}
 
 /**
  * @swagger
@@ -144,11 +179,14 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
         throw new AppError(analysisResult.error || 'Error al analizar el repositorio', 400);
     }
 
-    // Save repo connection to database
+    // Save repo connection to database with encrypted token
+    const encryptedAuthToken = auth_token ? encryptToken(auth_token) : null;
+    const isPrivate = !!auth_token;
+
     const repoResult = await pool.query(
         `INSERT INTO repo_connections 
-         (project_id, user_id, repo_url, repo_name, branch, detected_framework, status, last_sync)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+         (project_id, user_id, repo_url, repo_name, branch, detected_framework, auth_token_encrypted, is_private, status, last_sync)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
          RETURNING *`,
         [
             project_id,
@@ -157,6 +195,8 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
             repoName,
             analysisResult.branch || branch,
             analysisResult.framework?.primary || null,
+            encryptedAuthToken,
+            isPrivate,
             'analyzed'
         ]
     );
@@ -367,7 +407,7 @@ router.post('/:id/files/:fileId/generate-spec', verifyToken, asyncHandler(async 
 router.post('/:id/resync', verifyToken, createLimiter, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    // Get repo
+    // Get repo with auth token
     const repoResult = await pool.query(
         'SELECT * FROM repo_connections WHERE id = $1 AND user_id = $2',
         [id, req.user.id]
@@ -378,8 +418,28 @@ router.post('/:id/resync', verifyToken, createLimiter, asyncHandler(async (req, 
 
     const repo = repoResult.rows[0];
 
-    // Re-analyze
-    const analysisResult = await analyzeRepository(repo.repo_url, repo.branch);
+    // Build clone URL with stored token if it's a private repo
+    let cloneUrl = repo.repo_url;
+    if (repo.is_private && repo.auth_token_encrypted) {
+        const authToken = decryptToken(repo.auth_token_encrypted);
+        if (authToken) {
+            if (cloneUrl.includes('github.com')) {
+                cloneUrl = cloneUrl.replace('https://github.com', `https://${authToken}@github.com`);
+            } else if (cloneUrl.includes('bitbucket.org')) {
+                cloneUrl = cloneUrl.replace('https://bitbucket.org', `https://x-token-auth:${authToken}@bitbucket.org`);
+            } else if (cloneUrl.includes('gitlab.com')) {
+                cloneUrl = cloneUrl.replace('https://gitlab.com', `https://oauth2:${authToken}@gitlab.com`);
+            }
+            if (!cloneUrl.endsWith('.git')) {
+                cloneUrl += '.git';
+            }
+        } else {
+            console.warn(`Could not decrypt token for repo ${id}, trying without auth`);
+        }
+    }
+
+    // Re-analyze with proper URL
+    const analysisResult = await analyzeRepository(cloneUrl, repo.branch);
 
     if (!analysisResult.success) {
         throw new AppError(analysisResult.error || 'Error al re-sincronizar', 400);

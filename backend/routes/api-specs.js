@@ -1,7 +1,7 @@
 const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken } = require('../middleware/verifyToken');
 const { createLimiter } = require('../middleware/rateLimiter');
 const { parseSwaggerComments, extractSpecPreview } = require('../services/swagger-parser');
 const multer = require('multer');

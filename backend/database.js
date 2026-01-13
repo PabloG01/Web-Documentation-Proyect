@@ -150,6 +150,8 @@ const initializeDatabase = async () => {
                   repo_name VARCHAR(200),
                   branch VARCHAR(100) DEFAULT 'main',
                   detected_framework VARCHAR(50),
+                  auth_token_encrypted TEXT,
+                  is_private BOOLEAN DEFAULT FALSE,
                   last_sync TIMESTAMP,
                   status VARCHAR(20) DEFAULT 'pending',
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -190,6 +192,19 @@ const initializeDatabase = async () => {
             await pool.query(`
           CREATE INDEX IF NOT EXISTS idx_spec_versions_api_spec_id 
           ON api_spec_versions(api_spec_id, version_number DESC)
+      `);
+
+            // Migration: Add auth_token_encrypted and is_private columns to repo_connections
+            await pool.query(`
+          DO $$ 
+          BEGIN 
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='repo_connections' AND column_name='auth_token_encrypted') THEN
+                  ALTER TABLE repo_connections ADD COLUMN auth_token_encrypted TEXT;
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='repo_connections' AND column_name='is_private') THEN
+                  ALTER TABLE repo_connections ADD COLUMN is_private BOOLEAN DEFAULT FALSE;
+              END IF;
+          END $$;
       `);
 
             console.log('✅ Database tables initialized successfully');

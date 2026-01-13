@@ -3,7 +3,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken } = require('../middleware/verifyToken');
 const router = express.Router();
 
 // Simple encryption for tokens
