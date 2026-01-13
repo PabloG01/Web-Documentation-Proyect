@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { verifyToken } = require('../middleware/auth');
 const { createLimiter } = require('../middleware/rateLimiter');
 const {
     analyzeRepository,
@@ -52,24 +53,6 @@ const router = express.Router();
  *         stats:
  *           type: object
  */
-
-// Middleware to verify token
-const verifyToken = (req, res, next) => {
-    const token = req.cookies.auth_token;
-    if (!token) {
-        return next(new AppError('Acceso denegado', 401));
-    }
-
-    const jwt = require('jsonwebtoken');
-    try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = verified;
-        next();
-    } catch (err) {
-        console.error('Token verification error:', err);
-        next(new AppError('Token inválido', 400));
-    }
-};
 
 /**
  * @swagger

@@ -3,6 +3,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { verifyToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Encryption
@@ -27,22 +28,6 @@ const decryptToken = (encryptedToken) => {
     } catch (e) {
         console.error('Token decryption failed:', e.message);
         return null;
-    }
-};
-
-// JWT verification middleware
-const jwt = require('jsonwebtoken');
-const verifyToken = (req, res, next) => {
-    const token = req.cookies?.token;
-    if (!token) {
-        return res.status(401).json({ error: 'No autenticado' });
-    }
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (err) {
-        return res.status(401).json({ error: 'Token inválido' });
     }
 };
 

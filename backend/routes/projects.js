@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { verifyToken } = require('../middleware/auth');
 const { validateProject, validateProjectId } = require('../middleware/validators');
 const { createLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
@@ -84,24 +85,6 @@ const router = express.Router();
  *             hasPrevPage:
  *               type: boolean
  */
-
-// Middleware to verify token (copy from auth.js)
-const verifyToken = (req, res, next) => {
-    const token = req.cookies.auth_token;
-    if (!token) {
-        return next(new AppError('Acceso denegado', 401));
-    }
-
-    const jwt = require('jsonwebtoken');
-    try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = verified;
-        next();
-    } catch (err) {
-        console.error('Token verification error:', err);
-        next(new AppError('Token inválido', 400));
-    }
-};
 
 /**
  * @swagger

@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { verifyToken } = require('../middleware/auth');
 const { createLimiter } = require('../middleware/rateLimiter');
 const { parseSwaggerComments, extractSpecPreview } = require('../services/swagger-parser');
 const multer = require('multer');
@@ -99,31 +100,6 @@ const upload = multer({
         }
     }
 });
-
-// Middleware to verify token
-const verifyToken = (req, res, next) => {
-    // Debug: Log incoming cookies
-    console.log('=== DEBUG verifyToken ===');
-    console.log('Request URL:', req.originalUrl);
-    console.log('Cookies received:', req.cookies);
-    console.log('Cookie header:', req.headers.cookie);
-    console.log('========================');
-
-    const token = req.cookies.auth_token;
-    if (!token) {
-        return next(new AppError('Acceso denegado', 401));
-    }
-
-    const jwt = require('jsonwebtoken');
-    try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = verified;
-        next();
-    } catch (err) {
-        console.error('Token verification error:', err);
-        next(new AppError('Token inválido', 400));
-    }
-};
 
 // Middleware opcional - extrae user si hay token, pero no falla si no hay
 const optionalVerifyToken = (req, res, next) => {

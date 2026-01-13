@@ -3,6 +3,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { verifyToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Simple encryption for tokens
@@ -31,23 +32,6 @@ function decryptToken(encryptedToken) {
         return null;
     }
 }
-
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-    const token = req.cookies.auth_token;
-    if (!token) {
-        return next(new AppError('Acceso denegado', 401));
-    }
-
-    const jwt = require('jsonwebtoken');
-    try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = verified;
-        next();
-    } catch (err) {
-        next(new AppError('Token inválido', 400));
-    }
-};
 
 /**
  * @swagger

@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { verifyToken } = require('../middleware/auth');
 const { validateCreateDocument, validateUpdateDocument, validateDocumentId } = require('../middleware/validators');
 const { createLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
@@ -109,24 +110,6 @@ const router = express.Router();
  *             hasPrevPage:
  *               type: boolean
  */
-
-// Middleware to verify token
-const verifyToken = (req, res, next) => {
-    const token = req.cookies.auth_token;
-    if (!token) {
-        return next(new AppError('Acceso denegado', 401));
-    }
-
-    const jwt = require('jsonwebtoken');
-    try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = verified;
-        next();
-    } catch (err) {
-        console.error('Token verification error:', err);
-        next(new AppError('Token inválido', 400));
-    }
-};
 
 // Optional token verification (doesn't require auth, but extracts user if present)
 const optionalVerifyToken = (req, res, next) => {
@@ -325,7 +308,7 @@ router.get('/:id', validateDocumentId, asyncHandler(async (req, res) => {
  */
 // POST /documents - Create a new document
 router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandler(async (req, res) => {
-    const { project_id, title, content, doc_type } = req.body;
+    const { project_id, title, content, type } = req.body;
 
     // Validate project_id is required
     if (!project_id) {
@@ -339,9 +322,9 @@ router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandle
     }
 
     const result = await pool.query(
-        `INSERT INTO documents (project_id, user_id, title, content, doc_type) 
+        `INSERT INTO documents (project_id, user_id, title, content, type) 
          VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [project_id, req.user.id, title, content, doc_type]
+        [project_id, req.user.id, title, content, type || 'general']
     );
 
     res.status(201).json(result.rows[0]);
