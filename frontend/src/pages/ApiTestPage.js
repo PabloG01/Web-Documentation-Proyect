@@ -3,9 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import OpenApiViewer from '../components/OpenApiViewer';
 import SpecEditor from '../components/SpecEditor';
 import VersionHistory from '../components/VersionHistory';
+import Modal from '../components/Modal';
+import Button from '../components/Button';
+import { SavedSpecsPanel, FileUploadCard, EndpointsList } from '../components/api';
 import { projectsAPI, apiSpecsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
-import { ClipboardList, Folder, FileText, Trash2, Upload, Save, History, Plus, Pencil, AlertTriangle, CheckCircle, Code, ChevronRight, Loader } from '../components/Icons';
+import { Plus, Save, History, AlertTriangle, CheckCircle, Code, Loader } from '../components/Icons';
 import '../styles/ApiTestPage.css';
 
 function ApiTestPage({ embedded = false }) {
@@ -14,7 +17,7 @@ function ApiTestPage({ embedded = false }) {
     const [spec, setSpec] = useState(null);
     const [fileName, setFileName] = useState('');
     const [error, setError] = useState('');
-    const [processing, setProcessing] = useState(''); // For Swagger parsing progress
+    const [processing, setProcessing] = useState('');
 
     // Para guardar specs
     const [projects, setProjects] = useState([]);
@@ -26,11 +29,11 @@ function ApiTestPage({ embedded = false }) {
     const [loadingSpecs, setLoadingSpecs] = useState(false);
     const [currentSpecId, setCurrentSpecId] = useState(null);
     const [showSaveModal, setShowSaveModal] = useState(false);
-    const [viewerKey, setViewerKey] = useState(0); // Key para forzar recreación del visor
-    const [expandedProjects, setExpandedProjects] = useState({}); // Estado para carpetas expandidas
-    const [editingEndpoint, setEditingEndpoint] = useState(null); // Endpoint being edited
-    const [isEditing, setIsEditing] = useState(false); // Edit mode active
-    const [showVersionHistory, setShowVersionHistory] = useState(false); // Version history modal
+    const [viewerKey, setViewerKey] = useState(0);
+    const [expandedProjects, setExpandedProjects] = useState({});
+    const [editingEndpoint, setEditingEndpoint] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [showVersionHistory, setShowVersionHistory] = useState(false);
 
     // Cargar proyectos y specs guardadas
     useEffect(() => {
@@ -87,7 +90,6 @@ function ApiTestPage({ embedded = false }) {
         }
     };
 
-
     const handleFileUpload = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -107,17 +109,15 @@ function ApiTestPage({ embedded = false }) {
             return;
         }
 
-        // Si es archivo JavaScript, parsearlo con el backend
         if (isJavaScript) {
             try {
-                setProcessing('⏳ Analizando comentarios Swagger...');
+                setProcessing('Analizando comentarios Swagger...');
                 setError('');
                 const response = await apiSpecsAPI.parseSwagger(file);
-
-                const { spec, preview, sourceCode, message } = response.data;
+                const { spec: parsedSpec, preview, sourceCode, message } = response.data;
 
                 setSpec({
-                    ...spec,
+                    ...parsedSpec,
                     _metadata: {
                         source_type: 'swagger-comments',
                         source_code: sourceCode,
@@ -129,50 +129,38 @@ function ApiTestPage({ embedded = false }) {
                 setProcessing('');
                 setError('');
 
-                alert(`✅ ${message}\n\n` +
-                    `📋 Endpoints encontrados: ${preview.endpointsCount}\n` +
-                    `📦 Schemas: ${preview.schemas.length}`);
-
+                alert(`✅ ${message}\n\n📋 Endpoints encontrados: ${preview.endpointsCount}\n📦 Schemas: ${preview.schemas.length}`);
             } catch (err) {
                 console.error('Error parsing Swagger:', err);
-                setError('❌ ' + (err.response?.data?.error || err.message));
+                setError(err.response?.data?.error || err.message);
                 setProcessing('');
                 setSpec(null);
             }
             return;
         }
 
-        // Si es JSON, procesarlo como antes
+        // JSON file
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const jsonContent = JSON.parse(e.target.result);
-
-                // Validación básica de OpenAPI
                 if (!jsonContent.openapi && !jsonContent.swagger) {
-                    setError('El archivo no parece ser una especificación OpenAPI válida (falta campo "openapi" o "swagger")');
+                    setError('El archivo no parece ser una especificación OpenAPI válida');
                     setSpec(null);
                     return;
                 }
-
-                setSpec({
-                    ...jsonContent,
-                    _metadata: { source_type: 'json' }
-                });
+                setSpec({ ...jsonContent, _metadata: { source_type: 'json' } });
                 setViewerKey(prev => prev + 1);
                 setError('');
             } catch (err) {
-                console.error('Error parsing JSON:', err);
                 setError('Error al parsear el archivo JSON: ' + err.message);
                 setSpec(null);
             }
         };
-
         reader.onerror = () => {
             setError('Error al leer el archivo');
             setSpec(null);
         };
-
         reader.readAsText(file);
     };
 
@@ -183,28 +171,19 @@ function ApiTestPage({ embedded = false }) {
         setCurrentSpecId(null);
         setSpecName('');
         setSpecDescription('');
-        document.getElementById('file-input').value = '';
+        const fileInput = document.getElementById('file-input');
+        if (fileInput) fileInput.value = '';
     };
 
     const handleSaveSpec = async () => {
-        if (!spec) {
-            alert('No hay especificación para guardar');
-            return;
-        }
-        if (!specName.trim()) {
-            alert('Por favor ingresa un nombre para la especificación');
-            return;
-        }
-        if (!selectedProjectId) {
-            alert('Por favor selecciona un proyecto');
+        if (!spec || !specName.trim() || !selectedProjectId) {
+            alert('Por favor completa todos los campos requeridos');
             return;
         }
 
         setSaving(true);
         try {
-            // Extract metadata if present
             const { _metadata, ...cleanSpec } = spec;
-
             const specData = {
                 project_id: selectedProjectId,
                 name: specName.trim(),
@@ -234,7 +213,7 @@ function ApiTestPage({ embedded = false }) {
 
     const handleLoadSpec = async (savedSpec) => {
         setSpec(savedSpec.spec_content);
-        setViewerKey(prev => prev + 1); // Forzar recreación del visor
+        setViewerKey(prev => prev + 1);
         setSpecName(savedSpec.name);
         setSpecDescription(savedSpec.description || '');
         setCurrentSpecId(savedSpec.id);
@@ -245,69 +224,22 @@ function ApiTestPage({ embedded = false }) {
 
     const handleDeleteSpec = async (specId) => {
         if (!window.confirm('¿Estás seguro de eliminar esta especificación?')) return;
-
         try {
             await apiSpecsAPI.delete(specId);
             loadSavedSpecs();
-            if (currentSpecId === specId) {
-                handleClear();
-            }
+            if (currentSpecId === specId) handleClear();
         } catch (err) {
             alert('Error al eliminar: ' + (err.response?.data?.error || err.message));
         }
     };
 
-    // Agrupar specs por proyecto
-    const groupSpecsByProject = (specs) => {
-        const grouped = {};
-
-        // Grupo "Sin clasificar" para specs sin proyecto
-        grouped['uncategorized'] = {
-            id: 'uncategorized',
-            name: 'Sin clasificar',
-            code: null,
-            color: '#6b7280',
-            specs: []
-        };
-
-        specs.forEach(spec => {
-            if (spec.project_id) {
-                if (!grouped[spec.project_id]) {
-                    grouped[spec.project_id] = {
-                        id: spec.project_id,
-                        name: spec.project_name || 'Proyecto',
-                        code: spec.project_code,
-                        color: spec.project_color || '#6366f1',
-                        specs: []
-                    };
-                }
-                grouped[spec.project_id].specs.push(spec);
-            } else {
-                grouped['uncategorized'].specs.push(spec);
-            }
-        });
-
-        // Retornar solo grupos con specs, ordenando proyectos primero y "Sin clasificar" al final
-        const result = Object.values(grouped).filter(g => g.specs.length > 0);
-        return result.sort((a, b) => {
-            if (a.id === 'uncategorized') return 1;
-            if (b.id === 'uncategorized') return -1;
-            return (a.name || '').localeCompare(b.name || '');
-        });
-    };
-
-    // Toggle para expandir/colapsar carpetas
     const toggleProjectFolder = (projectId) => {
-        setExpandedProjects(prev => ({
-            ...prev,
-            [projectId]: !prev[projectId]
-        }));
+        setExpandedProjects(prev => ({ ...prev, [projectId]: !prev[projectId] }));
     };
 
-    // Edit an endpoint in the current spec
+    // Endpoint editing handlers
     const handleEditEndpoint = (path, method) => {
-        if (!spec || !spec.paths || !spec.paths[path]) return;
-
+        if (!spec?.paths?.[path]) return;
         const operation = spec.paths[path][method.toLowerCase()];
         if (!operation) return;
 
@@ -320,23 +252,19 @@ function ApiTestPage({ embedded = false }) {
             parameters: operation.parameters || [],
             requestBody: operation.requestBody || null,
             responses: Object.entries(operation.responses || {}).map(([code, data]) => ({
-                code,
-                description: data.description || ''
+                code, description: data.description || ''
             })),
             requiresAuth: !!operation.security?.length
         });
         setIsEditing(true);
     };
 
-    // Save edited endpoint back to spec
     const handleSaveEndpoint = (updatedEndpoint) => {
         if (!spec || !editingEndpoint) return;
-
         const newSpec = { ...spec };
         const originalPath = editingEndpoint.path;
         const originalMethod = editingEndpoint.method.toLowerCase();
 
-        // Build the operation object
         const operation = {
             summary: updatedEndpoint.summary,
             description: updatedEndpoint.description,
@@ -345,42 +273,21 @@ function ApiTestPage({ embedded = false }) {
             responses: {}
         };
 
-        // Add auth if required
-        if (updatedEndpoint.requiresAuth) {
-            operation.security = [{ bearerAuth: [] }];
-        }
-
-        // Add request body if present
-        if (updatedEndpoint.requestBody) {
-            operation.requestBody = updatedEndpoint.requestBody;
-        }
-
-        // Build responses
+        if (updatedEndpoint.requiresAuth) operation.security = [{ bearerAuth: [] }];
+        if (updatedEndpoint.requestBody) operation.requestBody = updatedEndpoint.requestBody;
         (updatedEndpoint.responses || []).forEach(resp => {
-            operation.responses[resp.code] = {
-                description: resp.description
-            };
+            operation.responses[resp.code] = { description: resp.description };
         });
 
-        // Handle path/method change
         if (updatedEndpoint.path !== originalPath) {
-            // Path changed - create new path entry
-            if (!newSpec.paths[updatedEndpoint.path]) {
-                newSpec.paths[updatedEndpoint.path] = {};
-            }
+            if (!newSpec.paths[updatedEndpoint.path]) newSpec.paths[updatedEndpoint.path] = {};
             newSpec.paths[updatedEndpoint.path][updatedEndpoint.method.toLowerCase()] = operation;
-
-            // Remove from old path
             delete newSpec.paths[originalPath][originalMethod];
-            if (Object.keys(newSpec.paths[originalPath]).length === 0) {
-                delete newSpec.paths[originalPath];
-            }
+            if (Object.keys(newSpec.paths[originalPath]).length === 0) delete newSpec.paths[originalPath];
         } else if (updatedEndpoint.method.toLowerCase() !== originalMethod) {
-            // Only method changed
             newSpec.paths[originalPath][updatedEndpoint.method.toLowerCase()] = operation;
             delete newSpec.paths[originalPath][originalMethod];
         } else {
-            // Same path and method - just update
             newSpec.paths[originalPath][originalMethod] = operation;
         }
 
@@ -390,7 +297,6 @@ function ApiTestPage({ embedded = false }) {
         setIsEditing(false);
     };
 
-    // Add new endpoint
     const handleAddEndpoint = () => {
         setEditingEndpoint({
             path: '/new-endpoint',
@@ -406,15 +312,10 @@ function ApiTestPage({ embedded = false }) {
         setIsEditing(true);
     };
 
-    // Add new endpoint to spec
     const handleSaveNewEndpoint = (newEndpoint) => {
         if (!spec) return;
-
-        const newSpec = { ...spec };
-        if (!newSpec.paths) newSpec.paths = {};
-        if (!newSpec.paths[newEndpoint.path]) {
-            newSpec.paths[newEndpoint.path] = {};
-        }
+        const newSpec = { ...spec, paths: { ...spec.paths } };
+        if (!newSpec.paths[newEndpoint.path]) newSpec.paths[newEndpoint.path] = {};
 
         const operation = {
             summary: newEndpoint.summary,
@@ -424,45 +325,29 @@ function ApiTestPage({ embedded = false }) {
             responses: {}
         };
 
-        if (newEndpoint.requiresAuth) {
-            operation.security = [{ bearerAuth: [] }];
-        }
-
-        if (newEndpoint.requestBody) {
-            operation.requestBody = newEndpoint.requestBody;
-        }
-
+        if (newEndpoint.requiresAuth) operation.security = [{ bearerAuth: [] }];
+        if (newEndpoint.requestBody) operation.requestBody = newEndpoint.requestBody;
         (newEndpoint.responses || []).forEach(resp => {
-            operation.responses[resp.code] = {
-                description: resp.description
-            };
+            operation.responses[resp.code] = { description: resp.description };
         });
 
         newSpec.paths[newEndpoint.path][newEndpoint.method.toLowerCase()] = operation;
-
         setSpec(newSpec);
         setViewerKey(prev => prev + 1);
         setEditingEndpoint(null);
         setIsEditing(false);
     };
 
-    // Delete an endpoint from spec
     const handleDeleteEndpoint = (path, method) => {
         if (!window.confirm(`¿Eliminar endpoint ${method.toUpperCase()} ${path}?`)) return;
-
         const newSpec = { ...spec };
-        if (newSpec.paths && newSpec.paths[path]) {
+        if (newSpec.paths?.[path]) {
             delete newSpec.paths[path][method.toLowerCase()];
-            // If no more methods in this path, remove the path
-            if (Object.keys(newSpec.paths[path]).length === 0) {
-                delete newSpec.paths[path];
-            }
+            if (Object.keys(newSpec.paths[path]).length === 0) delete newSpec.paths[path];
         }
         setSpec(newSpec);
         setViewerKey(prev => prev + 1);
     };
-
-    const groupedSpecs = groupSpecsByProject(savedSpecs);
 
     return (
         <div className="api-test-page">
@@ -472,93 +357,32 @@ function ApiTestPage({ embedded = false }) {
             </div>
 
             <div className="api-test-layout">
-                {/* Panel izquierdo - Specs guardadas */}
+                {/* Left Panel - Saved Specs */}
                 {user && (
-                    <div className="saved-specs-panel">
-                        <h3><ClipboardList size={18} /> Specs Guardadas</h3>
-                        {loadingSpecs ? (
-                            <p className="loading-text">Cargando...</p>
-                        ) : savedSpecs.length === 0 ? (
-                            <p className="empty-text">No hay specs guardadas</p>
-                        ) : (
-                            <div className="specs-folder-container">
-                                {groupedSpecs.map((group) => (
-                                    <div key={group.id} className="project-folder">
-                                        <div
-                                            className="project-folder-header"
-                                            onClick={() => toggleProjectFolder(group.id)}
-                                            style={{ borderLeftColor: group.color }}
-                                        >
-                                            <span className={`folder-toggle-icon ${expandedProjects[group.id] ? 'expanded' : ''}`}>
-                                                ▶
-                                            </span>
-                                            <span className="folder-icon"><Folder size={16} /></span>
-                                            <span className="folder-name">
-                                                {group.code ? `${group.code} - ${group.name}` : group.name}
-                                            </span>
-                                            <span className="folder-count">{group.specs.length}</span>
-                                        </div>
-                                        <div className={`project-folder-content ${expandedProjects[group.id] ? 'expanded' : ''}`}>
-                                            {group.specs.map((savedSpec) => (
-                                                <div
-                                                    key={savedSpec.id}
-                                                    className={`folder-spec-item ${currentSpecId === savedSpec.id ? 'active' : ''}`}
-                                                >
-                                                    <div className="spec-info" onClick={() => handleLoadSpec(savedSpec)}>
-                                                        <span className="spec-icon"><FileText size={14} /></span>
-                                                        <span className="spec-name">{savedSpec.name}</span>
-                                                    </div>
-                                                    <button
-                                                        className="btn-delete-spec"
-                                                        onClick={(e) => { e.stopPropagation(); handleDeleteSpec(savedSpec.id); }}
-                                                        title="Eliminar"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    <SavedSpecsPanel
+                        specs={savedSpecs}
+                        projects={projects}
+                        currentSpecId={currentSpecId}
+                        expandedProjects={expandedProjects}
+                        loadingSpecs={loadingSpecs}
+                        onToggleProject={toggleProjectFolder}
+                        onLoadSpec={handleLoadSpec}
+                        onDeleteSpec={handleDeleteSpec}
+                    />
                 )}
 
-                {/* Panel principal */}
+                {/* Main Panel */}
                 <div className="main-panel">
                     <div className="upload-section">
-                        <div className="upload-card">
-                            <label htmlFor="file-input" className="upload-label">
-                                <div className="upload-icon"><Upload size={32} /></div>
-                                <div className="upload-text">
-                                    {fileName ? fileName : 'Selecciona un archivo .json o .js'}
-                                </div>
-                                <div className="upload-hint">
-                                    Haz clic para seleccionar o arrastra un archivo aquí
-                                </div>
-                            </label>
-                            <input
-                                id="file-input"
-                                type="file"
-                                accept=".json,.js,application/json,text/javascript"
-                                onChange={handleFileUpload}
-                                style={{ display: 'none' }}
-                            />
-
-                            <div className="upload-actions">
-                                {fileName && (
-                                    <button className="btn btn-secondary" onClick={handleClear}>
-                                        <Trash2 size={16} /> Limpiar
-                                    </button>
-                                )}
-                                {spec && user && (
-                                    <button className="btn btn-primary" onClick={() => setShowSaveModal(true)}>
-                                        <Save size={16} /> {currentSpecId ? 'Actualizar' : 'Guardar'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                        <FileUploadCard
+                            fileName={fileName}
+                            onFileUpload={handleFileUpload}
+                            onClear={handleClear}
+                            onSave={() => setShowSaveModal(true)}
+                            hasSpec={!!spec}
+                            currentSpecId={currentSpecId}
+                            isUserLoggedIn={!!user}
+                        />
 
                         {error && (
                             <div className="error-message">
@@ -568,7 +392,7 @@ function ApiTestPage({ embedded = false }) {
 
                         {processing && (
                             <div className="processing-message">
-                                <p>{processing}</p>
+                                <Loader size={16} className="spin" /> {processing}
                             </div>
                         )}
 
@@ -583,81 +407,31 @@ function ApiTestPage({ embedded = false }) {
                     {spec && (
                         <div className="viewer-section">
                             <div className="viewer-toolbar">
-                                <button
-                                    className="btn btn-small btn-primary"
-                                    onClick={handleAddEndpoint}
-                                    title="Añadir nuevo endpoint"
-                                >
+                                <Button variant="primary" size="small" onClick={handleAddEndpoint}>
                                     <Plus size={16} /> Añadir Endpoint
-                                </button>
+                                </Button>
                                 {currentSpecId && (
                                     <>
-                                        <button
-                                            className="btn btn-small"
-                                            onClick={() => setShowSaveModal(true)}
-                                        >
+                                        <Button variant="secondary" size="small" onClick={() => setShowSaveModal(true)}>
                                             <Save size={16} /> Guardar Cambios
-                                        </button>
-                                        <button
-                                            className="btn btn-small"
-                                            onClick={() => setShowVersionHistory(true)}
-                                            title="Ver historial de versiones"
-                                        >
+                                        </Button>
+                                        <Button variant="secondary" size="small" onClick={() => setShowVersionHistory(true)}>
                                             <History size={16} /> Historial
-                                        </button>
+                                        </Button>
                                     </>
                                 )}
                             </div>
 
-                            {/* Editable Endpoints List */}
-                            <div className="endpoints-editor">
-                                <h4><Pencil size={16} /> Endpoints ({Object.keys(spec.paths || {}).reduce((acc, path) => acc + Object.keys(spec.paths[path]).length, 0)})</h4>
-                                <div className="endpoints-list">
-                                    {Object.entries(spec.paths || {}).map(([path, methods]) => (
-                                        Object.entries(methods).map(([method, operation]) => {
-                                            if (['parameters', 'servers', 'summary', 'description'].includes(method)) return null;
-                                            const methodColors = {
-                                                get: '#22c55e', post: '#3b82f6', put: '#f59e0b',
-                                                patch: '#8b5cf6', delete: '#ef4444'
-                                            };
-                                            return (
-                                                <div
-                                                    key={`${path}-${method}`}
-                                                    className="endpoint-edit-row"
-                                                    onClick={() => handleEditEndpoint(path, method)}
-                                                >
-                                                    <span
-                                                        className="method-tag"
-                                                        style={{ backgroundColor: methodColors[method] || '#6b7280' }}
-                                                    >
-                                                        {method.toUpperCase()}
-                                                    </span>
-                                                    <span className="endpoint-path">{path}</span>
-                                                    <span className="endpoint-summary">{operation.summary || '-'}</span>
-                                                    <button className="btn-edit" title="Editar endpoint"><Pencil size={14} /></button>
-                                                    <button
-                                                        className="btn-delete"
-                                                        title="Eliminar endpoint"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeleteEndpoint(path, method);
-                                                        }}
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            );
-                                        })
-                                    ))}
-                                </div>
-                            </div>
+                            <EndpointsList
+                                paths={spec.paths || {}}
+                                onEditEndpoint={handleEditEndpoint}
+                                onDeleteEndpoint={handleDeleteEndpoint}
+                            />
 
-                            {/* Swagger Viewer */}
                             <OpenApiViewer key={viewerKey} spec={spec} />
                         </div>
                     )}
 
-                    {/* Spec Editor Modal */}
                     {isEditing && editingEndpoint && (
                         <SpecEditor
                             endpoint={editingEndpoint}
@@ -682,67 +456,61 @@ function ApiTestPage({ embedded = false }) {
                 </div>
             </div>
 
-            {/* Modal para guardar */}
-            {showSaveModal && (
-                <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <h2>{currentSpecId ? 'Actualizar Especificación' : 'Guardar Especificación'}</h2>
-
-                        <div className="form-group">
-                            <label>Nombre *</label>
-                            <input
-                                type="text"
-                                value={specName}
-                                onChange={(e) => setSpecName(e.target.value)}
-                                placeholder="Nombre de la especificación"
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label>Descripción</label>
-                            <textarea
-                                value={specDescription}
-                                onChange={(e) => setSpecDescription(e.target.value)}
-                                placeholder="Descripción opcional"
-                                rows={3}
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label>Proyecto *</label>
-                            <select
-                                value={selectedProjectId}
-                                onChange={(e) => setSelectedProjectId(e.target.value)}
-                                required
-                            >
-                                <option value="">-- Selecciona un proyecto --</option>
-                                {projects.map((project) => (
-                                    <option key={project.id} value={project.id}>
-                                        {project.code} - {project.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="modal-actions">
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => setShowSaveModal(false)}
-                                disabled={saving}
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleSaveSpec}
-                                disabled={saving || !specName.trim() || !selectedProjectId}
-                            >
-                                {saving ? <><Loader size={16} className="spin" /> Guardando...</> : <><Save size={16} /> Guardar</>}
-                            </button>
-                        </div>
-                    </div>
+            {/* Save Modal - Using generic Modal component */}
+            <Modal
+                isOpen={showSaveModal}
+                onClose={() => setShowSaveModal(false)}
+                title={currentSpecId ? 'Actualizar Especificación' : 'Guardar Especificación'}
+                size="medium"
+                actions={
+                    <>
+                        <Button variant="secondary" onClick={() => setShowSaveModal(false)} disabled={saving}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleSaveSpec}
+                            loading={saving}
+                            disabled={!specName.trim() || !selectedProjectId}
+                        >
+                            <Save size={16} /> Guardar
+                        </Button>
+                    </>
+                }
+            >
+                <div className="form-group">
+                    <label>Nombre *</label>
+                    <input
+                        type="text"
+                        value={specName}
+                        onChange={(e) => setSpecName(e.target.value)}
+                        placeholder="Nombre de la especificación"
+                    />
                 </div>
-            )}
+                <div className="form-group">
+                    <label>Descripción</label>
+                    <textarea
+                        value={specDescription}
+                        onChange={(e) => setSpecDescription(e.target.value)}
+                        placeholder="Descripción opcional"
+                        rows={3}
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Proyecto *</label>
+                    <select
+                        value={selectedProjectId}
+                        onChange={(e) => setSelectedProjectId(e.target.value)}
+                    >
+                        <option value="">-- Selecciona un proyecto --</option>
+                        {projects.map((project) => (
+                            <option key={project.id} value={project.id}>
+                                {project.code} - {project.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </Modal>
 
             {/* Version History Modal */}
             {showVersionHistory && currentSpecId && (
