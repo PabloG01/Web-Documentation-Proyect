@@ -169,16 +169,13 @@ function DocumentViewPage() {
                 </div>
 
                 <div className="info-meta">
-                  <div className="meta-item">
-                    <span className="meta-label">Autor:</span>
-                    <span className="meta-value">{document.author}</span>
-                  </div>
-                  {document.username && (
-                    <div className="meta-item">
-                      <span className="meta-label">Creador:</span>
-                      <span className="meta-value">{document.username}</span>
-                    </div>
-                  )}
+                  {/* Author display removed as it is deprecated in favor of Creator (username) */
+                    document.username && (
+                      <div className="meta-item">
+                        <span className="meta-label">Creador:</span>
+                        <span className="meta-value">{document.username}</span>
+                      </div>
+                    )}
                   <div className="meta-item">
                     <span className="meta-label">Creado:</span>
                     <span className="meta-value">{formatDate(document.created_at)}</span>
@@ -220,15 +217,6 @@ function DocumentViewPage() {
               </div>
 
               <div className="edit-row">
-                <div className="edit-section">
-                  <label>Autor</label>
-                  <input
-                    type="text"
-                    value={editedContent.author}
-                    onChange={(e) => handleEditChange('author', e.target.value)}
-                    placeholder="Nombre del autor"
-                  />
-                </div>
                 <div className="edit-section">
                   <label>Versión</label>
                   <input

@@ -1,5 +1,5 @@
 const express = require('express');
-const { pool } = require('../database');
+const { documentsRepository, projectsRepository } = require('../repositories');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/verifyToken');
 const { validateCreateDocument, validateUpdateDocument, validateDocumentId } = require('../middleware/validators');
@@ -172,62 +172,14 @@ const optionalVerifyToken = (req, res, next) => {
 router.get('/', optionalVerifyToken, asyncHandler(async (req, res) => {
     const { project_id, user_only, page = 1, limit = 10 } = req.query;
 
-    // Validate and parse pagination parameters
-    const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10)); // Max 100 items per page
-    const offset = (pageNum - 1) * limitNum;
-
-    let query = `SELECT documents.*, projects.name as project_name, projects.code as project_code, users.username
-                 FROM documents 
-                 LEFT JOIN projects ON documents.project_id = projects.id
-                 LEFT JOIN users ON documents.user_id = users.id
-                 WHERE 1=1`;
-
-    const params = [];
-    let paramIndex = 1;
-
-    // Filter by project
-    if (project_id) {
-        query += ` AND documents.project_id = $${paramIndex}`;
-        params.push(parseInt(project_id));
-        paramIndex++;
-    }
-
-    // Filter by user if requested
-    if (user_only === 'true' && req.user) {
-        query += ` AND documents.user_id = $${paramIndex}`;
-        params.push(req.user.id);
-        paramIndex++;
-    }
-
-    // Count total items
-    const countQuery = query.replace(
-        'SELECT documents.*, projects.name as project_name, projects.code as project_code, users.username',
-        'SELECT COUNT(*)'
-    );
-    const countResult = await pool.query(countQuery, params);
-    const totalItems = parseInt(countResult.rows[0].count);
-
-    // Add pagination
-    query += ` ORDER BY documents.updated_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(limitNum, offset);
-
-    const result = await pool.query(query, params);
-
-    // Calculate pagination info
-    const totalPages = Math.ceil(totalItems / limitNum);
-
-    res.json({
-        data: result.rows,
-        pagination: {
-            currentPage: pageNum,
-            totalPages,
-            totalItems,
-            itemsPerPage: limitNum,
-            hasNextPage: pageNum < totalPages,
-            hasPrevPage: pageNum > 1
-        }
+    const result = await documentsRepository.findAll({
+        projectId: project_id,
+        userId: user_only === 'true' && req.user ? req.user.id : null,
+        page,
+        limit
     });
+
+    res.json(result);
 }));
 
 /**
@@ -262,21 +214,13 @@ router.get('/', optionalVerifyToken, asyncHandler(async (req, res) => {
 router.get('/:id', verifyToken, validateDocumentId, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const result = await pool.query(
-        `SELECT documents.*, projects.name as project_name, projects.code as project_code, users.username
-         FROM documents 
-         LEFT JOIN projects ON documents.project_id = projects.id 
-         LEFT JOIN users ON documents.user_id = users.id 
-         WHERE documents.id = $1`,
-        [id]
-    );
+    const doc = await documentsRepository.findByIdWithDetails(id);
 
-    if (result.rows.length === 0) {
+    if (!doc) {
         throw new AppError('Documento no encontrado', 404);
     }
 
     // Add flag to indicate if current user can edit
-    const doc = result.rows[0];
     doc.can_edit = doc.user_id === req.user.id;
 
     res.json(doc);
@@ -324,18 +268,20 @@ router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandle
     }
 
     // Verify project exists
-    const projectCheck = await pool.query('SELECT id FROM projects WHERE id = $1', [project_id]);
-    if (projectCheck.rows.length === 0) {
+    const projectExists = await projectsRepository.exists(project_id);
+    if (!projectExists) {
         throw new AppError('Proyecto no encontrado', 404);
     }
 
-    const result = await pool.query(
-        `INSERT INTO documents (project_id, user_id, title, content, type) 
-         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [project_id, req.user.id, title, content, type || 'general']
-    );
+    const doc = await documentsRepository.createDocument({
+        projectId: project_id,
+        userId: req.user.id,
+        title,
+        content,
+        type
+    });
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(doc);
 }));
 
 /**
@@ -378,25 +324,26 @@ router.put('/:id', verifyToken, validateDocumentId, validateUpdateDocument, asyn
     const { title, content, doc_type } = req.body;
 
     // Check ownership
-    const check = await pool.query(
-        'SELECT user_id FROM documents WHERE id = $1',
-        [id]
-    );
-    if (check.rows.length === 0) {
+    const isOwner = await documentsRepository.checkOwnership(id, req.user.id);
+    if (isOwner === null) {
         throw new AppError('Documento no encontrado', 404);
     }
-    if (check.rows[0].user_id !== req.user.id) {
+    if (!isOwner) {
         throw new AppError('No autorizado', 403);
     }
 
-    const result = await pool.query(
-        `UPDATE documents 
-         SET title = $1, content = $2, doc_type = $3, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $4 RETURNING *`,
-        [title, content, doc_type, id]
-    );
+    // Prepare update data dynamic object
+    const updateData = {
+        updated_at: new Date()
+    };
 
-    res.json(result.rows[0]);
+    if (title !== undefined) updateData.title = title;
+    if (content !== undefined) updateData.content = content;
+    if (doc_type !== undefined) updateData.type = doc_type;
+
+    const doc = await documentsRepository.update(id, updateData);
+
+    res.json(doc);
 }));
 
 /**
@@ -436,18 +383,15 @@ router.delete('/:id', verifyToken, validateDocumentId, asyncHandler(async (req, 
     const { id } = req.params;
 
     // Check ownership
-    const check = await pool.query(
-        'SELECT user_id FROM documents WHERE id = $1',
-        [id]
-    );
-    if (check.rows.length === 0) {
+    const isOwner = await documentsRepository.checkOwnership(id, req.user.id);
+    if (isOwner === null) {
         throw new AppError('Documento no encontrado', 404);
     }
-    if (check.rows[0].user_id !== req.user.id) {
+    if (!isOwner) {
         throw new AppError('No autorizado', 403);
     }
 
-    await pool.query('DELETE FROM documents WHERE id = $1', [id]);
+    await documentsRepository.delete(id);
 
     res.json({ message: 'Document deleted successfully' });
 }));

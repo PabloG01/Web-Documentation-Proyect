@@ -131,10 +131,8 @@ const validateCreateDocument = [
         .isLength({ min: 1, max: 100000 }).withMessage('El contenido debe tener entre 1 y 100,000 caracteres')
         .notEmpty().withMessage('El contenido es obligatorio'),
 
-    body('author')
-        .optional()
-        .trim()
-        .isLength({ max: 100 }).withMessage('El autor no puede exceder 100 caracteres'),
+    // author validation removed as it is handled by user_id
+
 
     body('version')
         .optional()
@@ -163,10 +161,8 @@ const validateUpdateDocument = [
         .trim()
         .isLength({ min: 1, max: 100000 }).withMessage('El contenido debe tener entre 1 y 100,000 caracteres'),
 
-    body('author')
-        .optional()
-        .trim()
-        .isLength({ min: 1, max: 100 }).withMessage('El autor debe tener entre 1 y 100 caracteres'),
+    // author validation removed as it is handled by user_id
+
 
     body('version')
         .optional()
