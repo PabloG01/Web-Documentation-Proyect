@@ -813,11 +813,31 @@ async function analyzeRepository(repoUrl, branch = 'main') {
             });
         }
 
-        // Calculate overall stats
+        // Calculate overall stats - use actual spec paths for accurate count
+        const filesWithEndpointCounts = parsedFiles.map(f => {
+            // Count actual operations from the parsed spec (more accurate)
+            let actualEndpoints = 0;
+            if (f.parseResult.spec?.paths) {
+                for (const pathItem of Object.values(f.parseResult.spec.paths)) {
+                    for (const method of ['get', 'post', 'put', 'delete', 'patch', 'options', 'head']) {
+                        if (pathItem[method]) actualEndpoints++;
+                    }
+                }
+            }
+            // Fallback to endpoints array length or original count
+            if (actualEndpoints === 0 && f.parseResult.endpoints?.length) {
+                actualEndpoints = f.parseResult.endpoints.length;
+            }
+            if (actualEndpoints === 0) {
+                actualEndpoints = f.endpointsCount || 0;
+            }
+            return { ...f, actualEndpointsCount: actualEndpoints };
+        });
+
         const stats = {
             totalFiles: apiFiles.length,
             filesWithSwagger: apiFiles.filter(f => f.hasSwaggerComments).length,
-            totalEndpoints: apiFiles.reduce((sum, f) => sum + f.endpointsCount, 0),
+            totalEndpoints: filesWithEndpointCounts.reduce((sum, f) => sum + f.actualEndpointsCount, 0),
             averageQuality: parsedFiles.length > 0
                 ? Math.round(parsedFiles.reduce((sum, f) => sum + (f.parseResult.qualityScore || 0), 0) / parsedFiles.length)
                 : 0
@@ -828,10 +848,10 @@ async function analyzeRepository(repoUrl, branch = 'main') {
             repoUrl,
             branch: cloneResult.branch || branch,
             framework: frameworkInfo,
-            files: parsedFiles.map(f => ({
+            files: filesWithEndpointCounts.map(f => ({
                 path: f.path,
                 hasSwaggerComments: f.hasSwaggerComments,
-                endpointsCount: f.endpointsCount,
+                endpointsCount: f.actualEndpointsCount, // Use accurate count
                 qualityScore: f.parseResult.qualityScore,
                 qualityLevel: getQualityLevel(f.parseResult.qualityScore || 0),
                 method: f.parseResult.method,

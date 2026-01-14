@@ -207,6 +207,19 @@ const initializeDatabase = async () => {
           END $$;
       `);
 
+            // Migration: Add source_type and source_code columns to api_specs
+            await pool.query(`
+          DO $$ 
+          BEGIN 
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_specs' AND column_name='source_type') THEN
+                  ALTER TABLE api_specs ADD COLUMN source_type VARCHAR(50) DEFAULT 'json';
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_specs' AND column_name='source_code') THEN
+                  ALTER TABLE api_specs ADD COLUMN source_code TEXT;
+              END IF;
+          END $$;
+      `);
+
             console.log('✅ Database tables initialized successfully');
             return; // Success, exit function
 

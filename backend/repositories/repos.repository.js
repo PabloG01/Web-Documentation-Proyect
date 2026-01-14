@@ -8,20 +8,35 @@ class ReposRepository extends BaseRepository {
 
     /**
      * Find all repositories with optional filters
+     * @param {Object} options - Filter options
+     * @param {number} [options.userId] - Filter by owner (optional, for "my repos" filter)
+     * @param {number} [options.projectId] - Filter by project
      */
     async findAll({ userId, projectId } = {}) {
-        const params = [userId];
+        const params = [];
+        let paramIndex = 1;
         let query = `
             SELECT rc.*, p.name as project_name, p.code as project_code,
+                   u.username as owner_username,
                    (SELECT COUNT(*) FROM repo_files WHERE repo_connection_id = rc.id) as files_count
             FROM repo_connections rc
             LEFT JOIN projects p ON rc.project_id = p.id
-            WHERE rc.user_id = $1
+            LEFT JOIN users u ON rc.user_id = u.id
+            WHERE 1=1
         `;
 
+        // Optional: filter by owner
+        if (userId) {
+            query += ` AND rc.user_id = $${paramIndex}`;
+            params.push(userId);
+            paramIndex++;
+        }
+
+        // Optional: filter by project
         if (projectId) {
-            query += ` AND rc.project_id = $2`;
+            query += ` AND rc.project_id = $${paramIndex}`;
             params.push(projectId);
+            paramIndex++;
         }
 
         query += ' ORDER BY rc.created_at DESC';
@@ -31,15 +46,17 @@ class ReposRepository extends BaseRepository {
     }
 
     /**
-     * Find repository by ID with project details
+     * Find repository by ID with project details (public read)
      */
-    async findByIdWithDetails(id, userId) {
+    async findByIdWithDetails(id) {
         const result = await this.query(
-            `SELECT rc.*, p.name as project_name, p.code as project_code
+            `SELECT rc.*, p.name as project_name, p.code as project_code,
+                    u.username as owner_username
              FROM repo_connections rc
              LEFT JOIN projects p ON rc.project_id = p.id
-             WHERE rc.id = $1 AND rc.user_id = $2`,
-            [id, userId]
+             LEFT JOIN users u ON rc.user_id = u.id
+             WHERE rc.id = $1`,
+            [id]
         );
         return result.rows[0] || null;
     }

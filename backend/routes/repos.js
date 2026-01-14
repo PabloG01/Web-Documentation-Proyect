@@ -224,10 +224,11 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
  *         description: Lista de repositorios
  */
 router.get('/', verifyToken, asyncHandler(async (req, res) => {
-    const { project_id } = req.query;
+    const { project_id, mine } = req.query;
 
     const result = await reposRepository.findAll({
-        userId: req.user.id,
+        // Solo filtrar por userId si mine=true
+        userId: mine === 'true' ? req.user.id : undefined,
         projectId: project_id
     });
     res.json(result);
@@ -244,7 +245,8 @@ router.get('/', verifyToken, asyncHandler(async (req, res) => {
 router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const repo = await reposRepository.findByIdWithDetails(id, req.user.id);
+    // Lectura pública - cualquier usuario autenticado puede ver
+    const repo = await reposRepository.findByIdWithDetails(id);
 
     if (!repo) {
         throw new AppError('Repositorio no encontrado', 404);

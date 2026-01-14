@@ -113,7 +113,8 @@ class BaseRepository {
             [id]
         );
         if (result.rows.length === 0) return null; // record not found
-        return result.rows[0].user_id === userId;
+        // Use parseInt to ensure consistent numeric comparison
+        return parseInt(result.rows[0].user_id) === parseInt(userId);
     }
 }
 
