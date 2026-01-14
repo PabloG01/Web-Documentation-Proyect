@@ -1,37 +1,10 @@
 const express = require('express');
 const axios = require('axios');
-const crypto = require('crypto');
-const { pool } = require('../database');
+const { usersRepository, reposRepository } = require('../repositories');
+const { encryptToken, decryptToken } = require('../utils/encryption');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/verifyToken');
 const router = express.Router();
-
-// Simple encryption for tokens
-const ENCRYPTION_KEY = process.env.JWT_SECRET || 'default-key-change-this';
-
-function encryptToken(token) {
-    const iv = crypto.randomBytes(16);
-    const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    let encrypted = cipher.update(token, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
-}
-
-function decryptToken(encryptedToken) {
-    try {
-        const [ivHex, encrypted] = encryptedToken.split(':');
-        const iv = Buffer.from(ivHex, 'hex');
-        const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
-        const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        return decrypted;
-    } catch (err) {
-        console.error('Token decryption error:', err.message);
-        return null;
-    }
-}
 
 /**
  * @swagger
@@ -48,11 +21,7 @@ function decryptToken(encryptedToken) {
  *     tags: [GitHub]
  */
 router.get('/auth/github/setup', verifyToken, asyncHandler(async (req, res) => {
-    const result = await pool.query(
-        'SELECT github_client_id, github_callback_url FROM users WHERE id = $1',
-        [req.user.id]
-    );
-    const user = result.rows[0];
+    const user = await usersRepository.getGithubCredentials(req.user.id);
     res.json({
         configured: !!user?.github_client_id,
         clientId: user?.github_client_id ? '***configurado***' : null,
@@ -77,12 +46,12 @@ router.post('/auth/github/setup', verifyToken, asyncHandler(async (req, res) => 
     // Encrypt the client_secret
     const encryptedSecret = encryptToken(client_secret);
 
-    await pool.query(
-        `UPDATE users 
-         SET github_client_id = $1, github_client_secret = $2, github_callback_url = $3
-         WHERE id = $4`,
-        [client_id, encryptedSecret, callback_url, req.user.id]
-    );
+    // Update via generic update or specific method. Using generic update here.
+    await usersRepository.update(req.user.id, {
+        github_client_id: client_id,
+        github_client_secret: encryptedSecret,
+        github_callback_url: callback_url
+    });
 
     res.json({ success: true, message: 'Credenciales de GitHub guardadas' });
 }));
@@ -94,14 +63,12 @@ router.post('/auth/github/setup', verifyToken, asyncHandler(async (req, res) => 
  *     summary: Initiate GitHub OAuth flow (uses per-user credentials)
  *     tags: [GitHub]
  */
+// Initiate GitHub OAuth flow
 router.get('/auth/github', verifyToken, asyncHandler(async (req, res) => {
     // Get user's OAuth credentials
-    const result = await pool.query(
-        'SELECT github_client_id, github_callback_url FROM users WHERE id = $1',
-        [req.user.id]
-    );
+    const user = await usersRepository.getGithubCredentials(req.user.id);
 
-    const user = result.rows[0];
+
     if (!user?.github_client_id || !user?.github_callback_url) {
         throw new AppError('GitHub OAuth no configurado. Configura tus credenciales primero.', 400);
     }
@@ -146,12 +113,10 @@ router.get('/auth/github/callback', asyncHandler(async (req, res) => {
         }
 
         // Get user's OAuth credentials
-        const userResult = await pool.query(
-            'SELECT github_client_id, github_client_secret, github_callback_url FROM users WHERE id = $1',
-            [userId]
-        );
+        // Get user's OAuth credentials
+        const user = await usersRepository.getGithubCredentials(userId);
 
-        const user = userResult.rows[0];
+
         if (!user?.github_client_id || !user?.github_client_secret) {
             return res.redirect(`${frontendUrl}/workspace?section=repos&github_error=not_configured`);
         }
@@ -186,12 +151,12 @@ router.get('/auth/github/callback', asyncHandler(async (req, res) => {
         const githubUser = userResponse.data;
         const encryptedToken = encryptToken(access_token);
 
-        await pool.query(
-            `UPDATE users 
-             SET github_id = $1, github_username = $2, github_token = $3, github_connected_at = CURRENT_TIMESTAMP
-             WHERE id = $4`,
-            [githubUser.id.toString(), githubUser.login, encryptedToken, userId]
-        );
+        await usersRepository.update(userId, {
+            github_id: githubUser.id.toString(),
+            github_username: githubUser.login,
+            github_token: encryptedToken,
+            github_connected_at: new Date()
+        });
 
         res.redirect(`${frontendUrl}/workspace?section=repos&github_connected=true`);
 
@@ -214,16 +179,11 @@ router.get('/auth/github/callback', asyncHandler(async (req, res) => {
  *         description: GitHub connection status
  */
 router.get('/github/status', verifyToken, asyncHandler(async (req, res) => {
-    const result = await pool.query(
-        'SELECT github_id, github_username, github_connected_at FROM users WHERE id = $1',
-        [req.user.id]
-    );
+    const user = await usersRepository.getGithubConnection(req.user.id);
 
-    if (result.rows.length === 0) {
+    if (!user) {
         throw new AppError('Usuario no encontrado', 404);
     }
-
-    const user = result.rows[0];
 
     res.json({
         connected: !!user.github_id,
@@ -245,12 +205,12 @@ router.get('/github/status', verifyToken, asyncHandler(async (req, res) => {
  *         description: GitHub account disconnected
  */
 router.post('/github/disconnect', verifyToken, asyncHandler(async (req, res) => {
-    await pool.query(
-        `UPDATE users 
-         SET github_id = NULL, github_username = NULL, github_token = NULL, github_connected_at = NULL
-         WHERE id = $1`,
-        [req.user.id]
-    );
+    await usersRepository.update(req.user.id, {
+        github_id: null,
+        github_username: null,
+        github_token: null,
+        github_connected_at: null
+    });
 
     res.json({ success: true, message: 'Cuenta de GitHub desconectada' });
 }));
@@ -288,16 +248,13 @@ router.get('/repos', verifyToken, asyncHandler(async (req, res) => {
     const { page = 1, per_page = 30, visibility = 'all' } = req.query;
 
     // Get user's GitHub token
-    const userResult = await pool.query(
-        'SELECT github_token FROM users WHERE id = $1',
-        [req.user.id]
-    );
+    const user = await usersRepository.getGithubConnection(req.user.id);
 
-    if (!userResult.rows[0]?.github_token) {
+    if (!user?.github_token) {
         throw new AppError('GitHub no conectado. Conecta tu cuenta primero.', 401);
     }
 
-    const token = decryptToken(userResult.rows[0].github_token);
+    const token = decryptToken(user.github_token);
     if (!token) {
         throw new AppError('Error al acceder a GitHub. Reconecta tu cuenta.', 401);
     }
@@ -349,10 +306,10 @@ router.get('/repos', verifyToken, asyncHandler(async (req, res) => {
 
         if (err.response?.status === 401) {
             // Token expired or revoked
-            await pool.query(
-                'UPDATE users SET github_token = NULL, github_connected_at = NULL WHERE id = $1',
-                [req.user.id]
-            );
+            await usersRepository.update(req.user.id, {
+                github_token: null,
+                github_connected_at: null
+            });
             throw new AppError('Token de GitHub expirado. Reconecta tu cuenta.', 401);
         }
 
@@ -406,12 +363,9 @@ router.post('/repos/:owner/:repo/analyze', verifyToken, asyncHandler(async (req,
     }
 
     // Get user's GitHub token
-    const userResult = await pool.query(
-        'SELECT github_token FROM users WHERE id = $1',
-        [req.user.id]
-    );
+    const user = await usersRepository.getGithubConnection(req.user.id);
 
-    const encryptedToken = userResult.rows[0]?.github_token;
+    const encryptedToken = user?.github_token;
     let token = null;
 
     if (encryptedToken) {
@@ -433,42 +387,22 @@ router.post('/repos/:owner/:repo/analyze', verifyToken, asyncHandler(async (req,
     }
 
     // Save repo connection to database
-    const repoResult = await pool.query(
-        `INSERT INTO repo_connections 
-         (project_id, user_id, repo_url, repo_name, branch, detected_framework, status, last_sync)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
-         RETURNING *`,
-        [
-            project_id,
-            req.user.id,
-            `https://github.com/${owner}/${repo}`, // Store public URL, not with token
-            `${owner}/${repo}`,
-            analysisResult.branch || branch,
-            analysisResult.framework?.primary || null,
-            'analyzed'
-        ]
-    );
+    // Save repo connection to database
+    const repoConnection = await reposRepository.createRepo({
+        projectId: project_id,
+        userId: req.user.id,
+        repoUrl: `https://github.com/${owner}/${repo}`,
+        repoName: `${owner}/${repo}`,
+        branch: analysisResult.branch || branch,
+        detectedFramework: analysisResult.framework?.primary || null,
+        authTokenEncrypted: null,
+        isPrivate: false
+    });
 
-    const repoConnection = repoResult.rows[0];
+
 
     // Save detected files
-    for (const file of analysisResult.files) {
-        await pool.query(
-            `INSERT INTO repo_files 
-             (repo_connection_id, file_path, file_type, has_swagger_comments, 
-              endpoints_count, quality_score, parsed_content, last_parsed)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
-            [
-                repoConnection.id,
-                file.path,
-                file.method || 'unknown',
-                file.hasSwaggerComments,
-                file.endpointsCount,
-                file.qualityScore || 0,
-                file.spec ? JSON.stringify(file.spec) : null
-            ]
-        );
-    }
+    await reposRepository.addFiles(repoConnection.id, analysisResult.files);
 
     res.json({
         success: true,
