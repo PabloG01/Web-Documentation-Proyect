@@ -59,11 +59,13 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 ### 🔗 **Análisis de Repositorios Git**
 - Conexión a repositorios GitHub, GitLab y Bitbucket
 - **Detección automática de frameworks** (Express, NestJS, Laravel, Symfony, FastAPI, Flask, Next.js, Fastify, Koa, Hapi)
-- **Parsers especializados por framework**
+- **Parsers especializados por framework** (AST, Express, Laravel, Symfony, Next.js, Node.js genérico)
 - Extracción automática de endpoints y rutas
 - Generación de especificaciones OpenAPI desde código
 - Soporte para repositorios privados con tokens de acceso
 - Re-sincronización de repositorios
+- **Acceso compartido**: todos los usuarios pueden ver repos y specs de otros usuarios
+- **Conteo preciso de endpoints** basado en el spec generado
 
 ### 🏠 **Workspace Unificado**
 - Dashboard centralizado con navegación por secciones
@@ -89,6 +91,8 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 - **Helmet** - Seguridad HTTP headers
 - **Express Rate Limit** - Protección contra abuso
 - **Express Validator** - Validación de datos
+- **Simple Git** - Clonación y análisis de repositorios
+- **@babel/parser** - Análisis AST para extracción de endpoints
 
 ### Frontend
 - **React 19** - Biblioteca UI
@@ -211,6 +215,23 @@ Web-Documentation-Proyect/
 │   │   ├── rateLimiter.js          # Rate limiting por IP
 │   │   └── validators.js           # Validaciones con express-validator
 │   ├── database.js                 # Conexión PostgreSQL + inicialización
+│   ├── repositories/               # Patrón Repository para acceso a datos
+│   │   ├── base.repository.js      # Clase base con operaciones CRUD
+│   │   ├── users.repository.js     # Repositorio de usuarios
+│   │   ├── projects.repository.js  # Repositorio de proyectos
+│   │   ├── documents.repository.js # Repositorio de documentos
+│   │   ├── api-specs.repository.js # Repositorio de especificaciones API
+│   │   └── repos.repository.js     # Repositorio de conexiones a repos Git
+│   ├── services/
+│   │   ├── repo-analyzer.js        # Analizador principal de repositorios
+│   │   ├── swagger-parser.js       # Parser de comentarios Swagger
+│   │   └── parsers/                # Parsers especializados por framework
+│   │       ├── ast-parser.js       # Parser AST con Babel
+│   │       ├── express-parser.js   # Parser específico Express
+│   │       ├── laravel-parser.js   # Parser específico Laravel
+│   │       ├── symfony-parser.js   # Parser específico Symfony
+│   │       ├── nextjs-parser.js    # Parser específico Next.js
+│   │       └── nodejs-parser.js    # Parser genérico Node.js
 │   ├── server.js                   # Configuración Express + Swagger
 │   ├── Dockerfile                  # Imagen Docker backend
 │   ├── package.json
@@ -316,8 +337,58 @@ CREATE TABLE api_specs (
     name VARCHAR(150) NOT NULL,
     description TEXT,
     spec_content JSONB NOT NULL,
+    source_type VARCHAR(50) DEFAULT 'json',
+    source_code TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Tabla: `repo_connections`
+```sql
+CREATE TABLE repo_connections (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    repo_url VARCHAR(500) NOT NULL,
+    repo_name VARCHAR(200),
+    branch VARCHAR(100) DEFAULT 'main',
+    detected_framework VARCHAR(50),
+    auth_token_encrypted TEXT,
+    is_private BOOLEAN DEFAULT FALSE,
+    last_sync TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Tabla: `repo_files`
+```sql
+CREATE TABLE repo_files (
+    id SERIAL PRIMARY KEY,
+    repo_connection_id INTEGER REFERENCES repo_connections(id) ON DELETE CASCADE,
+    file_path VARCHAR(500) NOT NULL,
+    file_type VARCHAR(50),
+    has_swagger_comments BOOLEAN DEFAULT FALSE,
+    endpoints_count INTEGER DEFAULT 0,
+    quality_score INTEGER DEFAULT 0,
+    api_spec_id INTEGER REFERENCES api_specs(id) ON DELETE SET NULL,
+    parsed_content JSONB,
+    last_parsed TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Tabla: `api_spec_versions`
+```sql
+CREATE TABLE api_spec_versions (
+    id SERIAL PRIMARY KEY,
+    api_spec_id INTEGER REFERENCES api_specs(id) ON DELETE CASCADE,
+    version_number INTEGER NOT NULL,
+    spec_content JSONB NOT NULL,
+    change_summary VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(api_spec_id, version_number)
 );
 ```
 
@@ -556,28 +627,7 @@ docker-compose up --build
 ### Error de permisos en PostgreSQL
 **Verificar**: Credenciales en `docker-compose.yml` y variables de entorno del backend
 
-## 📝 Variables de Entorno
-
-### Backend (`.env`)
-```bash
-# Database
-DB_USER=postgres
-DB_PASSWORD=usu2020
-DB_DATABASE=docapp_db
-DB_HOST=localhost  # o "db" en Docker
-DB_PORT=5432
-
-# Server
-PORT=5000
-
-# Security
-JWT_SECRET=tu_clave_secreta_super_segura_aqui
-```
-
-### Frontend
-El frontend usa `window.location.hostname` dinámicamente para conectarse al backend, facilitando el despliegue en diferentes entornos.
-
-## 📄 Licencia
+## Licencia
 
 Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 
