@@ -49,12 +49,12 @@ services:
     ports:
       - "0.0.0.0:3000:3000"
     environment:
-      # Optimizaciones de memoria para desarrollo
-      - WATCHPACK_POLLING=true
-      - CHOKIDAR_USEPOLLING=true
-      - NODE_OPTIONS=--max_old_space_size=512
-      - GENERATE_SOURCEMAP=false
-      - FAST_REFRESH=false
+      # Optimizaciones de memoria
+      - CI=true
+      - NODE_ENV=development
+      - NODE_OPTIONS=--max_old_space_size=2048
+    env_file:
+      - ./frontend/.env
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -64,9 +64,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 2G
         reservations:
-          memory: 512M
+          memory: 1G
     depends_on:
       - backend
 

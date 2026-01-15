@@ -10,6 +10,7 @@ import ProjectsPage from './ProjectsPage';
 import DocumentsListPage from './DocumentsListPage';
 import ApiTestPage from './ApiTestPage';
 import ReposPage from './ReposPage';
+import ApiTesterPage from './ApiTesterPage';
 
 function WorkspacePage() {
     const { user } = useContext(AuthContext);
@@ -83,6 +84,13 @@ function WorkspacePage() {
             description: 'Specs OpenAPI guardadas'
         },
         {
+            id: 'api-tester',
+            icon: <span style={{ fontSize: '18px' }}>🧪</span>,
+            label: 'API Tester',
+            count: stats.apis,
+            description: 'Prueba APIs en vivo'
+        },
+        {
             id: 'repos',
             icon: <FolderOpen size={20} />,
             label: 'Repositorios',
@@ -99,6 +107,8 @@ function WorkspacePage() {
                 return <DocumentsListPage embedded />;
             case 'apis':
                 return <ApiTestPage embedded />;
+            case 'api-tester':
+                return <ApiTesterPage embedded />;
             case 'repos':
                 return <ReposPage embedded />;
             default:

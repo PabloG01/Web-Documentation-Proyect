@@ -135,6 +135,7 @@ function AppContent() {
           <Route path="/proyectos" element={<Navigate to="/workspace?section=projects" replace />} />
           <Route path="/mis-documentos" element={<Navigate to="/workspace?section=documents" replace />} />
           <Route path="/api-test" element={<Navigate to="/workspace?section=apis" replace />} />
+          <Route path="/api-tester" element={<Navigate to="/workspace?section=api-tester" replace />} />
           <Route path="/repos" element={<Navigate to="/workspace?section=repos" replace />} />
         </Routes>
       </main>

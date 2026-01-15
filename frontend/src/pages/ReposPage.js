@@ -150,9 +150,8 @@ function ReposPage({ embedded = false }) {
         if (!previewFile || !selectedRepo) return;
 
         try {
-            // Generate spec with edited endpoints
+            // Generate spec with edited endpoints (let backend handle naming)
             await reposAPI.generateSpec(selectedRepo.id, previewFile.id, {
-                name: `API - ${previewFile.file_path}`,
                 description: `Generado desde repositorio`,
                 editedEndpoints: editedEndpoints
             });
@@ -172,8 +171,8 @@ function ReposPage({ embedded = false }) {
 
     const handleGenerateSpec = async (repoId, fileId, filePath) => {
         try {
+            // Let backend generate the name using project code and repo info
             await reposAPI.generateSpec(repoId, fileId, {
-                name: `API - ${filePath}`,
                 description: `Generado desde repositorio`
             });
             alert('✅ Especificación API generada correctamente');

@@ -321,12 +321,23 @@ router.post('/:id/files/:fileId/generate-spec', verifyToken, asyncHandler(async 
         throw new AppError('El archivo no tiene contenido parseado', 400);
     }
 
+    // Get project code for compact spec naming
+    const project = await projectsRepository.findById(repo.project_id);
+    const projectCode = project?.code || 'PROJ';
+
+    // Extract filename without extension
+    const fileName = file.file_path.split('/').pop().replace(/\.[^/.]+$/, '');
+
+    // Generate compact name: [CODE] repo/file
+    const defaultName = `[${projectCode}] ${repo.repo_name.split('/').pop()}/${fileName}`;
+    const defaultDescription = `API generada desde ${repo.repo_name}/${file.file_path}${file.has_swagger_comments ? ' (Swagger)' : ' (Inferida)'}`;
+
     // Create API spec from parsed content
     const newSpec = await apiSpecsRepository.createSpec({
         projectId: repo.project_id,
         userId: req.user.id,
-        name: name || `API - ${file.file_path}`,
-        description: description || `Generado desde ${repo.repo_name}/${file.file_path}`,
+        name: name || defaultName,
+        description: description || defaultDescription,
         specContent: file.parsed_content,
         sourceType: file.has_swagger_comments ? 'swagger-comments' : 'inferred'
     });
