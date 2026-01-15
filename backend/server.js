@@ -71,7 +71,10 @@ app.use('/bitbucket', bitbucketAuthRoutes);
 // Error handling middleware (MUST be after all routes)
 app.use(errorHandler);
 
-// Initialize database and start server
+// Export app for testing
+module.exports = app;
+
+// Initialize database and start server (only if not in test mode)
 const startServer = async () => {
     try {
         // Database init - wait for it to complete
@@ -88,4 +91,7 @@ const startServer = async () => {
     }
 };
 
-startServer();
+// Only start the server if this file is run directly
+if (require.main === module) {
+    startServer();
+}

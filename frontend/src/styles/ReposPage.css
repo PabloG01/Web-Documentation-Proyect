@@ -380,6 +380,29 @@
     font-size: 0.75rem;
 }
 
+.analyzer-badge {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid #e2e8f0;
+}
+
+.analyzer-badge.ai-enhanced {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    color: #5b21b6;
+    border-color: #ddd6fe;
+    font-weight: 500;
+}
+
+.analyzer-badge.ai-enhanced svg {
+    color: #7c3aed;
+}
+
 .endpoints-count {
     font-size: 0.75rem;
     color: var(--text-secondary, #64748b);

@@ -5,15 +5,15 @@ services:
     container_name: docapp-db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: usu2020
-      POSTGRES_DB: docapp_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -26,14 +26,14 @@ services:
     ports:
       - "0.0.0.0:5000:5000"
     environment:
-      # Estas variables deben coincidir con database.js
-      DB_USER: postgres
-      DB_PASSWORD: usu2020
-      DB_DATABASE: docapp_db
-      DB_HOST: db
-      DB_PORT: 5432
-      PORT: 5000
-      JWT_SECRET: supersecretkey
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      PORT: ${PORT:-5000}
+      JWT_SECRET: ${JWT_SECRET}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     volumes:
       - ./backend:/app
       - /app/node_modules

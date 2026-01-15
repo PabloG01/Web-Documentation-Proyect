@@ -62,6 +62,7 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 - **Parsers especializados por framework** (AST, Express, Laravel, Symfony, Next.js, Node.js genérico)
 - Extracción automática de endpoints y rutas
 - Generación de especificaciones OpenAPI desde código
+- **Mejora con IA (Gemini)**: Generación inteligente de ejemplos y descripciones
 - Soporte para repositorios privados con tokens de acceso
 - Re-sincronización de repositorios
 - **Acceso compartido**: todos los usuarios pueden ver repos y specs de otros usuarios

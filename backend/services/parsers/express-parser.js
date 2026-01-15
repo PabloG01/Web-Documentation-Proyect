@@ -3,6 +3,11 @@
  * Deep analysis of Express routes using regex and pattern matching
  */
 
+const {
+    generateEndpointExamples,
+    generateExampleValue
+} = require('./example-generator');
+
 /**
  * Parse Express.js file for API endpoints
  * @param {string} content - File content
@@ -376,6 +381,27 @@ function generateOpenApiSpec(parseResult, fileName) {
             paths[pathKey] = {};
         }
 
+        // Extract request body fields for example generation
+        const requestFields = [];
+        if (endpoint.requestBody?.content?.['application/json']?.schema?.properties) {
+            const props = endpoint.requestBody.content['application/json'].schema.properties;
+            for (const [name, schema] of Object.entries(props)) {
+                requestFields.push({ name, type: schema.type || 'string' });
+            }
+        }
+
+        // Get detected status codes for error examples
+        const detectedStatusCodes = endpoint.responses.map(r => r.code);
+
+        // Generate examples for this endpoint
+        const examples = generateEndpointExamples(
+            endpoint.method,
+            endpoint.path,
+            requestFields,
+            requestFields, // Use same fields for response
+            detectedStatusCodes
+        );
+
         const operation = {
             summary: endpoint.summary,
             description: endpoint.description || `Endpoint: ${endpoint.method} ${endpoint.path}`,
@@ -389,21 +415,50 @@ function generateOpenApiSpec(parseResult, fileName) {
             operation.security = [{ cookieAuth: [] }];
         }
 
-        // Add request body
+        // Add request body with example
         if (endpoint.requestBody) {
-            operation.requestBody = endpoint.requestBody;
-        }
-
-        // Add responses
-        for (const response of endpoint.responses) {
-            operation.responses[response.code] = {
-                description: response.description,
+            operation.requestBody = {
+                ...endpoint.requestBody,
                 content: {
                     'application/json': {
-                        schema: { type: 'object' }
+                        ...endpoint.requestBody.content?.['application/json'],
+                        example: examples.request
                     }
                 }
             };
+        }
+
+        // Add responses with examples
+        // Success response
+        const successCode = endpoint.method === 'POST' ? '201' : '200';
+        operation.responses[successCode] = {
+            description: endpoint.method === 'POST' ? 'Recurso creado exitosamente' : 'Operación exitosa',
+            content: {
+                'application/json': {
+                    schema: { type: 'object' },
+                    example: examples.responses[successCode]
+                }
+            }
+        };
+
+        // Error responses from examples
+        for (const [code, exampleData] of Object.entries(examples.responses)) {
+            if (code !== successCode && code !== '201' && code !== '200') {
+                operation.responses[code] = {
+                    description: getStatusDescription(code),
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    error: { type: 'string' }
+                                }
+                            },
+                            example: exampleData
+                        }
+                    }
+                };
+            }
         }
 
         paths[pathKey][endpoint.method.toLowerCase()] = operation;

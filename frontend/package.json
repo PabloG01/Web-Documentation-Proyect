@@ -40,6 +40,9 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "ajv": "^8.12.0",
     "assert": "^2.1.0",
     "browserify-zlib": "^0.2.0",

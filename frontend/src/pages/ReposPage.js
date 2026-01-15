@@ -482,6 +482,11 @@ function ReposPage({ embedded = false }) {
                                                 {file.has_swagger_comments && (
                                                     <span className="swagger-badge"><Pencil size={12} /> Swagger</span>
                                                 )}
+                                                {file.file_type && file.file_type !== 'unknown' && (
+                                                    <span className={`analyzer-badge ${file.file_type.includes('+AI') ? 'ai-enhanced' : ''}`}>
+                                                        {file.file_type.includes('+AI') ? <Zap size={10} /> : <Code size={10} />} {file.file_type}
+                                                    </span>
+                                                )}
                                                 <span className="endpoints-count">{file.endpoints_count} endpoints</span>
                                                 <ScoreBreakdown
                                                     score={file.quality_score}

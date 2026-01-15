@@ -3,6 +3,11 @@
  * Analyzes vanilla Node.js HTTP servers, Fastify, Koa, and other patterns
  */
 
+const {
+    generateEndpointExamples,
+    generateExampleValue
+} = require('./example-generator');
+
 /**
  * Parse Node.js file for API endpoints
  * @param {string} content - File content
@@ -566,6 +571,28 @@ function generateOpenApiSpec(parseResult, fileName) {
             paths[pathKey] = {};
         }
 
+        // Extract request body fields for example generation
+        const requestFields = [];
+        if (endpoint.requestBody?.content?.['application/json']?.schema?.properties) {
+            const props = endpoint.requestBody.content['application/json'].schema.properties;
+            for (const [name, schema] of Object.entries(props)) {
+                requestFields.push({ name, type: schema.type || 'string' });
+            }
+        }
+
+        // Get detected status codes
+        const responses = endpoint.responses || [{ code: '200', description: 'Successful response' }];
+        const detectedStatusCodes = responses.map(r => r.code);
+
+        // Generate examples for this endpoint
+        const examples = generateEndpointExamples(
+            endpoint.method,
+            endpoint.path,
+            requestFields,
+            requestFields,
+            detectedStatusCodes
+        );
+
         const operation = {
             summary: endpoint.summary,
             description: `Server type: ${parseResult.serverType}`,
@@ -578,20 +605,49 @@ function generateOpenApiSpec(parseResult, fileName) {
             operation.security = [{ bearerAuth: [] }];
         }
 
+        // Add request body with example
         if (endpoint.requestBody) {
-            operation.requestBody = endpoint.requestBody;
-        }
-
-        const responses = endpoint.responses || [{ code: '200', description: 'Successful response' }];
-        for (const response of responses) {
-            operation.responses[response.code] = {
-                description: response.description,
+            operation.requestBody = {
+                ...endpoint.requestBody,
                 content: {
                     'application/json': {
-                        schema: { type: 'object' }
+                        ...endpoint.requestBody.content?.['application/json'],
+                        example: examples.request
                     }
                 }
             };
+        }
+
+        // Add success response with example
+        const successCode = endpoint.method === 'POST' ? '201' : '200';
+        operation.responses[successCode] = {
+            description: endpoint.method === 'POST' ? 'Recurso creado exitosamente' : 'Operación exitosa',
+            content: {
+                'application/json': {
+                    schema: { type: 'object' },
+                    example: examples.responses[successCode]
+                }
+            }
+        };
+
+        // Add error responses with examples
+        for (const [code, exampleData] of Object.entries(examples.responses)) {
+            if (code !== successCode && code !== '201' && code !== '200') {
+                operation.responses[code] = {
+                    description: getStatusDescription(code),
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    error: { type: 'string' }
+                                }
+                            },
+                            example: exampleData
+                        }
+                    }
+                };
+            }
         }
 
         paths[pathKey][endpoint.method.toLowerCase()] = operation;

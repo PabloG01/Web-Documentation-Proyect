@@ -17,6 +17,9 @@ const nextjsParser = require('./parsers/nextjs-parser');
 const nodejsParser = require('./parsers/nodejs-parser');
 const astParser = require('./parsers/ast-parser');
 
+// AI Enhancement service (optional)
+const geminiService = require('./gemini-service');
+
 // Supported file extensions by framework type
 const FILE_PATTERNS = {
     node: ['.js', '.ts', '.mjs'],
@@ -377,16 +380,195 @@ function analyzeFileContent(content, framework = null) {
 }
 
 /**
+ * Get global project context
+ */
+async function getProjectContext(repoPath, framework) {
+    const context = {
+        name: path.basename(repoPath),
+        framework: framework || 'Unknown',
+        dependencies: [],
+        structure: 'Standard'
+    };
+
+    try {
+        // Read package.json if it exists
+        const packageJsonPath = path.join(repoPath, 'package.json');
+        try {
+            const content = await fs.readFile(packageJsonPath, 'utf8');
+            const pkg = JSON.parse(content);
+            context.name = pkg.name || context.name;
+            context.dependencies = Object.keys(pkg.dependencies || {}).slice(0, 15);
+        } catch (e) {
+            // No package.json
+        }
+
+        // List key directories to understand structure
+        const entries = await fs.readdir(repoPath, { withFileTypes: true });
+        const dirs = entries.filter(e => e.isDirectory()).map(e => e.name);
+        context.structure = dirs.join(', ');
+
+    } catch (error) {
+        console.error('Error getting project context:', error.message);
+    }
+
+    return context;
+}
+
+/**
+ * Find related models for an API file to provide better context
+ */
+async function findRelatedModels(repoPath, framework, apiFilePath, imports = []) {
+    const models = [];
+    const modelDirs = ['models', 'entities', 'schemas', 'src/models', 'app/Models', 'app/Entities'];
+
+    try {
+        // Extract potential model names from imports (e.g. '../models/User' -> 'User')
+        const importedNames = imports.map(imp => {
+            const parts = imp.split('/');
+            return parts[parts.length - 1].replace(/\.(js|ts|php)$/, '');
+        });
+
+        for (const dir of modelDirs) {
+            const fullDir = path.join(repoPath, dir);
+            try {
+                await fs.access(fullDir);
+                const files = await fs.readdir(fullDir);
+                for (const file of files) {
+                    const fileNameNoExt = file.replace(/\.(js|ts|php)$/, '');
+
+                    // Prioritize if it matches an import
+                    const isImported = importedNames.some(name =>
+                        name.toLowerCase() === fileNameNoExt.toLowerCase()
+                    );
+
+                    if (isImported || (models.length < 5)) { // Always add imported, fallback to first 5
+                        const content = await fs.readFile(path.join(fullDir, file), 'utf8');
+
+                        // Avoid duplicates
+                        if (!models.find(m => m.name === file)) {
+                            models.push({
+                                name: file,
+                                content: content.substring(0, 3000), // Increased to 3KB for more complex models
+                                prioritized: isImported
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                // Directory doesn't exist
+            }
+        }
+    } catch (error) {
+        console.error('Error finding models:', error.message);
+    }
+
+    // Sort to put prioritized models first
+    return models.sort((a, b) => (b.prioritized ? 1 : 0) - (a.prioritized ? 1 : 0)).slice(0, 8);
+}
+
+/**
  * Parse a file and extract/generate OpenAPI spec
  */
-async function parseFile(filePath, framework = null) {
+async function parseFile(filePath, framework = null, repoPath = null, globalContext = null) {
     try {
         const content = await fs.readFile(filePath, 'utf8');
         const fileName = path.basename(filePath);
 
+        // Detect imports for finding related models
+        const importMatches = content.matchAll(/(?:require|import|use)\s*[\(\{]?\s*['"`]([^'"`]+)['"`]/g);
+        const fileImports = Array.from(importMatches).map(m => m[1]);
+
         const analysis = analyzeFileContent(content, framework);
 
-        // If file has Swagger comments, use the existing parser
+        // Enhance context with related models if repoPath is provided
+        let extendedContext = '';
+        if (repoPath) {
+            const relatedModels = await findRelatedModels(repoPath, framework, filePath, fileImports);
+            if (relatedModels.length > 0) {
+                extendedContext = "\nESTRUCTURAS DE DATOS/MODELOS DETECTADOS EN EL PROYECTO:\n";
+                relatedModels.forEach(m => {
+                    extendedContext += `\n--- Model: ${m.name} ${m.prioritized ? '(Importado en este archivo)' : ''} ---\n${m.content}\n`;
+                });
+            }
+        }
+
+        // PRIORITY 1: Use framework-specific parser with AI enhancement (if available)
+        if (framework && analysis.isApiFile) {
+            try {
+                const frameworkSpec = await parseWithFrameworkParser(content, filePath, framework);
+                if (frameworkSpec && frameworkSpec.success) {
+                    // Enhance with AI if available (with rich context)
+                    if (geminiService.isGeminiAvailable()) {
+                        try {
+                            // Inject related models context into endpoints for the AI
+                            const endpointsWithContext = frameworkSpec.endpoints.map(e => ({
+                                ...e,
+                                context: (e.context || content) + extendedContext
+                            }));
+
+                            const enhanced = await geminiService.enhanceSpecWithAI(
+                                frameworkSpec.spec,
+                                { endpoints: endpointsWithContext },
+                                globalContext
+                            );
+                            return {
+                                ...frameworkSpec,
+                                method: `${frameworkSpec.method}+AI`,
+                                spec: enhanced,
+                                aiEnhanced: true
+                            };
+                        } catch (aiErr) {
+                            console.error('AI Enhancement failed:', aiErr.message);
+                        }
+                    }
+                    return frameworkSpec;
+                }
+            } catch (err) {
+                console.error(`Error with ${framework} parser:`, err);
+            }
+        }
+
+        // PRIORITY 2: Generate spec from detected endpoints with AI enhancement (if available)
+        if (analysis.endpoints.length > 0) {
+            const inferredSpec = generateInferredSpec(analysis.endpoints, fileName);
+
+            // Enhance with AI if available
+            let finalSpec = inferredSpec;
+            let aiEnhanced = false;
+            if (geminiService.isGeminiAvailable()) {
+                try {
+                    const gemini = require('./gemini-service');
+                    // Add extended context to endpoints for AI
+                    const endpointsWithContext = analysis.endpoints.map(e => ({
+                        ...e,
+                        context: content + extendedContext
+                    }));
+
+                    finalSpec = await gemini.enhanceSpecWithAI(
+                        inferredSpec,
+                        { endpoints: endpointsWithContext },
+                        globalContext
+                    );
+                    aiEnhanced = true;
+                } catch (err) {
+                    console.error('AI enhancement for inferred spec failed:', err.message);
+                }
+            }
+
+            return {
+                success: true,
+                method: `inferred${aiEnhanced ? '+AI' : ''}`,
+                spec: finalSpec,
+                preview: extractSpecPreview(finalSpec),
+                qualityScore: calculateQualityScore(finalSpec),
+                endpoints: analysis.endpoints,
+                aiEnhanced,
+                message: `Inferred ${analysis.endpoints.length} endpoints${aiEnhanced ? ' (AI enhanced)' : ''}`
+            };
+        }
+
+        // PRIORITY 3 (FALLBACK): Use Swagger comments only if AI is not available or no endpoints detected
+        // This ensures pre-established comments are only used as a last resort
         if (analysis.hasSwaggerComments) {
             try {
                 const result = parseSwaggerComments(content, fileName);
@@ -398,38 +580,11 @@ async function parseFile(filePath, framework = null) {
                     spec: result.spec,
                     preview,
                     qualityScore: calculateQualityScore(result.spec),
-                    message: `Parsed ${result.pathsCount} paths from Swagger comments`
+                    message: `Parsed ${result.pathsCount} paths from Swagger comments (fallback)`
                 };
             } catch (err) {
                 console.error('Error parsing Swagger comments:', err);
             }
-        }
-
-        // Use framework-specific parser if available
-        if (framework && analysis.isApiFile) {
-            try {
-                const frameworkSpec = await parseWithFrameworkParser(content, filePath, framework);
-                if (frameworkSpec && frameworkSpec.success) {
-                    return frameworkSpec;
-                }
-            } catch (err) {
-                console.error(`Error with ${framework} parser:`, err);
-            }
-        }
-
-        // Otherwise, generate a basic spec from detected endpoints
-        if (analysis.endpoints.length > 0) {
-            const inferredSpec = generateInferredSpec(analysis.endpoints, fileName);
-
-            return {
-                success: true,
-                method: 'inferred',
-                spec: inferredSpec,
-                preview: extractSpecPreview(inferredSpec),
-                qualityScore: calculateQualityScore(inferredSpec),
-                endpoints: analysis.endpoints,
-                message: `Inferred ${analysis.endpoints.length} endpoints (requires manual documentation)`
-            };
         }
 
         return {
@@ -506,15 +661,29 @@ async function parseWithFrameworkParser(content, filePath, framework) {
 
     if (spec && Object.keys(spec.paths || {}).length > 0) {
         const endpointsCount = parseResult?.endpoints?.length || 0;
+
+        // Enhance with AI if available
+        let enhancedSpec = spec;
+        let aiEnhanced = false;
+        if (geminiService.isGeminiAvailable()) {
+            try {
+                enhancedSpec = await geminiService.enhanceSpecWithAI(spec, parseResult);
+                aiEnhanced = true;
+            } catch (err) {
+                console.error('AI enhancement failed, using standard spec:', err.message);
+            }
+        }
+
         return {
             success: true,
-            method: `${framework}-parser`,
-            spec,
-            preview: extractSpecPreview(spec),
-            qualityScore: calculateQualityScore(spec),
+            method: `${framework}-parser${aiEnhanced ? '+AI' : ''}`,
+            spec: enhancedSpec,
+            preview: extractSpecPreview(enhancedSpec),
+            qualityScore: calculateQualityScore(enhancedSpec),
             endpoints: parseResult?.endpoints || [],
             hasAuth: parseResult?.hasAuth || false,
-            message: `Parsed ${endpointsCount} endpoints using ${framework} parser`
+            aiEnhanced,
+            message: `Parsed ${endpointsCount} endpoints using ${framework} parser${aiEnhanced ? ' (AI enhanced)' : ''}`
         };
     }
 
@@ -525,6 +694,9 @@ async function parseWithFrameworkParser(content, filePath, framework) {
  * Generate an inferred OpenAPI spec from detected endpoints
  */
 function generateInferredSpec(endpoints, fileName) {
+    // Import example generator
+    const { generateEndpointExamples } = require('./parsers/example-generator');
+
     const paths = {};
 
     for (const endpoint of endpoints) {
@@ -535,35 +707,74 @@ function generateInferredSpec(endpoints, fileName) {
         }
 
         const methodLower = endpoint.method.toLowerCase();
-        paths[pathKey][methodLower] = {
-            summary: `[TODO] ${endpoint.method} ${endpoint.path}`,
-            description: 'Endpoint detected automatically. Please add documentation.',
-            tags: ['Undocumented'],
-            parameters: extractPathParams(endpoint.path),
-            responses: {
-                '200': {
-                    description: 'Successful response',
-                    content: {
-                        'application/json': {
-                            schema: {
-                                type: 'object',
-                                description: '[TODO] Define response schema'
-                            }
-                        }
-                    }
+        const methodUpper = endpoint.method.toUpperCase();
+
+        // Generate examples for this endpoint
+        const examples = generateEndpointExamples(
+            methodUpper,
+            endpoint.path,
+            [], // No request fields detected
+            [], // No response fields detected
+            []  // No status codes detected
+        );
+
+        // Determine success code
+        const successCode = methodUpper === 'POST' ? '201' : '200';
+
+        // Build responses with examples
+        const responses = {};
+        responses[successCode] = {
+            description: methodUpper === 'POST' ? 'Recurso creado exitosamente' : 'Operación exitosa',
+            content: {
+                'application/json': {
+                    schema: { type: 'object' },
+                    example: examples.responses[successCode] || {}
                 }
             }
         };
 
-        // Add request body for POST/PUT/PATCH
+        // Add error responses
+        for (const [code, exampleData] of Object.entries(examples.responses)) {
+            if (code !== successCode && code !== '200' && code !== '201') {
+                responses[code] = {
+                    description: getErrorDescription(code),
+                    content: {
+                        'application/json': {
+                            schema: { type: 'object', properties: { error: { type: 'string' } } },
+                            example: exampleData
+                        }
+                    }
+                };
+            }
+        }
+
+        // Extract resource name for better summary
+        const resourceName = extractResourceFromPath(endpoint.path);
+        const actionMap = {
+            GET: endpoint.path.includes(':') ? 'Obtener' : 'Listar',
+            POST: 'Crear',
+            PUT: 'Actualizar',
+            PATCH: 'Actualizar parcialmente',
+            DELETE: 'Eliminar'
+        };
+
+        paths[pathKey][methodLower] = {
+            summary: `${actionMap[methodUpper] || methodUpper} ${resourceName}`,
+            description: `Endpoint para ${(actionMap[methodUpper] || methodUpper).toLowerCase()} ${resourceName}`,
+            tags: [capitalizeFirst(resourceName)],
+            parameters: extractPathParams(endpoint.path),
+            responses
+        };
+
+        // Add request body for POST/PUT/PATCH with example
         if (['post', 'put', 'patch'].includes(methodLower)) {
             paths[pathKey][methodLower].requestBody = {
-                description: '[TODO] Define request body',
+                description: `Datos para ${methodLower === 'post' ? 'crear' : 'actualizar'} ${resourceName}`,
+                required: true,
                 content: {
                     'application/json': {
-                        schema: {
-                            type: 'object'
-                        }
+                        schema: { type: 'object' },
+                        example: examples.request || { name: 'Valor de ejemplo' }
                     }
                 }
             };
@@ -575,16 +786,42 @@ function generateInferredSpec(endpoints, fileName) {
         info: {
             title: `API from ${fileName}`,
             version: '1.0.0',
-            description: 'API specification inferred from code. Please review and complete documentation.'
+            description: 'API specification generated from code analysis'
         },
-        paths,
-        tags: [
-            {
-                name: 'Undocumented',
-                description: 'Endpoints that need documentation'
-            }
-        ]
+        paths
     };
+}
+
+/**
+ * Get error description by code
+ */
+function getErrorDescription(code) {
+    const descriptions = {
+        '400': 'Solicitud inválida',
+        '401': 'No autenticado',
+        '403': 'Acceso denegado',
+        '404': 'Recurso no encontrado',
+        '409': 'Conflicto',
+        '500': 'Error interno del servidor'
+    };
+    return descriptions[code] || `Error HTTP ${code}`;
+}
+
+/**
+ * Capitalize first letter
+ */
+function capitalizeFirst(str) {
+    return str ? str.charAt(0).toUpperCase() + str.slice(1) : 'API';
+}
+
+/**
+ * Extract resource name from path
+ */
+function extractResourceFromPath(path) {
+    const parts = path.split('/').filter(p => p && !p.startsWith(':') && !p.startsWith('{'));
+    const resource = parts[parts.length - 1] || parts[0] || 'recurso';
+    // Singularize if ends with 's'
+    return resource.endsWith('s') && !resource.endsWith('ss') ? resource.slice(0, -1) : resource;
 }
 
 /**
@@ -800,13 +1037,16 @@ async function analyzeRepository(repoUrl, branch = 'main') {
         // Detect framework
         const frameworkInfo = await detectFramework(repoPath);
 
+        // Get global project context for AI
+        const globalContext = await getProjectContext(repoPath, frameworkInfo.primary);
+
         // Scan for API files
         const apiFiles = await scanForApiFiles(repoPath, frameworkInfo.primary);
 
         // Parse each file
         const parsedFiles = [];
         for (const file of apiFiles) {
-            const parseResult = await parseFile(file.fullPath, frameworkInfo.primary);
+            const parseResult = await parseFile(file.fullPath, frameworkInfo.primary, repoPath, globalContext);
             parsedFiles.push({
                 ...file,
                 parseResult
