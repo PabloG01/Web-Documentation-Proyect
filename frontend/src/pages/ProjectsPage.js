@@ -6,7 +6,7 @@ import Pagination from '../components/Pagination';
 import '../styles/ProjectsPage.css';
 import '../styles/LoadingStates.css';
 
-function ProjectsPage({ embedded = false }) {
+function ProjectsPage({ embedded = false, onStatsChange }) {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -78,6 +78,8 @@ function ProjectsPage({ embedded = false }) {
       setProjects(updatedProjects);
       setEditingId(null);
       setEditForm({});
+      // Notify parent to update stats
+      if (onStatsChange) onStatsChange();
     } catch (err) {
       alert('Error al guardar: ' + (err.response?.data?.error || err.message));
     }
@@ -96,6 +98,8 @@ function ProjectsPage({ embedded = false }) {
       await projectsAPI.delete(projectId);
       setProjects(projects.filter(p => p.id !== projectId));
       setDocuments(documents.filter(d => d.project_id !== projectId));
+      // Notify parent to update stats
+      if (onStatsChange) onStatsChange();
     } catch (err) {
       alert('Error al eliminar: ' + (err.response?.data?.error || err.message));
     }

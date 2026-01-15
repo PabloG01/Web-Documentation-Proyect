@@ -57,8 +57,15 @@ function WorkspacePage() {
         }
     };
 
+    // Callback for child components to trigger stats reload
+    const handleStatsChange = () => {
+        loadStats();
+    };
+
     const handleSectionChange = (section) => {
         setActiveSection(section);
+        // Reload stats when changing sections to ensure fresh data
+        loadStats();
     };
 
     const sidebarItems = [
@@ -102,17 +109,17 @@ function WorkspacePage() {
     const renderContent = () => {
         switch (activeSection) {
             case 'projects':
-                return <ProjectsPage embedded />;
+                return <ProjectsPage embedded onStatsChange={handleStatsChange} />;
             case 'documents':
-                return <DocumentsListPage embedded />;
+                return <DocumentsListPage embedded onStatsChange={handleStatsChange} />;
             case 'apis':
-                return <ApiTestPage embedded />;
+                return <ApiTestPage embedded onStatsChange={handleStatsChange} />;
             case 'api-tester':
-                return <ApiTesterPage embedded />;
+                return <ApiTesterPage embedded onStatsChange={handleStatsChange} />;
             case 'repos':
-                return <ReposPage embedded />;
+                return <ReposPage embedded onStatsChange={handleStatsChange} />;
             default:
-                return <ProjectsPage embedded />;
+                return <ProjectsPage embedded onStatsChange={handleStatsChange} />;
         }
     };
 

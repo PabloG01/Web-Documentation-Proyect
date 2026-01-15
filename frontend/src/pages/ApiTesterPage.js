@@ -13,6 +13,7 @@ function ApiTesterPage({ embedded = false }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [connectionStatus, setConnectionStatus] = useState(null); // null | 'testing' | 'success' | 'cors-error' | 'network-error'
+    const [basePath, setBasePath] = useState(''); // Store detected base path
 
     // Dynamic environment presets
     const getEnvironments = () => {
@@ -88,6 +89,7 @@ function ApiTesterPage({ embedded = false }) {
         if (!specId) {
             setSelectedSpec(null);
             setSelectedSpecId('');
+            setBasePath('');
             return;
         }
 
@@ -96,12 +98,56 @@ function ApiTesterPage({ embedded = false }) {
             const response = await api.get(`/api-specs/${specId}`);
             const spec = response.data.spec_content;
 
-            // Update the spec with the custom server URL
+            // Auto-detect base path from spec
+            let detectedBasePath = '';
+
+            // OpenAPI 3.x: Check servers array
+            if (spec.servers && spec.servers.length > 0) {
+                const firstServer = spec.servers[0].url;
+                try {
+                    // Check if it's a full URL
+                    if (firstServer.startsWith('http')) {
+                        const url = new URL(firstServer);
+                        if (url.pathname && url.pathname !== '/') {
+                            detectedBasePath = url.pathname;
+                        }
+                    } else if (firstServer.startsWith('/')) {
+                        detectedBasePath = firstServer;
+                    }
+                } catch (e) {
+                    console.warn('Error parsing server URL:', e);
+                }
+            }
+            // OpenAPI 2.x (Swagger): Check basePath
+            else if (spec.basePath) {
+                detectedBasePath = spec.basePath;
+            }
+
+            setBasePath(detectedBasePath);
+
+            // Update server URL to include basePath if detected
+            let finalServerUrl = serverUrl;
+
+            if (detectedBasePath && detectedBasePath !== '/') {
+                // Clean trailing slash from current base URL
+                const baseUrl = serverUrl.replace(/\/$/, '');
+                // Ensure detectedBasePath starts with /
+                const normalizedPath = detectedBasePath.startsWith('/') ? detectedBasePath : `/${detectedBasePath}`;
+
+                // Only append if not already present to avoid duplication
+                if (!baseUrl.endsWith(normalizedPath)) {
+                    finalServerUrl = `${baseUrl}${normalizedPath}`;
+                    // Only update if environment is NOT custom, or if custom creates a valid update
+                    setServerUrl(finalServerUrl);
+                }
+            }
+
+            // Update the spec with the detected server URL
             const updatedSpec = {
                 ...spec,
                 servers: [
                     {
-                        url: serverUrl,
+                        url: finalServerUrl,
                         description: `${environment.charAt(0).toUpperCase() + environment.slice(1)} server`
                     }
                 ]
@@ -110,8 +156,8 @@ function ApiTesterPage({ embedded = false }) {
             setSelectedSpec(updatedSpec);
 
             // Test connection when spec is loaded
-            if (serverUrl) {
-                await testConnection(serverUrl);
+            if (finalServerUrl) {
+                await testConnection(finalServerUrl);
             }
         } catch (err) {
             console.error('Error loading spec:', err);
@@ -141,7 +187,19 @@ function ApiTesterPage({ embedded = false }) {
 
     const handleEnvironmentChange = (env) => {
         setEnvironment(env);
-        const newUrl = environments[env];
+        let newUrl = environments[env];
+
+        // If switching to a preset (not custom), ensure we apply the detected basePath
+        if (env !== 'custom' && basePath && basePath !== '/') {
+            // Remove trailing slash
+            newUrl = newUrl.replace(/\/$/, '');
+            // Add basePath
+            const normalizedPath = basePath.startsWith('/') ? basePath : `/${basePath}`;
+            if (!newUrl.endsWith(normalizedPath)) {
+                newUrl = `${newUrl}${normalizedPath}`;
+            }
+        }
+
         handleServerUrlChange(newUrl);
     };
 

@@ -8,7 +8,7 @@ import Pagination from '../components/Pagination';
 import '../styles/DocumentsListPage.css';
 import '../styles/LoadingStates.css';
 
-function DocumentsListPage({ embedded = false }) {
+function DocumentsListPage({ embedded = false, onStatsChange }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -149,6 +149,8 @@ function DocumentsListPage({ embedded = false }) {
     try {
       await apiSpecsAPI.delete(specId);
       loadApiSpecs();
+      // Notify parent to update stats
+      if (onStatsChange) onStatsChange();
     } catch (err) {
       alert('Error al eliminar: ' + (err.response?.data?.error || err.message));
     }

@@ -18,6 +18,35 @@ function GuideSidebar({ activeSection, onNavigate }) {
         }));
     };
 
+    const sidebarRefs = React.useRef({});
+
+    // Auto-expand section when active subsection changes AND scroll to view
+    React.useEffect(() => {
+        if (!activeSection) return;
+
+        const parentSection = sections.find(section =>
+            section.subsections.some(sub => sub.id === activeSection)
+        );
+
+        if (parentSection && !expanded[parentSection.id]) {
+            setExpanded(prev => ({
+                ...prev,
+                [parentSection.id]: true
+            }));
+        }
+
+        // Scroll active item into view
+        setTimeout(() => {
+            const element = sidebarRefs.current[activeSection];
+            if (element) {
+                element.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest'
+                });
+            }
+        }, 100);
+    }, [activeSection]);
+
     const sections = [
         {
             id: 'intro',
@@ -104,6 +133,7 @@ function GuideSidebar({ activeSection, onNavigate }) {
                                 {section.subsections.map(sub => (
                                     <button
                                         key={sub.id}
+                                        ref={el => sidebarRefs.current[sub.id] = el}
                                         className={`subsection-link ${activeSection === sub.id ? 'active' : ''}`}
                                         onClick={() => onNavigate(sub.id)}
                                     >

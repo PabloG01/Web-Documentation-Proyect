@@ -8,7 +8,7 @@ import { GitBranch, Plus, X, Folder, FileText, RefreshCw, Trash2, Eye, Zap, Lock
 // import GitHubConnect from '../components/GitHubConnect'; // Uncomment when GitHub OAuth is configured
 import '../styles/ReposPage.css';
 
-function ReposPage({ embedded = false }) {
+function ReposPage({ embedded = false, onStatsChange }) {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
 
@@ -91,6 +91,8 @@ function ReposPage({ embedded = false }) {
             setRepoUrl('');
             setBranch('main');
             setAuthToken('');
+            // Notify parent to update stats
+            if (onStatsChange) onStatsChange();
         } catch (err) {
             setError(err.response?.data?.error || 'Error al analizar el repositorio');
         } finally {
@@ -159,6 +161,8 @@ function ReposPage({ embedded = false }) {
             setPreviewFile(null);
             setPreviewEndpoints([]);
             handleViewRepo(selectedRepo);
+            // Notify parent to update stats
+            if (onStatsChange) onStatsChange();
         } catch (err) {
             alert('Error: ' + (err.response?.data?.error || err.message));
         }
@@ -177,6 +181,8 @@ function ReposPage({ embedded = false }) {
             });
             alert('✅ Especificación API generada correctamente');
             handleViewRepo(selectedRepo);
+            // Notify parent to update stats
+            if (onStatsChange) onStatsChange();
         } catch (err) {
             alert('Error: ' + (err.response?.data?.error || err.message));
         }
@@ -210,6 +216,8 @@ function ReposPage({ embedded = false }) {
                 setSelectedRepo(null);
                 setRepoFiles([]);
             }
+            // Notify parent to update stats
+            if (onStatsChange) onStatsChange();
         } catch (err) {
             alert('Error: ' + (err.response?.data?.error || err.message));
         }
