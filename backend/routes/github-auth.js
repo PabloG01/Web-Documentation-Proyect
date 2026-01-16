@@ -11,6 +11,9 @@ const router = express.Router();
  * tags:
  *   name: GitHub
  *   description: GitHub OAuth integration
+ * servers:
+ *   - url: /github
+ *     description: Servidor de Integración GitHub
  */
 
 /**

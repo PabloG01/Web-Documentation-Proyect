@@ -50,6 +50,9 @@ function decryptToken(encryptedToken) {
  * tags:
  *   name: Repositories
  *   description: Gestión de conexiones a repositorios Git
+ * servers:
+ *   - url: /repos
+ *     description: Servidor de Repositorios
  */
 
 /**

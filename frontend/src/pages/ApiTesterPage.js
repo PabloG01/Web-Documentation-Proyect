@@ -15,6 +15,29 @@ function ApiTesterPage({ embedded = false }) {
     const [connectionStatus, setConnectionStatus] = useState(null); // null | 'testing' | 'success' | 'cors-error' | 'network-error'
     const [basePath, setBasePath] = useState(''); // Store detected base path
 
+    // Searchable Select State
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (isDropdownOpen && !event.target.closest('.custom-select-container')) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isDropdownOpen]);
+
+    // Filtered specs based on search
+    const filteredSpecs = specs.filter(spec =>
+        spec.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     // Dynamic environment presets
     const getEnvironments = () => {
         const currentHost = window.location.hostname;
@@ -162,6 +185,9 @@ function ApiTesterPage({ embedded = false }) {
         } catch (err) {
             console.error('Error loading spec:', err);
             setError('Error al cargar la especificación');
+        } finally {
+            setIsDropdownOpen(false); // Close dropdown after selection
+            setSearchTerm(''); // Reset search
         }
     };
 
@@ -231,19 +257,51 @@ function ApiTesterPage({ embedded = false }) {
                     <label htmlFor="spec-selector">
                         📁 Especificación:
                     </label>
-                    <select
-                        id="spec-selector"
-                        value={selectedSpecId}
-                        onChange={(e) => handleSpecChange(e.target.value)}
-                        disabled={loading}
-                    >
-                        <option value="">Selecciona una especificación...</option>
-                        {specs.map(spec => (
-                            <option key={spec.id} value={spec.id}>
-                                {spec.name}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="custom-select-container">
+                        <div
+                            className={`custom-select-trigger ${isDropdownOpen ? 'open' : ''}`}
+                            onClick={() => !loading && setIsDropdownOpen(!isDropdownOpen)}
+                        >
+                            <span>
+                                {selectedSpecId
+                                    ? specs.find(s => s.id === parseInt(selectedSpecId))?.name || 'Especificación no encontrada'
+                                    : 'Selecciona una especificación...'}
+                            </span>
+                            <span className="arrow">{isDropdownOpen ? '▲' : '▼'}</span>
+                        </div>
+
+                        {isDropdownOpen && (
+                            <div className="custom-dropdown">
+                                <div className="dropdown-search">
+                                    <input
+                                        type="text"
+                                        placeholder="🔍 Buscar API..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        autoFocus
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                                <ul className="spec-list">
+                                    {filteredSpecs.length > 0 ? (
+                                        filteredSpecs.map(spec => (
+                                            <li
+                                                key={spec.id}
+                                                className={`spec-item ${parseInt(selectedSpecId) === spec.id ? 'selected' : ''}`}
+                                                onClick={() => handleSpecChange(spec.id)}
+                                            >
+                                                {spec.name}
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <div className="no-results">
+                                            No se encontraron resultados
+                                        </div>
+                                    )}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="config-section">

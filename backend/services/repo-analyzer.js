@@ -662,6 +662,22 @@ async function parseWithFrameworkParser(content, filePath, framework) {
     if (spec && Object.keys(spec.paths || {}).length > 0) {
         const endpointsCount = parseResult?.endpoints?.length || 0;
 
+        // HEURISTIC: If no servers defined, try to infer from filename
+        // This solves the issue for framework-parsed files without explicit mount info (e.g. auth.js -> /auth)
+        if (!spec.servers || spec.servers.length === 0) {
+            const baseName = path.basename(filePath, path.extname(filePath));
+            // Only apply for files in typical route directories
+            if (filePath.includes('routes') || filePath.includes('api') || filePath.includes('controllers')) {
+                // Ignore generic names like 'index', 'server', 'app', 'routes', 'api'
+                if (!['index', 'server', 'app', 'routes', 'api', 'main'].includes(baseName.toLowerCase())) {
+                    spec.servers = [{
+                        url: `/${baseName}`,
+                        description: `Auto-inferred server from filename (${baseName})`
+                    }];
+                }
+            }
+        }
+
         // Enhance with AI if available
         let enhancedSpec = spec;
         let aiEnhanced = false;
@@ -788,8 +804,29 @@ function generateInferredSpec(endpoints, fileName) {
             version: '1.0.0',
             description: 'API specification generated from code analysis'
         },
+        servers: inferServersFromFileName(fileName),
         paths
     };
+}
+
+/**
+ * Infer servers configuration from filename
+ * @param {string} fileName 
+ */
+function inferServersFromFileName(fileName) {
+    if (!fileName) return [];
+
+    const baseName = path.basename(fileName, path.extname(fileName));
+
+    // Ignore generic names
+    if (['index', 'server', 'app', 'routes', 'api', 'main'].includes(baseName.toLowerCase())) {
+        return [];
+    }
+
+    return [{
+        url: `/${baseName}`,
+        description: `Auto-inferred server from filename (${baseName})`
+    }];
 }
 
 /**

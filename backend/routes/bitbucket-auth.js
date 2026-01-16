@@ -11,6 +11,9 @@ const router = express.Router();
  * tags:
  *   name: Bitbucket
  *   description: Bitbucket OAuth integration (per-user credentials)
+ * servers:
+ *   - url: /bitbucket
+ *     description: Servidor de Integración Bitbucket
  */
 
 // Get OAuth setup status

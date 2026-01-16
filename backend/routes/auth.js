@@ -13,6 +13,9 @@ const router = express.Router();
  * tags:
  *   name: Auth
  *   description: Endpoints de autenticación y gestión de usuarios
+ * servers:
+ *   - url: /auth
+ *     description: Servidor de Autenticación
  */
 
 /**

@@ -34,7 +34,7 @@ const authLimiter = rateLimit({
  */
 const registerLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hora
-    max: 3, // Máximo 3 registros por hora
+    max: 1000, // Máximo 1000 registros por hora
     message: {
         error: 'Has alcanzado el límite de registros. Por favor, inténtalo de nuevo más tarde.'
     },

@@ -12,6 +12,9 @@ const router = express.Router();
  * tags:
  *   name: API Specs
  *   description: Gestión de especificaciones OpenAPI/Swagger
+ * servers:
+ *   - url: /api-specs
+ *     description: Servidor de API Specs
  */
 
 /**

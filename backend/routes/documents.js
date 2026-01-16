@@ -11,6 +11,9 @@ const router = express.Router();
  * tags:
  *   name: Documents
  *   description: Endpoints para gestión de documentos
+ * servers:
+ *   - url: /documents
+ *     description: Servidor de Documentos
  */
 
 /**

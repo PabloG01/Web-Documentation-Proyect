@@ -12,6 +12,9 @@ const router = express.Router();
  * tags:
  *   name: Projects
  *   description: Gestión de proyectos
+ * servers:
+ *   - url: /projects
+ *     description: Servidor de Proyectos
  */
 
 /**
