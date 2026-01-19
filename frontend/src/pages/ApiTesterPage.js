@@ -54,8 +54,21 @@ function ApiTesterPage({ embedded = false }) {
 
     const environments = getEnvironments();
 
+    // Load state from localStorage on mount
     useEffect(() => {
-        fetchSpecs();
+        const savedSpecId = localStorage.getItem('apiTester_selectedSpecId');
+        const savedEnv = localStorage.getItem('apiTester_environment');
+        const savedUrl = localStorage.getItem('apiTester_serverUrl');
+        const savedBasePath = localStorage.getItem('apiTester_basePath');
+
+        if (savedSpecId) {
+            setSelectedSpecId(savedSpecId);
+            // Trigger fetch of spec content
+            handleSpecChange(savedSpecId, false); // false to indicate not a direct user interaction if needed, or just standard load
+        }
+        if (savedEnv) setEnvironment(savedEnv);
+        if (savedUrl) setServerUrl(savedUrl);
+        if (savedBasePath) setBasePath(savedBasePath);
     }, []);
 
     const fetchSpecs = async () => {
@@ -64,6 +77,14 @@ function ApiTesterPage({ embedded = false }) {
             const response = await api.get('/api-specs');
             setSpecs(response.data);
             setError('');
+
+            // If we have a saved spec ID, ensure it exists in the fetched list
+            const savedSpecId = localStorage.getItem('apiTester_selectedSpecId');
+            if (savedSpecId && response.data.find(s => s.id === parseInt(savedSpecId))) {
+                // It will be loaded by the validated logic in handleSpecChange or we can trigger it here if needed
+                // But handleSpecChange is better
+                handleSpecChange(savedSpecId);
+            }
         } catch (err) {
             console.error('Error fetching specs:', err);
             setError('Error al cargar las especificaciones');
@@ -118,6 +139,7 @@ function ApiTesterPage({ embedded = false }) {
 
         try {
             setSelectedSpecId(specId);
+            localStorage.setItem('apiTester_selectedSpecId', specId); // Save spec ID
             const response = await api.get(`/api-specs/${specId}`);
             const spec = response.data.spec_content;
 
@@ -147,6 +169,7 @@ function ApiTesterPage({ embedded = false }) {
             }
 
             setBasePath(detectedBasePath);
+            localStorage.setItem('apiTester_basePath', detectedBasePath); // Save basePath
 
             // Update server URL to include basePath if detected
             let finalServerUrl = serverUrl;
@@ -162,6 +185,7 @@ function ApiTesterPage({ embedded = false }) {
                     finalServerUrl = `${baseUrl}${normalizedPath}`;
                     // Only update if environment is NOT custom, or if custom creates a valid update
                     setServerUrl(finalServerUrl);
+                    localStorage.setItem('apiTester_serverUrl', finalServerUrl); // Save URL
                 }
             }
 
@@ -193,6 +217,7 @@ function ApiTesterPage({ embedded = false }) {
 
     const handleServerUrlChange = (newUrl) => {
         setServerUrl(newUrl);
+        localStorage.setItem('apiTester_serverUrl', newUrl); // Save URL
         setConnectionStatus(null);
         setError('');
 
@@ -213,6 +238,7 @@ function ApiTesterPage({ embedded = false }) {
 
     const handleEnvironmentChange = (env) => {
         setEnvironment(env);
+        localStorage.setItem('apiTester_environment', env); // Save environment
         let newUrl = environments[env];
 
         // If switching to a preset (not custom), ensure we apply the detected basePath
