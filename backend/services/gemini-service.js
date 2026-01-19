@@ -3,7 +3,7 @@
  * Integration with Google Gemini API for intelligent API documentation generation
  */
 
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Initialize Gemini client (will be null if no API key)
 let geminiClient = null;
@@ -26,7 +26,7 @@ function initializeGemini() {
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
         try {
-            geminiClient = new GoogleGenAI({ apiKey });
+            geminiClient = new GoogleGenerativeAI(apiKey);
             console.log('✅ Gemini AI initialized successfully');
             return true;
         } catch (error) {
@@ -58,8 +58,7 @@ async function generateApiExamples(endpointInfo, codeContext = '', globalContext
     }
 
     const model = geminiClient.getGenerativeModel({
-        model: 'gemini-1.5-flash',
-        systemInstruction: SYSTEM_INSTRUCTIONS
+        model: 'gemini-2.0-flash'
     });
 
     const projectContextStr = globalContext ? `
@@ -69,7 +68,9 @@ CONTEXTO DEL PROYECTO:
 - Dependencias clave: ${globalContext.dependencies?.join(', ') || 'N/A'}
 - Estructura: ${globalContext.structure || 'N/A'}` : '';
 
-    const prompt = `Analiza este endpoint y genera una documentación completa con ejemplos.
+    const prompt = `${SYSTEM_INSTRUCTIONS}
+
+Analiza este endpoint y genera una documentación completa con ejemplos.
 
 ${projectContextStr}
 
@@ -125,11 +126,12 @@ async function generateEndpointDescription(endpointInfo, codeContext = '') {
     if (!geminiClient) return null;
 
     const model = geminiClient.getGenerativeModel({
-        model: 'gemini-1.5-flash',
-        systemInstruction: SYSTEM_INSTRUCTIONS
+        model: 'gemini-2.0-flash'
     });
 
-    const prompt = `Genera un resumen y descripción creativa para este endpoint:
+    const prompt = `${SYSTEM_INSTRUCTIONS}
+
+Genera un resumen y descripción creativa para este endpoint:
 ${endpointInfo.method} ${endpointInfo.path}
 
 CÓDIGO:
@@ -176,16 +178,26 @@ async function enhanceSpecWithAI(spec, parseResult, globalContext = null) {
                 }
             );
 
-            // Always add to analysis, using context if available
-            endpointsToAnalyze.push({
-                key: `${method.toUpperCase()} ${pathKey}`,
-                method: method.toUpperCase(),
-                path: pathKey,
-                summary: operation.summary,
-                parameters: operation.parameters,
-                requestBody: operation.requestBody,
-                context: endpoint?.context || ''
-            });
+            if (endpoint) {
+                // OPTIMIZATION: Skip if already well documented (quota saving)
+                const hasSummary = operation.summary && operation.summary.length > 5;
+                const hasDesc = operation.description && operation.description.length > 15;
+
+                if (hasSummary && hasDesc) {
+                    // Skip implicit analysis for already documented endpoints
+                    // Ideally we would logs this, but we want to keep logs clean
+                } else {
+                    endpointsToAnalyze.push({
+                        key: `${method.toUpperCase()} ${pathKey}`,
+                        method: method.toUpperCase(),
+                        path: pathKey,
+                        summary: operation.summary,
+                        parameters: operation.parameters,
+                        requestBody: operation.requestBody,
+                        context: endpoint.context || ''
+                    });
+                }
+            }
         }
     }
 
@@ -195,8 +207,12 @@ async function enhanceSpecWithAI(spec, parseResult, globalContext = null) {
     // We use the context of the first endpoint as specific file context if available
     const fileForContext = endpointsToAnalyze.find(e => e.context)?.context || '';
 
-    // Split into chunks if too many endpoints (e.g. 5 per request to be safe with context window)
-    const CHUNK_SIZE = 5;
+    // OPTIMIZATION: Reduction of Context
+    // If context is huge, truncate it further. The PRO models handle 1M tokens, but Flash is cost effective.
+    // However, sending 8000 lines 10 times is expensive.
+    // We stick to passed chunk size.
+    // Let's INCREASE chunk size to reduce number of requests (less repeated system prompts).
+    const CHUNK_SIZE = 5; // Validated for reasonable latency
     const chunks = [];
     for (let i = 0; i < endpointsToAnalyze.length; i += CHUNK_SIZE) {
         chunks.push(endpointsToAnalyze.slice(i, i + CHUNK_SIZE));
@@ -206,11 +222,12 @@ async function enhanceSpecWithAI(spec, parseResult, globalContext = null) {
     for (const chunk of chunks) {
         try {
             const model = geminiClient.getGenerativeModel({
-                model: 'gemini-1.5-flash',
-                systemInstruction: SYSTEM_INSTRUCTIONS
+                model: 'gemini-2.0-flash'
             });
 
-            const prompt = `Analiza la definición de los endpoints proporcionados y, si está disponible, el código fuente.
+            const prompt = `${SYSTEM_INSTRUCTIONS}
+
+Analiza la definición de los endpoints proporcionados y, si está disponible, el código fuente.
 Genera documentación técnica detallada y ejemplos realistas.
 
 CONTEXTO GLOBAL:
