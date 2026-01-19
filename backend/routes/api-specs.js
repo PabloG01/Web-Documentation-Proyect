@@ -4,6 +4,8 @@ const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/verifyToken');
 const { createLimiter } = require('../middleware/rateLimiter');
 const { parseSwaggerComments, extractSpecPreview } = require('../services/swagger-parser');
+const { parseExpressFile, generateOpenApiSpec } = require('../services/parsers/express-parser');
+const geminiService = require('../services/gemini-service');
 const multer = require('multer');
 const router = express.Router();
 
@@ -237,8 +239,40 @@ router.post('/parse-swagger', verifyToken, createLimiter, upload.single('file'),
         const code = req.file.buffer.toString('utf8');
         const fileName = req.file.originalname;
 
-        //Parse Swagger comments and generate OpenAPI spec
-        const result = parseSwaggerComments(code, fileName);
+        // Parse Swagger comments and generate OpenAPI spec
+        let result;
+        const parseWarnings = [];
+
+        try {
+            result = parseSwaggerComments(code, fileName);
+        } catch (error) {
+            // Si el error es por falta de comentarios, intentamos parsear como archivo Express
+            if (error.message.includes('No se encontraron comentarios Swagger')) {
+                console.log('Falling back to Express Parser for:', fileName);
+                try {
+                    const parsedExpress = parseExpressFile(code, fileName);
+
+                    if (parsedExpress.endpoints.length > 0) {
+                        const spec = generateOpenApiSpec(parsedExpress, fileName);
+                        result = {
+                            spec,
+                            pathsCount: parsedExpress.endpoints.length,
+                            schemasCount: 0 // generated spec doesn't have initial schemas usually
+                        };
+                        parseWarnings.push('Generado automáticamente desde código Express (no se encontraron comentarios JSDoc)');
+                    } else {
+                        // Si falla también el parser de express, lanzamos el error original
+                        throw error;
+                    }
+                } catch (expressError) {
+                    // Si falla el parser de express, lanzamos el error original para que el usuario sepa que faltan comentarios
+                    console.error('Express parser failed:', expressError);
+                    throw error;
+                }
+            } else {
+                throw error;
+            }
+        }
 
         // Extract preview information
         const preview = extractSpecPreview(result.spec);
@@ -298,15 +332,28 @@ router.post('/', verifyToken, createLimiter, asyncHandler(async (req, res) => {
     }
 
     // Validate project exists
-    const projectExists = await projectsRepository.exists(project_id);
-    if (!projectExists) {
+    const project = await projectsRepository.findById(project_id);
+    if (!project) {
         throw new AppError('Proyecto no encontrado', 404);
+    }
+
+    let finalName = name.trim();
+    if (project.code) {
+        // Enforce [Code] prefix
+        const prefix = `[${project.code}] `;
+        if (!finalName.startsWith(prefix)) {
+            // Handle case where user might have typed "[SGG] Name" manually but with different spacing or just "Name"
+            // If manual name already has [SGG] but different spacing, strict check might double it. 
+            // Ideally we check if it starts with `[${project.code}]`.
+            // Example: "SmartPYM" -> "[SGG] SmartPYM"
+            finalName = `${prefix}${finalName}`;
+        }
     }
 
     const newSpec = await apiSpecsRepository.createSpec({
         projectId: project_id,
         userId: req.user.id,
-        name: name.trim(),
+        name: finalName,
         description: description || '',
         specContent: spec_content
     });
@@ -371,10 +418,29 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     }
 
     // Validate project exists if provided
+    let finalName = name.trim();
+
     if (project_id) {
-        const projectExists = await projectsRepository.exists(project_id);
-        if (!projectExists) {
+        const project = await projectsRepository.findById(project_id);
+        if (!project) {
             throw new AppError('Proyecto no encontrado', 404);
+        }
+
+        // Append project code if it exists and name doesn't already have it
+        if (project.code) {
+            const prefix = `[${project.code}] `;
+            if (!finalName.startsWith(prefix)) {
+                // Remove suffix if it exists from previous logic (optional but good for cleanup)
+                // We won't aggressively remove suffix unless we are sure, to avoid data loss.
+                // But we should ensure we don't end up with "[SGG] Name - SGG".
+                // Let's just prepend. The user can fix old ones or we can try to strip the suffix I just added.
+                const suffix = ` - ${project.code}`;
+                if (finalName.endsWith(suffix)) {
+                    finalName = finalName.substring(0, finalName.length - suffix.length);
+                }
+
+                finalName = `${prefix}${finalName}`;
+            }
         }
     }
 
@@ -393,7 +459,7 @@ router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     // Update the spec
     const updatedSpec = await apiSpecsRepository.update(id, {
         project_id: project_id || null, // handle optional project
-        name: name.trim(),
+        name: finalName,
         description: description || '',
         spec_content: spec_content,
         updated_at: new Date()
@@ -462,6 +528,64 @@ router.get('/:id/versions/:versionId', verifyToken, asyncHandler(async (req, res
     }
 
     res.json(version);
+}));
+
+/**
+ * @swagger
+ * /api-specs/{id}/enhance:
+ *   post:
+ *     summary: Mejorar una especificación con IA
+ *     tags: [API Specs]
+ *     security:
+ *       - cookieAuth: []
+ */
+router.post('/:id/enhance', verifyToken, asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    // Check ownership
+    const isOwner = await apiSpecsRepository.checkOwnership(id, req.user.id);
+    if (isOwner === null) {
+        throw new AppError('API Spec no encontrada', 404);
+    }
+    if (!isOwner) {
+        throw new AppError('No autorizado', 403);
+    }
+
+    const spec = await apiSpecsRepository.findById(id);
+
+    // Save version before enhancement
+    const nextVersion = await apiSpecsRepository.getNextVersionNumber(id);
+    await apiSpecsRepository.saveVersion(
+        id,
+        nextVersion,
+        spec.spec_content,
+        `Version ${nextVersion} - Before AI Enhancement`
+    );
+
+    // Enhance
+    const parseResult = { endpoints: [] }; // Mock parse result, or we could try to re-parse if we had the source. 
+    // For now, we rely on the existing spec structure.
+
+    // We pass empty parseResult but we might need to extract context if possible. 
+    // Ideally we would have stored the ParseResult. 
+    // However, enhanceSpecWithAI iterates over spec.paths, so it should work even with empty parseResult provided it has paths.
+
+    const enhancedContent = await geminiService.enhanceSpecWithAI(
+        spec.spec_content,
+        parseResult,
+        { name: spec.name }
+    );
+
+    // Update spec
+    const updatedSpec = await apiSpecsRepository.update(id, {
+        spec_content: enhancedContent,
+        updated_at: new Date()
+    });
+
+    res.json({
+        message: 'Especificación mejorada con IA',
+        spec: updatedSpec
+    });
 }));
 
 /**

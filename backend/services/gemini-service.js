@@ -156,70 +156,130 @@ Responde SOLO JSON:
 /**
  * Enhance OpenAPI spec with AI-generated content
  */
+/**
+ * Enhance OpenAPI spec with AI-generated content (Batch Version)
+ */
 async function enhanceSpecWithAI(spec, parseResult, globalContext = null) {
     if (!geminiClient || !spec.paths) return spec;
 
     const enhancedSpec = JSON.parse(JSON.stringify(spec));
+    const endpointsToAnalyze = [];
 
+    // 1. Collect all endpoints to analyze
     for (const [pathKey, methods] of Object.entries(enhancedSpec.paths)) {
         for (const [method, operation] of Object.entries(methods)) {
-            try {
-                // Find endpoint info in parseResult
-                const endpoint = parseResult.endpoints?.find(
-                    e => {
-                        const normalizedPath = e.path.replace(/:(\w+)/g, '{$1}');
-                        return normalizedPath === pathKey && e.method.toLowerCase() === method;
-                    }
-                );
+            // Find endpoint info in parseResult if available
+            const endpoint = parseResult.endpoints?.find(
+                e => {
+                    const normalizedPath = e.path.replace(/:(\w+)/g, '{$1}');
+                    return normalizedPath === pathKey && e.method.toLowerCase() === method;
+                }
+            );
 
-                const aiResult = await generateApiExamples({
-                    method: method.toUpperCase(),
-                    path: pathKey,
-                    summary: operation.summary,
-                    parameters: operation.parameters,
-                    requestBody: operation.requestBody
-                }, endpoint?.context || '', globalContext);
+            // Always add to analysis, using context if available
+            endpointsToAnalyze.push({
+                key: `${method.toUpperCase()} ${pathKey}`,
+                method: method.toUpperCase(),
+                path: pathKey,
+                summary: operation.summary,
+                parameters: operation.parameters,
+                requestBody: operation.requestBody,
+                context: endpoint?.context || ''
+            });
+        }
+    }
 
-                if (aiResult) {
-                    if (aiResult.summary) operation.summary = aiResult.summary;
-                    if (aiResult.description) operation.description = aiResult.description;
+    if (endpointsToAnalyze.length === 0) return spec;
 
-                    if (aiResult.requestExample && operation.requestBody?.content?.['application/json']) {
-                        operation.requestBody.content['application/json'].example = aiResult.requestExample;
-                    }
+    // 2. Prepare Batch Prompt
+    // We use the context of the first endpoint as specific file context if available
+    const fileForContext = endpointsToAnalyze.find(e => e.context)?.context || '';
 
-                    if (aiResult.successResponse) {
-                        const code = aiResult.successResponse.code || '200';
-                        if (!operation.responses[code]) {
-                            operation.responses[code] = {
-                                description: aiResult.successResponse.description || 'Operación exitosa',
-                                content: { 'application/json': { schema: { type: 'object' } } }
-                            };
+    // Split into chunks if too many endpoints (e.g. 5 per request to be safe with context window)
+    const CHUNK_SIZE = 5;
+    const chunks = [];
+    for (let i = 0; i < endpointsToAnalyze.length; i += CHUNK_SIZE) {
+        chunks.push(endpointsToAnalyze.slice(i, i + CHUNK_SIZE));
+    }
+
+    // 3. Process Chunks
+    for (const chunk of chunks) {
+        try {
+            const model = geminiClient.getGenerativeModel({
+                model: 'gemini-1.5-flash',
+                systemInstruction: SYSTEM_INSTRUCTIONS
+            });
+
+            const prompt = `Analiza la definición de los endpoints proporcionados y, si está disponible, el código fuente.
+Genera documentación técnica detallada y ejemplos realistas.
+
+CONTEXTO GLOBAL:
+- Proyecto: ${globalContext?.name || 'Desconocido'}
+- Framework: ${globalContext?.framework || 'Desconocido'}
+
+CÓDIGO FUENTE (Opcional - Puede estar vacío):
+\`\`\`javascript
+${fileForContext.substring(0, 8000)}
+\`\`\`
+
+ENDPOINTS A ANALIZAR:
+${JSON.stringify(chunk.map(e => ({ method: e.method, path: e.path, summary: e.summary, params: e.parameters })), null, 2)}
+
+Genera un ÚNICO objeto JSON donde las claves sean "METHOD Path" (ej: "GET /users") y los valores sean la documentación detallada.
+Formato de respuesta esperado (JSON Raw):
+{
+  "GET /users": {
+    "summary": "...",
+    "description": "...",
+    "successResponse": { "code": "200", "description": "...", "example": {...} },
+    "errorResponses": [...]
+  },
+  "POST /users": { ... }
+}`;
+
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+                const generatedData = JSON.parse(jsonMatch[0]);
+
+                // 4. Apply results to spec
+                for (const [key, data] of Object.entries(generatedData)) {
+                    const [methodStr, pathKey] = key.split(' ');
+                    const method = methodStr.toLowerCase();
+
+                    if (enhancedSpec.paths[pathKey] && enhancedSpec.paths[pathKey][method]) {
+                        const operation = enhancedSpec.paths[pathKey][method];
+
+                        if (data.summary) operation.summary = data.summary;
+                        if (data.description) operation.description = data.description;
+
+                        if (data.requestExample && operation.requestBody?.content?.['application/json']) {
+                            operation.requestBody.content['application/json'].example = data.requestExample;
                         }
-                        operation.responses[code].content['application/json'].example = aiResult.successResponse.example;
-                    }
 
-                    if (aiResult.errorResponses) {
-                        for (const errorResp of aiResult.errorResponses) {
-                            operation.responses[errorResp.code] = {
-                                description: getErrorDescription(errorResp.code),
-                                content: {
-                                    'application/json': {
-                                        schema: { type: 'object', properties: { error: { type: 'string' } } },
-                                        example: errorResp.example
-                                    }
-                                }
-                            };
+                        if (data.successResponse) {
+                            const code = data.successResponse.code || '200';
+                            if (!operation.responses[code]) {
+                                operation.responses[code] = {
+                                    description: data.successResponse.description || 'Success',
+                                    content: { 'application/json': { schema: { type: 'object' } } }
+                                };
+                            }
+                            if (operation.responses[code].content?.['application/json']) {
+                                operation.responses[code].content['application/json'].example = data.successResponse.example;
+                            }
                         }
                     }
                 }
-
-                // Wait 2s to respect rate limits (15 RPM)
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-            } catch (error) {
-                console.error(`Error enhancing ${method} ${pathKey}:`, error.message);
             }
+
+            // Small delay between chunks
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+        } catch (err) {
+            console.error('Error in AI batch processing:', err.message);
         }
     }
 

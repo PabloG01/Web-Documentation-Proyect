@@ -328,6 +328,16 @@ function generateExampleValue(fieldName, fieldType = 'string') {
     if (nameLower.includes('price') || nameLower.includes('amount')) return 99.99;
     if (nameLower.includes('date') || nameLower.includes('_at')) return '2026-01-14T12:00:00Z';
     if (nameLower.includes('url')) return 'https://ejemplo.com/recurso';
+    if (nameLower.includes('phone') || nameLower.includes('tel')) return '+1-555-0123';
+    if (nameLower.includes('address') || nameLower.includes('direccion')) return 'Av. Principal 123, Ciudad Tecnológica';
+    if (nameLower.includes('city') || nameLower.includes('ciudad')) return 'Madrid';
+    if (nameLower.includes('country') || nameLower.includes('pais')) return 'España';
+    if (nameLower.includes('zip') || nameLower.includes('postal')) return '28001';
+    if (nameLower.includes('state') || nameLower.includes('provincia')) return 'Madrid';
+    if (nameLower.includes('company') || nameLower.includes('empresa')) return 'Tech Solutions S.L.';
+    if (nameLower.includes('website') || nameLower.includes('web')) return 'https://www.techsolutions.com';
+    if (nameLower.includes('avatar') || nameLower.includes('photo')) return 'https://i.pravatar.cc/150?u=1';
+    if (nameLower.includes('bio') || nameLower.includes('about')) return 'Ingeniero de software apasionado por la tecnología.';
     if (nameLower.includes('id')) return 1;
 
     // Type-based

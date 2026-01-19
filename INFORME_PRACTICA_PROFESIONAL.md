@@ -6,7 +6,7 @@
 |-------|---------|
 | **Proyecto** | DocApp - Plataforma de Documentación Profesional |
 | **Inicio estimado** | Lunes 15 de diciembre de 2025 |
-| **Última actualización** | 13 de enero de 2026 |
+| **Última actualización** | 19 de enero de 2026 |
 | **Stack tecnológico** | React 19 + Express 5 + PostgreSQL 15 + Docker |
 
 ---
@@ -137,6 +137,35 @@
 
 ---
 
+### Semana 5 (12 - 16 de enero de 2026)
+
+#### 🎯 Objetivos
+- Mejorar la precisión y contexto de la IA para generación de ejemplos
+- Automatizar convenciones de nomenclatura para especificaciones API
+- Establecer reporte periódico de avances
+
+#### ✅ Logros
+- Enriquecimiento de contexto para IA: Inclusión de `package.json`, estructura de directorios y detección de modelos
+- Automatización de nombres de API Specs (sufijo de proyecto autogenerado)
+- Creación de este informe de práctica profesional
+
+#### ⚠️ Dificultades Encontradas
+
+1. **Precisión de ejemplos generados por IA**
+   - *Problema*: La IA generaba ejemplos genéricos desconectados de los modelos de datos reales del código.
+   - *Solución*: Implementación de `getProjectContext` y mejora en `repo-analyzer.js` para identificar modelos/entidades y pasarlos como contexto prioritario al prompt de Gemini.
+
+2. **Consistencia en nomenclatura de Specs**
+   - *Problema*: Dificultad para identificar a qué proyecto pertenecía una spec en la lista global.
+   - *Solución*: Lógica de renombrado automático que añade la extensión del proyecto al nombre de la spec al momento de su creación.
+
+#### 📝 Commits Relacionados
+- feat: Mejora de contexto para IA (estructura de proyecto y modelos)
+- feat: Actualización automática de nombres de API specs
+- docs: Creación y primera actualización de INFORME_PRACTICA_PROFESIONAL.md
+
+---
+
 ## 📈 Métricas de Progreso
 
 ### Funcionalidades Completadas ✅
@@ -198,4 +227,4 @@
 
 ---
 
-**Documento generado automáticamente - Última actualización: 13 de enero de 2026**
+**Documento generado automáticamente - Última actualización: 19 de enero de 2026**

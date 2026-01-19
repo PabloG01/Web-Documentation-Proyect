@@ -14,6 +14,7 @@ function ApiTesterPage({ embedded = false }) {
     const [error, setError] = useState('');
     const [connectionStatus, setConnectionStatus] = useState(null); // null | 'testing' | 'success' | 'cors-error' | 'network-error'
     const [basePath, setBasePath] = useState(''); // Store detected base path
+    const [enhancing, setEnhancing] = useState(false); // State for AI enhancement
 
     // Searchable Select State
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -56,6 +57,8 @@ function ApiTesterPage({ embedded = false }) {
 
     // Load state from localStorage on mount
     useEffect(() => {
+        fetchSpecs();
+
         const savedSpecId = localStorage.getItem('apiTester_selectedSpecId');
         const savedEnv = localStorage.getItem('apiTester_environment');
         const savedUrl = localStorage.getItem('apiTester_serverUrl');
@@ -64,7 +67,7 @@ function ApiTesterPage({ embedded = false }) {
         if (savedSpecId) {
             setSelectedSpecId(savedSpecId);
             // Trigger fetch of spec content
-            handleSpecChange(savedSpecId, false); // false to indicate not a direct user interaction if needed, or just standard load
+            handleSpecChange(savedSpecId);
         }
         if (savedEnv) setEnvironment(savedEnv);
         if (savedUrl) setServerUrl(savedUrl);
@@ -77,14 +80,6 @@ function ApiTesterPage({ embedded = false }) {
             const response = await api.get('/api-specs');
             setSpecs(response.data);
             setError('');
-
-            // If we have a saved spec ID, ensure it exists in the fetched list
-            const savedSpecId = localStorage.getItem('apiTester_selectedSpecId');
-            if (savedSpecId && response.data.find(s => s.id === parseInt(savedSpecId))) {
-                // It will be loaded by the validated logic in handleSpecChange or we can trigger it here if needed
-                // But handleSpecChange is better
-                handleSpecChange(savedSpecId);
-            }
         } catch (err) {
             console.error('Error fetching specs:', err);
             setError('Error al cargar las especificaciones');
@@ -130,10 +125,14 @@ function ApiTesterPage({ embedded = false }) {
     };
 
     const handleSpecChange = async (specId) => {
+        setIsDropdownOpen(false); // Close dropdown immediately for better UX
+        setSearchTerm(''); // Reset search
+
         if (!specId) {
             setSelectedSpec(null);
             setSelectedSpecId('');
             setBasePath('');
+            localStorage.removeItem('apiTester_selectedSpecId');
             return;
         }
 
@@ -208,10 +207,14 @@ function ApiTesterPage({ embedded = false }) {
             }
         } catch (err) {
             console.error('Error loading spec:', err);
-            setError('Error al cargar la especificación');
-        } finally {
-            setIsDropdownOpen(false); // Close dropdown after selection
-            setSearchTerm(''); // Reset search
+            setError('Error al cargar la especificación. Es posible que haya sido eliminada.');
+
+            // If 404, clear selection to avoid stuck state
+            if (err.response?.status === 404) {
+                setSelectedSpecId('');
+                setSelectedSpec(null);
+                localStorage.removeItem('apiTester_selectedSpecId');
+            }
         }
     };
 
@@ -253,6 +256,37 @@ function ApiTesterPage({ embedded = false }) {
         }
 
         handleServerUrlChange(newUrl);
+    };
+
+    // ... existing code ...
+
+    const handleEnhance = async () => {
+        if (!selectedSpecId) return;
+
+        try {
+            setEnhancing(true);
+            const response = await api.post(`/api-specs/${selectedSpecId}/enhance`);
+
+            // Reload spec
+            const updatedSpec = response.data.spec;
+
+            // Re-apply base path detection logic (reused from handleSpecChange essentially,
+            // but for simplicity we just update the content and let the user re-select or we manually update server url if needed.
+            // Actually, we should merge the servers logic again.
+
+            // For now, let's just update the spec content in state
+            setSelectedSpec(prev => ({
+                ...updatedSpec.spec_content,
+                servers: prev.servers // Keep the currently configured servers (with base path)
+            }));
+
+            alert('¡Especificación mejorada con éxito usando IA!');
+        } catch (err) {
+            console.error('Error enhancing spec:', err);
+            setError('Error al mejorar la especificación con IA');
+        } finally {
+            setEnhancing(false);
+        }
     };
 
     const handleTestConnection = async () => {
@@ -398,9 +432,19 @@ function ApiTesterPage({ embedded = false }) {
             {selectedSpec && (
                 <div className="swagger-container">
                     <div className="swagger-info">
-                        <p>
-                            💡 <strong>Tip:</strong> Haz clic en "Try it out" en cualquier endpoint para probarlo en vivo.
-                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <p style={{ margin: 0 }}>
+                                💡 <strong>Tip:</strong> Haz clic en "Try it out" en cualquier endpoint para probarlo en vivo.
+                            </p>
+                            <button
+                                className="btn btn-secondary btn-small"
+                                onClick={handleEnhance}
+                                disabled={enhancing}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}
+                            >
+                                {enhancing ? '✨ Mejorando...' : '✨ Mejorar con IA'}
+                            </button>
+                        </div>
                     </div>
                     <SwaggerUI
                         spec={selectedSpec}
