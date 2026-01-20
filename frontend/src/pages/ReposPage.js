@@ -500,6 +500,8 @@ function ReposPage({ embedded = false, onStatsChange }) {
                                                     breakdown={file.quality_breakdown}
                                                     suggestions={file.quality_suggestions}
                                                     compact={true}
+                                                    renderAsBadge={true}
+                                                    isExpanded={expandedScoreFileId === file.id}
                                                     onExpand={(expanded) => setExpandedScoreFileId(expanded ? file.id : null)}
                                                 />
                                             </div>

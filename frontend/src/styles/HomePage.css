@@ -1,99 +1,289 @@
+/* HomePage.css */
 .home-page {
-  display: flex;
-  flex-direction: column;
-  gap: 60px;
+  padding: 1rem;
+  width: 100%;
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #1e293b;
+  background-color: #f8fafc;
+  min-height: 100vh;
 }
 
-.hero {
-  text-align: center;
-  padding: 80px 20px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  border-radius: 16px;
+.dashboard-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dashboard-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.dashboard-header p {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+/* Connection Bar */
+.connection-bar {
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.connection-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.connection-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.connection-group input,
+.connection-group select {
+  padding: 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: white;
+}
+
+.btn-test-connect {
+  background-color: #0f172a;
+  color: white;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  margin-top: auto;
+  height: 38px;
+}
+
+/* API Sections */
+.api-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.project-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: white;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.project-header {
+  background-color: #334155;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1rem;
+  border-bottom: 1px solid #475569;
   color: white;
 }
 
-.hero-content h1 {
-  font-size: 48px;
-  margin-bottom: 20px;
+.project-header h2 {
+  font-size: 1rem;
+  color: white;
+  margin: 0;
+  font-weight: 600;
+}
+
+.project-header .toggle-icon {
+  color: white !important;
+}
+
+.project-content {
+  display: none;
+  padding: 0.5rem;
+}
+
+.project-content.expanded {
+  display: block;
+}
+
+/* Spec Item - API Document */
+.spec-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  background: white;
+  overflow: hidden;
+}
+
+.spec-header {
+  padding: 1rem;
+  background-color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid transparent;
+}
+
+.spec-header:hover {
+  background-color: #f8fafc;
+}
+
+.spec-header.expanded {
+  border-bottom-color: #e2e8f0;
+  background-color: #f8fafc;
+}
+
+.spec-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* CRITICAL: Spec Content (Method List Container) */
+.spec-content {
+  display: none;
+  background-color: white;
+}
+
+.spec-content.expanded {
+  display: block;
+}
+
+/* Method List */
+.method-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.method-item {
+  border-bottom: 1px solid #f1f5f9;
+  background-color: white;
+  width: 100%;
+}
+
+.method-item:last-child {
+  border-bottom: none;
+}
+
+.method-trigger {
+  padding: 0.75rem 1rem 0.75rem 2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background-color 0.1s;
+}
+
+.method-trigger:hover {
+  background-color: #f8fafc;
+}
+
+.method-badge {
+  padding: 0.35rem 0.8rem;
+  border-radius: 4px;
   font-weight: 700;
-}
-
-.hero-content p {
-  font-size: 20px;
-  margin-bottom: 30px;
-  opacity: 0.9;
-}
-
-.features {
+  font-size: 0.8rem;
+  min-width: 80px;
   text-align: center;
+  color: white;
+  text-transform: uppercase;
+  flex-shrink: 0;
 }
 
-.features h2 {
-  font-size: 32px;
-  margin-bottom: 40px;
-  color: var(--text-primary);
+.method-badge.method-get {
+  background-color: #0ea5e9;
 }
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 30px;
-  margin-bottom: 60px;
+.method-badge.method-post {
+  background-color: #10b981;
 }
 
-.feature-card {
-  background: var(--surface-color);
-  padding: 30px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
+.method-badge.method-put {
+  background-color: #f59e0b;
 }
 
-.feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-color);
+.method-badge.method-delete {
+  background-color: #ef4444;
 }
 
-.feature-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
+.method-badge.method-patch {
+  background-color: #8b5cf6;
 }
 
-.feature-card h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: var(--text-primary);
+.method-path {
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 0.95rem;
+  color: #334155;
+  flex: 1;
 }
 
-.feature-card p {
-  color: var(--text-secondary);
-  font-size: 14px;
+.method-summary {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin-left: auto;
 }
 
-.cta {
+/* Method Details (Swagger UI Container) */
+.method-details {
+  display: none;
+  padding: 0;
+  width: 100%;
+  border-top: 1px solid #f1f5f9;
+}
+
+.method-details.expanded {
+  display: block;
+}
+
+/* Swagger UI Overrides */
+.mini-swagger-ui .swagger-ui .wrapper {
+  padding: 0;
+}
+
+.mini-swagger-ui .swagger-ui .opblock {
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+}
+
+.mini-swagger-ui .swagger-ui .opblock-summary {
+  display: none;
+}
+
+.mini-swagger-ui .swagger-ui .opblock-body {
+  padding: 1rem;
+}
+
+/* Loading/Empty States */
+.loading-container,
+.empty-container {
   text-align: center;
-  padding: 60px 20px;
-  background-color: var(--background-color);
-  border-radius: 12px;
-}
-
-.cta h2 {
-  font-size: 32px;
-  margin-bottom: 30px;
-}
-
-@media (max-width: 768px) {
-  .hero-content h1 {
-    font-size: 32px;
-  }
-
-  .hero-content p {
-    font-size: 16px;
-  }
-
-  .features h2,
-  .cta h2 {
-    font-size: 24px;
-  }
+  padding: 3rem;
+  color: #64748b;
 }

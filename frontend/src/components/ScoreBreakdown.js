@@ -10,9 +10,14 @@ function ScoreBreakdown({
     breakdown = null,
     suggestions = [],
     compact = false,
-    onExpand = null
+    onExpand = null,
+    isExpanded = undefined, // Controlled state
+    renderAsBadge = false   // Force rendering as badge even if expanded
 }) {
-    const [expanded, setExpanded] = useState(false);
+    const [localExpanded, setLocalExpanded] = useState(false);
+
+    // Determine effective expanded state
+    const expanded = isExpanded !== undefined ? isExpanded : localExpanded;
 
     // Get level info from score
     const getLevel = (score) => {
@@ -26,17 +31,19 @@ function ScoreBreakdown({
     // Toggle expansion
     const handleToggle = () => {
         const newExpanded = !expanded;
-        setExpanded(newExpanded);
+        if (isExpanded === undefined) {
+            setLocalExpanded(newExpanded);
+        }
         if (onExpand) {
             onExpand(newExpanded);
         }
     };
 
     // Compact mode - just badge
-    if (compact && !expanded) {
+    if ((compact && !expanded) || renderAsBadge) {
         return (
             <button
-                className={`score-badge ${level.level}`}
+                className={`score-badge ${level.level} ${expanded ? 'active' : ''}`}
                 onClick={handleToggle}
                 title="Ver desglose de calidad"
             >
