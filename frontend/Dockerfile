@@ -12,5 +12,5 @@ COPY . .
 
 EXPOSE 3000
 
-# Esto ejecutará "react-app-rewired start" según tu package.json
+# Esto ejecutará "vite" según tu package.json
 CMD ["npm", "start"]
