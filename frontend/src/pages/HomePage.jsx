@@ -117,7 +117,7 @@ function HomePage() {
       await fetch(serverUrl, {
         method: 'HEAD',
         signal: controller.signal,
-        mode: 'no-cors'
+        mode: 'cors'
       });
 
       clearTimeout(timeoutId);
@@ -218,6 +218,7 @@ function HomePage() {
                                   docExpansion="full"
                                   defaultModelsExpandDepth={-1}
                                   displayRequestDuration={true}
+                                  tryItOutEnabled={true}
                                 />
                               </div>
                             )}

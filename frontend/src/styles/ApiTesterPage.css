@@ -540,3 +540,93 @@
         max-height: 300px;
     }
 }
+
+/* ===== NUEVAS MEJORAS DE LAYOUT ===== */
+.api-tester-config {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--card-bg, #ffffff);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border, #e2e8f0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.config-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.config-section:last-child {
+    grid-column: 1 / -1;
+}
+
+.config-section label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text, #1e293b);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.config-section select,
+.config-section input[type='text'] {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: var(--bg, #fff);
+    color: var(--text, #1e293b);
+    transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.config-section select:focus,
+.config-section input[type='text']:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--bg, #fff);
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 48px;
+}
+
+.custom-select-trigger:hover {
+    border-color: var(--primary, #6366f1);
+}
+
+.custom-select-trigger.open {
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.api-tester-config .btn-small {
+    padding: 0 1rem;
+    margin-left: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+}
+
+@media (max-width: 768px) {
+    .api-tester-config {
+        grid-template-columns: 1fr;
+    }
+}

@@ -2,7 +2,44 @@ import React, { useState, useEffect } from 'react';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
 import api from '../services/api';
+
+// VITE_CACHE_BUST_2
 import '../styles/ApiTesterPage.css';
+
+// Plugin para hacer el filtro de SwaggerUI case-insensitive de forma segura
+const CaseInsensitiveFilterPlugin = () => {
+    return {
+        fn: {
+            opsFilter: (taggedOps, phrase) => {
+                const phraseLower = phrase.toLowerCase();
+
+                // taggedOps es un Immutable.Map o OrderedMap
+                // Filter preserva items donde el callback retorna true
+                return taggedOps.filter((val, key) => {
+                    // key es el tag name (string)
+                    const tagMatch = key.toLowerCase().includes(phraseLower);
+                    if (tagMatch) return true;
+
+                    // val es una lista de operaciones (Immutable List)
+                    // Si val no existe o no tiene método some, no podemos buscar dentro
+                    if (!val || typeof val.some !== 'function') return false;
+
+                    // Buscar coincidencia en las operaciones individuales
+                    return val.some(op => {
+                        // Validación defensiva para evitar crashes
+                        if (!op || typeof op.getIn !== 'function') return false;
+
+                        const summary = op.getIn(['operation', 'summary']);
+                        const path = op.get('path');
+
+                        return (summary && summary.toLowerCase().includes(phraseLower)) ||
+                            (path && path.toLowerCase().includes(phraseLower));
+                    });
+                });
+            }
+        }
+    };
+};
 
 function ApiTesterPage({ embedded = false }) {
     const [specs, setSpecs] = useState([]);
@@ -54,6 +91,7 @@ function ApiTesterPage({ embedded = false }) {
     };
 
     const environments = getEnvironments();
+    const currentHostname = window.location.hostname;
 
     // Load state from localStorage on mount
     useEffect(() => {
@@ -258,8 +296,6 @@ function ApiTesterPage({ embedded = false }) {
         handleServerUrlChange(newUrl);
     };
 
-    // ... existing code ...
-
     const handleEnhance = async () => {
         if (!selectedSpecId) return;
 
@@ -374,7 +410,7 @@ function ApiTesterPage({ embedded = false }) {
                         onChange={(e) => handleEnvironmentChange(e.target.value)}
                     >
                         <option value="local">🏠 Local (localhost:5000)</option>
-                        <option value="same-network">🌐 Mismo servidor ({window.location.hostname}:5000)</option>
+                        <option value="same-network">🌐 Mismo servidor ({currentHostname}:5000)</option>
                         <option value="custom">✏️ Personalizado</option>
                         <option value="staging">🔧 Staging</option>
                         <option value="production">🚀 Production</option>
@@ -455,6 +491,7 @@ function ApiTesterPage({ embedded = false }) {
                         showExtensions={true}
                         showCommonExtensions={true}
                         tryItOutEnabled={true}
+                        plugins={[CaseInsensitiveFilterPlugin]}
                     />
                 </div>
             )}

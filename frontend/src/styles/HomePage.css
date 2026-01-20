@@ -113,6 +113,7 @@
 
 .project-header .toggle-icon {
   color: white !important;
+  margin-left: auto;
 }
 
 .project-content {
@@ -131,6 +132,9 @@
   margin-bottom: 1rem;
   background: white;
   overflow: hidden;
+  /* FORCE VERTICAL STACKING */
+  display: flex;
+  flex-direction: column;
 }
 
 .spec-header {
@@ -141,7 +145,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  border-bottom: 1px solid transparent;
+  border-bottom: 1px solid #f1f5f9;
+  /* Add separator */
+  width: 100%;
+  /* Ensure full width */
 }
 
 .spec-header:hover {
@@ -163,6 +170,8 @@
 .spec-content {
   display: none;
   background-color: white;
+  width: 100%;
+  /* Ensure full width */
 }
 
 .spec-content.expanded {
@@ -189,7 +198,8 @@
 }
 
 .method-trigger {
-  padding: 0.75rem 1rem 0.75rem 2rem;
+  padding: 0.75rem 1rem;
+  /* Reduced left padding */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -197,6 +207,8 @@
   width: 100%;
   box-sizing: border-box;
   transition: background-color 0.1s;
+  justify-content: flex-start;
+  /* FORCE LEFT ALIGNMENT */
 }
 
 .method-trigger:hover {
@@ -240,6 +252,8 @@
   font-size: 0.95rem;
   color: #334155;
   flex: 1;
+  text-align: left;
+  /* Ensure text aligns left */
 }
 
 .method-summary {
