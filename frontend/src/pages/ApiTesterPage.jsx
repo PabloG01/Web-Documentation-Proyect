@@ -432,22 +432,24 @@ function ApiTesterPage({ embedded = false }) {
                         />
                         <button
                             onClick={handleTestConnection}
-                            className="btn btn-small"
+                            className="btn btn-big"
                             disabled={!serverUrl || connectionStatus === 'testing'}
                             title="Probar conexión"
                         >
                             {connectionStatus === 'testing' ? '⏳' : '🔍'}
                         </button>
                     </div>
-                    {connectionStatus === 'success' && (
-                        <small style={{ color: '#10b981' }}>✅ Conexión exitosa</small>
-                    )}
-                    {connectionStatus === 'cors-error' && (
-                        <small style={{ color: '#ef4444' }}>❌ Error de CORS</small>
-                    )}
-                    {connectionStatus === 'network-error' && (
-                        <small style={{ color: '#f59e0b' }}>⚠️ Error de conexión</small>
-                    )}
+                    <div className="connection-status-msg">
+                        {connectionStatus === 'success' && (
+                            <span style={{ color: '#10b981' }}>✅ Conexión exitosa</span>
+                        )}
+                        {connectionStatus === 'cors-error' && (
+                            <span style={{ color: '#ef4444' }}>❌ Error de CORS</span>
+                        )}
+                        {connectionStatus === 'network-error' && (
+                            <span style={{ color: '#f59e0b' }}>⚠️ Error de conexión</span>
+                        )}
+                    </div>
                 </div>
             </div>
 

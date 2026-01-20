@@ -130,8 +130,7 @@ const optionalVerifyToken = (req, res, next) => {
  *   get:
  *     summary: Listar todas las especificaciones API
  *     tags: [API Specs]
- *     security:
- *       - cookieAuth: []
+ *     security: []
  *     parameters:
  *       - in: query
  *         name: project_id
@@ -147,10 +146,8 @@ const optionalVerifyToken = (req, res, next) => {
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/ApiSpec'
- *       401:
- *         description: No autenticado
  */
-router.get('/', verifyToken, asyncHandler(async (req, res) => {
+router.get('/', optionalVerifyToken, asyncHandler(async (req, res) => {
     const { project_id } = req.query;
 
     const result = await apiSpecsRepository.findAll({
@@ -166,8 +163,7 @@ router.get('/', verifyToken, asyncHandler(async (req, res) => {
  *   get:
  *     summary: Obtener una especificación API por ID
  *     tags: [API Specs]
- *     security:
- *       - cookieAuth: []
+ *     security: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -184,10 +180,8 @@ router.get('/', verifyToken, asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/ApiSpec'
  *       404:
  *         description: Especificación no encontrada
- *       401:
- *         description: No autenticado
  */
-router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
+router.get('/:id', optionalVerifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const spec = await apiSpecsRepository.findByIdWithDetails(id);
