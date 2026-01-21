@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { projectsAPI, documentsAPI } from '../services/api';
-import { Plus, Folder, FileText, Pencil, Trash2, Check, X } from '../components/Icons';
+import { projectsAPI, documentsAPI, apiSpecsAPI } from '../services/api';
+import { Plus, Folder, FileText, Code, Pencil, Trash2, Check, X } from '../components/Icons';
 import Pagination from '../components/Pagination';
 import '../styles/ProjectsPage.css';
 import '../styles/LoadingStates.css';
@@ -10,6 +10,7 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [apiSpecs, setApiSpecs] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [loading, setLoading] = useState(true);
@@ -22,9 +23,10 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [projectsRes, docsRes] = await Promise.all([
+      const [projectsRes, docsRes, apiSpecsRes] = await Promise.all([
         projectsAPI.getAll(currentPage, itemsPerPage),
-        documentsAPI.getAll(1, 1000) // Cargar todos los documentos para contar
+        documentsAPI.getAll(1, 1000), // Cargar todos los documentos para contar
+        apiSpecsAPI.getAll() // Cargar todas las APIs para contar
       ]);
 
       // Manejar formato de respuesta paginada
@@ -37,6 +39,7 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
       }
 
       setDocuments(docsRes.data.data || docsRes.data);
+      setApiSpecs(apiSpecsRes.data || apiSpecsRes.data.data || []);
     } catch (err) {
       console.error('Error al cargar datos:', err);
     } finally {
@@ -62,6 +65,10 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
 
   const getDocumentCount = (projectId) => {
     return documents.filter(doc => doc.project_id === projectId).length;
+  };
+
+  const getApiCount = (projectId) => {
+    return apiSpecs.filter(spec => spec.project_id && spec.project_id.toString() === projectId.toString()).length;
   };
 
   const handleEdit = (project) => {
@@ -208,6 +215,9 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
                     <div className="project-stats">
                       <span className="stat-badge">
                         <FileText size={14} /> {getDocumentCount(project.id)} documento(s)
+                      </span>
+                      <span className="stat-badge">
+                        <Code size={14} /> {getApiCount(project.id)} API(s)
                       </span>
                     </div>
                   </div>

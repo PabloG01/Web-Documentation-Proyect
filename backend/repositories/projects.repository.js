@@ -25,7 +25,8 @@ class ProjectsRepository extends BaseRepository {
 
         let countQuery = 'SELECT COUNT(*) FROM projects';
         let dataQuery = `
-            SELECT projects.*, users.username 
+            SELECT projects.*, users.username,
+            (SELECT COUNT(*)::int FROM api_specs WHERE api_specs.project_id = projects.id) as api_count
             FROM projects 
             LEFT JOIN users ON projects.user_id = users.id
         `;
