@@ -1,27 +1,30 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { projectsAPI, documentsAPI, apiSpecsAPI, reposAPI } from '../services/api';
-import { Folder, FileText, Globe, FolderOpen, User, ChevronLeft, ChevronRight } from '../components/Icons';
+import { projectsAPI, documentsAPI, apiSpecsAPI, reposAPI, environmentsAPI } from '../services/api';
+import { Folder, FileText, Globe, FolderOpen, User, ChevronLeft, ChevronRight, Layout } from '../components/Icons';
 import '../styles/WorkspacePage.css';
 
 // Import existing page components to reuse
+import EnvironmentsPage from './EnvironmentsPage';
 import ProjectsPage from './ProjectsPage';
 import DocumentsListPage from './DocumentsListPage';
 import ApiTestPage from './ApiTestPage';
 import ReposPage from './ReposPage';
 import ApiTesterPage from './ApiTesterPage';
+import ApiKeysPage from './ApiKeysPage';
 
 function WorkspacePage() {
     const { user } = useContext(AuthContext);
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Active section from URL or default
-    const [activeSection, setActiveSection] = useState(searchParams.get('section') || 'projects');
+    const [activeSection, setActiveSection] = useState(searchParams.get('section') || 'environments');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // Stats for sidebar badges
     const [stats, setStats] = useState({
+        environments: 0,
         projects: 0,
         documents: 0,
         apis: 0,
@@ -40,13 +43,15 @@ function WorkspacePage() {
 
     const loadStats = async () => {
         try {
-            const [projectsRes, docsRes, apisRes, reposRes] = await Promise.all([
+            const [environmentsRes, projectsRes, docsRes, apisRes, reposRes] = await Promise.all([
+                environmentsAPI.getAll().catch(() => ({ data: [] })),
                 projectsAPI.getAll().catch(() => ({ data: [] })),
                 documentsAPI.getAll().catch(() => ({ data: [] })),
                 apiSpecsAPI.getAll().catch(() => ({ data: [] })),
                 reposAPI.getAll().catch(() => ({ data: [] }))
             ]);
             setStats({
+                environments: environmentsRes.data?.length || 0,
                 projects: projectsRes.data?.length || 0,
                 documents: docsRes.data?.length || 0,
                 apis: apisRes.data?.length || 0,
@@ -62,6 +67,13 @@ function WorkspacePage() {
         loadStats();
     };
 
+    const handleEnvironmentNavigate = (section, environmentId) => {
+        // Update URL to include environment_id parameter
+        setSearchParams({ section, environment_id: environmentId });
+        setActiveSection(section);
+        loadStats();
+    };
+
     const handleSectionChange = (section) => {
         setActiveSection(section);
         // Reload stats when changing sections to ensure fresh data
@@ -69,6 +81,13 @@ function WorkspacePage() {
     };
 
     const sidebarItems = [
+        {
+            id: 'environments',
+            icon: <Layout size={20} />,
+            label: 'Entornos',
+            count: stats.environments,
+            description: 'Gestiona tus entornos'
+        },
         {
             id: 'projects',
             icon: <Folder size={20} />,
@@ -103,11 +122,20 @@ function WorkspacePage() {
             label: 'Repositorios',
             count: stats.repos,
             description: 'Repos analizados'
+        },
+        {
+            id: 'api-keys',
+            icon: <span style={{ fontSize: '18px' }}>🔑</span>,
+            label: 'API Keys',
+            count: null,
+            description: 'Gestiona tus claves de acceso'
         }
     ];
 
     const renderContent = () => {
         switch (activeSection) {
+            case 'environments':
+                return <EnvironmentsPage embedded onStatsChange={handleStatsChange} onNavigate={handleEnvironmentNavigate} />;
             case 'projects':
                 return <ProjectsPage embedded onStatsChange={handleStatsChange} />;
             case 'documents':
@@ -118,8 +146,10 @@ function WorkspacePage() {
                 return <ApiTesterPage embedded onStatsChange={handleStatsChange} />;
             case 'repos':
                 return <ReposPage embedded onStatsChange={handleStatsChange} />;
+            case 'api-keys':
+                return <ApiKeysPage />;
             default:
-                return <ProjectsPage embedded onStatsChange={handleStatsChange} />;
+                return <EnvironmentsPage embedded onStatsChange={handleStatsChange} />;
         }
     };
 

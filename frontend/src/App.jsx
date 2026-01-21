@@ -1,5 +1,5 @@
 import React, { useContext, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import CreatePage from './pages/CreatePage';
@@ -8,6 +8,7 @@ import WorkspacePage from './pages/WorkspacePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import OpenApiGuidePage from './pages/OpenApiGuidePage';
+import ApiKeysPage from './pages/ApiKeysPage';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import './styles/global.css';
 
@@ -96,6 +97,12 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// Redirect component for /projects to preserve query params
+const ProjectsRedirect = () => {
+  const { search } = useLocation();
+  return <Navigate to={`/workspace?section=projects${search}`} replace />;
+};
+
 function AppContent() {
   return (
     <>
@@ -131,6 +138,22 @@ function AppContent() {
             }
           />
           <Route path="/openapi-guide" element={<OpenApiGuidePage />} />
+          <Route
+            path="/api-keys"
+            element={
+              <ProtectedRoute>
+                <ApiKeysPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute>
+                <ProjectsRedirect />
+              </ProtectedRoute>
+            }
+          />
           {/* Redirects for old routes */}
           <Route path="/proyectos" element={<Navigate to="/workspace?section=projects" replace />} />
           <Route path="/mis-documentos" element={<Navigate to="/workspace?section=documents" replace />} />

@@ -12,6 +12,18 @@ const api = axios.create({
     }
 });
 
+// Request interceptor: Auto-inject API Key if present in localStorage
+api.interceptors.request.use(
+    (config) => {
+        const apiKey = localStorage.getItem('api_key');
+        if (apiKey) {
+            config.headers['X-API-Key'] = apiKey;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
 // Interceptor para manejar errores 401 y disparar evento de sesión cerrada
 api.interceptors.response.use(
     (response) => response,
@@ -32,12 +44,21 @@ api.interceptors.response.use(
 
 // Projects API
 export const projectsAPI = {
-    getAll: (page = 1, limit = 100) => api.get(`/projects?page=${page}&limit=${limit}`),
+    getAll: (page = 1, limit = 100, environmentId = null) =>
+        api.get(`/projects?page=${page}&limit=${limit}${environmentId ? `&environment_id=${environmentId}` : ''}`),
     getByUser: (page = 1, limit = 100) => api.get(`/projects?user_only=true&page=${page}&limit=${limit}`),
     getById: (id) => api.get(`/projects/${id}`),
     create: (projectData) => api.post('/projects', projectData),
     update: (id, projectData) => api.put(`/projects/${id}`, projectData),
     delete: (id) => api.delete(`/projects/${id}`)
+};
+
+// Environments API
+export const environmentsAPI = {
+    getAll: () => api.get('/environments'),
+    create: (data) => api.post('/environments', data),
+    update: (id, data) => api.put(`/environments/${id}`, data),
+    delete: (id) => api.delete(`/environments/${id}`)
 };
 
 // Documents API
@@ -115,6 +136,18 @@ export const bitbucketAPI = {
     getSetup: () => api.get('/bitbucket/auth/bitbucket/setup'),
     saveSetup: (clientId, clientSecret, callbackUrl) =>
         api.post('/bitbucket/auth/bitbucket/setup', { client_id: clientId, client_secret: clientSecret, callback_url: callbackUrl })
+};
+
+// API Keys Management
+export const apiKeysAPI = {
+    getAll: () => api.get('/api-keys'),
+    create: (name, expiresInDays) => api.post('/api-keys', { name, expiresInDays }),
+    revoke: (id) => api.delete(`/api-keys/${id}`)
+};
+
+// Stats
+export const statsAPI = {
+    getStats: () => api.get('/stats')
 };
 
 export default api;

@@ -2,8 +2,10 @@ const express = require('express');
 const { projectsRepository } = require('../repositories');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/verifyToken');
+const { flexibleAuth } = require('../middleware/apiKeyAuth');
 const { validateProject, validateProjectId } = require('../middleware/validators');
 const { createLimiter } = require('../middleware/rateLimiter');
+const { sanitizePagination, sanitizeInteger, sanitizeBoolean } = require('../utils/sanitizers');
 const router = express.Router();
 
 
@@ -123,13 +125,16 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/PaginatedProjects'
  */
-router.get('/', asyncHandler(async (req, res) => {
-    const { user_only, page = 1, limit = 10 } = req.query;
+router.get('/', flexibleAuth, asyncHandler(async (req, res) => {
+    const { user_only, environment_id } = req.query;
+    const { page, limit } = sanitizePagination(req.query);
+    const userOnlyBool = sanitizeBoolean(user_only);
 
     const result = await projectsRepository.findAll({
-        userId: user_only && req.user ? req.user.id : null,
+        userId: userOnlyBool && req.user ? req.user.id : null,
         page,
-        limit
+        limit,
+        environmentId: sanitizeInteger(environment_id)
     });
 
     res.json(result);
@@ -154,6 +159,7 @@ router.get('/', asyncHandler(async (req, res) => {
  *             name: "Mi Proyecto"
  *             description: "Descripción del proyecto"
  *             color: "#6366f1"
+ *             environment_id: 1
  *     responses:
  *       201:
  *         description: Proyecto creado exitosamente
@@ -167,14 +173,24 @@ router.get('/', asyncHandler(async (req, res) => {
  *         description: No autenticado
  */
 router.post('/', verifyToken, createLimiter, validateProject, asyncHandler(async (req, res) => {
-    const { code, name, description, color } = req.body;
+    const { code, name, description, color, environment_id } = req.body;
+
+    // Validate environment exists if provided
+    if (environment_id) {
+        const { environmentsRepository } = require('../repositories');
+        const envExists = await environmentsRepository.exists(environment_id);
+        if (!envExists) {
+            throw new AppError('Entorno no encontrado', 404);
+        }
+    }
 
     const project = await projectsRepository.createProject({
         userId: req.user.id,
         code,
         name,
         description,
-        color
+        color,
+        environmentId: environment_id
     });
 
     res.status(201).json(project);
@@ -214,10 +230,10 @@ router.post('/', verifyToken, createLimiter, validateProject, asyncHandler(async
  */
 router.put('/:id', verifyToken, validateProjectId, validateProject, asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { code, name, description, color } = req.body;
+    const { code, name, description, color, environment_id } = req.body;
 
     // Check ownership using repository
-    const isOwner = await projectsRepository.checkOwnership(parseInt(id), req.user.id);
+    const isOwner = await projectsRepository.checkOwnership(id, req.user.id);
     if (isOwner === null) {
         throw new AppError('Proyecto no encontrado', 404);
     }
@@ -225,7 +241,13 @@ router.put('/:id', verifyToken, validateProjectId, validateProject, asyncHandler
         throw new AppError('No autorizado', 403);
     }
 
-    const project = await projectsRepository.updateProject(id, { code, name, description, color });
+    const project = await projectsRepository.updateProject(id, {
+        code,
+        name,
+        description,
+        color,
+        environmentId: environment_id
+    });
     res.json(project);
 }));
 
@@ -262,7 +284,7 @@ router.delete('/:id', verifyToken, validateProjectId, asyncHandler(async (req, r
     const { id } = req.params;
 
     // Check ownership using repository
-    const isOwner = await projectsRepository.checkOwnership(parseInt(id), req.user.id);
+    const isOwner = await projectsRepository.checkOwnership(id, req.user.id);
     if (isOwner === null) {
         throw new AppError('Proyecto no encontrado', 404);
     }

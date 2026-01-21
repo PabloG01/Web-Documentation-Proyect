@@ -4,6 +4,7 @@
  */
 
 const { pool } = require('../database');
+const { isValidId } = require('../utils/sanitizers');
 
 class BaseRepository {
     constructor(tableName) {
@@ -28,6 +29,10 @@ class BaseRepository {
      * @returns {Promise<Object|null>} Found record or null
      */
     async findById(id) {
+        if (!isValidId(id)) {
+            return null;
+        }
+
         const result = await this.query(
             `SELECT * FROM ${this.tableName} WHERE id = $1`,
             [id]
@@ -61,6 +66,10 @@ class BaseRepository {
      * @returns {Promise<Object|null>} Updated record or null
      */
     async update(id, data) {
+        if (!isValidId(id)) {
+            return null;
+        }
+
         const columns = Object.keys(data);
         const values = Object.values(data);
         const setClause = columns.map((col, i) => `${col} = $${i + 1}`).join(', ');
@@ -81,6 +90,10 @@ class BaseRepository {
      * @returns {Promise<boolean>} True if deleted
      */
     async delete(id) {
+        if (!isValidId(id)) {
+            return false;
+        }
+
         const result = await this.query(
             `DELETE FROM ${this.tableName} WHERE id = $1`,
             [id]
@@ -94,6 +107,10 @@ class BaseRepository {
      * @returns {Promise<boolean>}
      */
     async exists(id) {
+        if (!isValidId(id)) {
+            return false;
+        }
+
         const result = await this.query(
             `SELECT 1 FROM ${this.tableName} WHERE id = $1`,
             [id]
@@ -105,16 +122,22 @@ class BaseRepository {
      * Check ownership of a record
      * @param {number} id - Record ID
      * @param {number} userId - User ID to check
-     * @returns {Promise<boolean>} True if user owns the record
+     * @returns {Promise<boolean|null>} True if user owns the record, null if not found, false if invalid input
      */
     async checkOwnership(id, userId) {
+        // Validate inputs to prevent SQL injection
+        if (!isValidId(id) || !isValidId(userId)) {
+            return false;
+        }
+
         const result = await this.query(
             `SELECT user_id FROM ${this.tableName} WHERE id = $1`,
             [id]
         );
         if (result.rows.length === 0) return null; // record not found
-        // Use parseInt to ensure consistent numeric comparison
-        return parseInt(result.rows[0].user_id) === parseInt(userId);
+
+        // Safe comparison - both are already validated as integers
+        return Number(result.rows[0].user_id) === Number(userId);
     }
 }
 

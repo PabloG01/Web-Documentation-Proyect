@@ -2,10 +2,12 @@ const express = require('express');
 const { apiSpecsRepository, projectsRepository } = require('../repositories');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/verifyToken');
+const { flexibleAuth } = require('../middleware/apiKeyAuth');
 const { createLimiter } = require('../middleware/rateLimiter');
 const { parseSwaggerComments, extractSpecPreview } = require('../services/swagger-parser');
 const { parseExpressFile, generateOpenApiSpec } = require('../services/parsers/express-parser');
 const geminiService = require('../services/gemini-service');
+const { sanitizeInteger } = require('../utils/sanitizers');
 const multer = require('multer');
 const router = express.Router();
 
@@ -147,11 +149,12 @@ const optionalVerifyToken = (req, res, next) => {
  *               items:
  *                 $ref: '#/components/schemas/ApiSpec'
  */
-router.get('/', optionalVerifyToken, asyncHandler(async (req, res) => {
+router.get('/', flexibleAuth, asyncHandler(async (req, res) => {
     const { project_id } = req.query;
+    const projectId = sanitizeInteger(project_id);
 
     const result = await apiSpecsRepository.findAll({
-        projectId: project_id
+        projectId
     });
     res.json(result);
 }));
@@ -181,7 +184,7 @@ router.get('/', optionalVerifyToken, asyncHandler(async (req, res) => {
  *       404:
  *         description: Especificación no encontrada
  */
-router.get('/:id', optionalVerifyToken, asyncHandler(async (req, res) => {
+router.get('/:id', flexibleAuth, asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const spec = await apiSpecsRepository.findByIdWithDetails(id);

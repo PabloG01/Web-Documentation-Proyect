@@ -19,6 +19,7 @@ import {
     ChevronUp,
     ArrowLeft,
     ArrowRight,
+    Layout,
 
     // Actions
     Plus,
@@ -110,6 +111,7 @@ export {
     ChevronUp,
     ArrowLeft,
     ArrowRight,
+    Layout, // Added missing export
 
     // Actions
     Plus,

@@ -12,6 +12,8 @@ const apiSpecsRoutes = require('./routes/api-specs');
 const reposRoutes = require('./routes/repos');
 const githubAuthRoutes = require('./routes/github-auth');
 const bitbucketAuthRoutes = require('./routes/bitbucket-auth');
+const apiKeysRoutes = require('./routes/api-keys');
+const statsRoutes = require('./routes/stats');
 require('dotenv').config();
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
@@ -28,7 +30,7 @@ const options = {
             version: '1.0.0',
         },
     },
-    apis: ['./routes/auth.js', './routes/projects.js', './routes/documents.js', './routes/api-specs.js', './routes/repos.js', './routes/github-auth.js', './routes/bitbucket-auth.js'],
+    apis: ['./routes/auth.js', './routes/projects.js', './routes/documents.js', './routes/api-specs.js', './routes/repos.js', './routes/github-auth.js', './routes/bitbucket-auth.js', './routes/api-keys.js', './routes/stats.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options); // Corregido: era swaggerOptions
@@ -56,7 +58,8 @@ app.use('/auth', apiLimiter);
 app.use('/projects', apiLimiter);
 app.use('/documents', apiLimiter);
 app.use('/api-specs', apiLimiter);
-
+app.use('/environments', apiLimiter);
+app.use('/api-keys', apiLimiter);
 app.use('/repos', apiLimiter);
 
 // Routes
@@ -64,6 +67,9 @@ app.use('/auth', authRoutes);
 app.use('/projects', projectRoutes);
 app.use('/documents', documentRoutes);
 app.use('/api-specs', apiSpecsRoutes);
+app.use('/environments', require('./routes/environments'));
+app.use('/api-keys', apiKeysRoutes);
+app.use('/stats', statsRoutes);
 app.use('/repos', reposRoutes);
 app.use('/github', githubAuthRoutes);
 app.use('/bitbucket', bitbucketAuthRoutes);

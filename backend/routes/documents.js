@@ -324,7 +324,7 @@ router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandle
 // PUT /documents/:id - Update a document
 router.put('/:id', verifyToken, validateDocumentId, validateUpdateDocument, asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { title, content, doc_type } = req.body;
+    const { title, content, type } = req.body;
 
     // Check ownership
     const isOwner = await documentsRepository.checkOwnership(id, req.user.id);
@@ -342,7 +342,7 @@ router.put('/:id', verifyToken, validateDocumentId, validateUpdateDocument, asyn
 
     if (title !== undefined) updateData.title = title;
     if (content !== undefined) updateData.content = content;
-    if (doc_type !== undefined) updateData.type = doc_type;
+    if (type !== undefined) updateData.type = type;
 
     const doc = await documentsRepository.update(id, updateData);
 

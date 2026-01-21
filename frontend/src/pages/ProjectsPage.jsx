@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { projectsAPI, documentsAPI, apiSpecsAPI } from '../services/api';
-import { Plus, Folder, FileText, Code, Pencil, Trash2, Check, X } from '../components/Icons';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { projectsAPI, documentsAPI, apiSpecsAPI, environmentsAPI, statsAPI } from '../services/api';
+import { Plus, Folder, FileText, Code, Pencil, Trash2, Check, X, ArrowLeft } from '../components/Icons';
 import Pagination from '../components/Pagination';
 import '../styles/ProjectsPage.css';
 import '../styles/LoadingStates.css';
 
 function ProjectsPage({ embedded = false, onStatsChange }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const environmentId = searchParams.get('environment_id');
+
   const [projects, setProjects] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [apiSpecs, setApiSpecs] = useState([]);
@@ -23,10 +26,15 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [projectsRes, docsRes, apiSpecsRes] = await Promise.all([
-        projectsAPI.getAll(currentPage, itemsPerPage),
-        documentsAPI.getAll(1, 1000), // Cargar todos los documentos para contar
-        apiSpecsAPI.getAll() // Cargar todas las APIs para contar
+
+      // Load environment details if ID is present
+      // Note: Environment details not currently fetched separately
+      // as they're included in the project list response
+
+      // Optimized: Use stats endpoint instead of loading all data
+      const [projectsRes, statsRes] = await Promise.all([
+        projectsAPI.getAll(currentPage, itemsPerPage, environmentId),
+        statsAPI.getStats() // Only counts, not full data
       ]);
 
       // Manejar formato de respuesta paginada
@@ -38,14 +46,16 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
         setPagination(null);
       }
 
-      setDocuments(docsRes.data.data || docsRes.data);
-      setApiSpecs(apiSpecsRes.data || apiSpecsRes.data.data || []);
+      // Set documents and apiSpecs as empty arrays since we only need counts
+      // Counts are used for display purposes only
+      setDocuments([]);
+      setApiSpecs([]);
     } catch (err) {
       console.error('Error al cargar datos:', err);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, environmentId]);
 
   useEffect(() => {
     loadData();
@@ -121,10 +131,17 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
     <div className="projects-page">
       <div className="page-header">
         <div>
-          <h1>Gestión de Proyectos</h1>
-          <p>Organiza tus documentos por código de proyecto</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {environmentId && (
+              <button className="btn-icon" onClick={() => navigate('/workspace?section=environments')}>
+                <ArrowLeft size={20} />
+              </button>
+            )}
+            <h1>{environmentId ? 'Proyectos del Entorno' : 'Gestión de Proyectos'}</h1>
+          </div>
+          <p>{environmentId ? `Viendo proyectos asociados al entorno ID: ${environmentId}` : 'Organiza tus documentos por código de proyecto'}</p>
         </div>
-        <button className="btn btn-primary" onClick={() => navigate('/crear')}>
+        <button className="btn btn-primary" onClick={() => navigate(environmentId ? `/crear?environment_id=${environmentId}` : '/crear')}>
           <Plus size={18} /> Nuevo Proyecto
         </button>
       </div>

@@ -9,5 +9,7 @@ module.exports = {
     documentsRepository,
     reposRepository,
     apiSpecsRepository,
-    usersRepository
+    usersRepository,
+    environmentsRepository: require('./environments.repository'),
+    apiKeysRepository: require('./api-keys.repository')
 };

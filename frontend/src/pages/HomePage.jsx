@@ -14,6 +14,8 @@ function HomePage() {
   // Config State
   const [serverUrl, setServerUrl] = useState('http://localhost:5000');
   const [environment, setEnvironment] = useState('local');
+  const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('api_key') || '');
+  const [apiKeyConnected, setApiKeyConnected] = useState(!!localStorage.getItem('api_key'));
 
   // Accordion States
   const [expandedProjects, setExpandedProjects] = useState({});
@@ -27,12 +29,16 @@ function HomePage() {
         setLoading(true);
         const [specsRes, projectsRes] = await Promise.all([
           api.get('/api-specs'),
-          projectsAPI.getByUser()
+          api.get('/projects') // Load all projects, not just user's
         ]);
         setSpecs(specsRes.data || []);
-        setProjects(projectsRes.data.data || []);
+        setProjects(projectsRes.data.data || projectsRes.data || []);
       } catch (error) {
         console.error('Error fetching data:', error);
+        // Si hay error de autenticación, mostrar mensaje
+        if (error.response?.status === 401) {
+          alert('Error de autenticación. Verifica tu API Key.');
+        }
       } finally {
         setLoading(false);
       }
@@ -127,6 +133,47 @@ function HomePage() {
     }
   };
 
+  // API Key Handlers
+  const handleConnectApiKey = async () => {
+    if (!apiKeyInput || !apiKeyInput.startsWith('sk_')) {
+      alert('API Key inválida. Debe comenzar con "sk_"');
+      return;
+    }
+
+    // Guardar en localStorage
+    localStorage.setItem('api_key', apiKeyInput);
+    setApiKeyConnected(true);
+
+    // Recargar datos manualmente sin reload completo
+    try {
+      setLoading(true);
+      const [specsRes, projectsRes] = await Promise.all([
+        api.get('/api-specs'),
+        api.get('/projects')
+      ]);
+      setSpecs(specsRes.data || []);
+      setProjects(projectsRes.data.data || projectsRes.data || []);
+      alert('✅ API Key conectada correctamente');
+    } catch (error) {
+      console.error('Error loading data with API Key:', error);
+      alert('❌ Error: API Key inválida o sin acceso');
+      // Revertir si falla
+      localStorage.removeItem('api_key');
+      setApiKeyConnected(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisconnectApiKey = () => {
+    localStorage.removeItem('api_key');
+    setApiKeyConnected(false);
+    setApiKeyInput('');
+    setSpecs([]);
+    setProjects([]);
+    // No hacer reload, solo limpiar datos
+  };
+
   const groupedSpecs = getGroupedSpecs();
 
   return (
@@ -167,6 +214,64 @@ function HomePage() {
         >
           {connectionStatus === 'testing' ? 'Probar Conexión' : 'Probar Conexión'}
         </button>
+      </div>
+
+      {/* API KEY SECTION */}
+      <div className="connection-bar" style={{
+        background: apiKeyConnected ? '#d1fae5' : '#f1f5f9',
+        borderLeft: apiKeyConnected ? '4px solid #10b981' : '4px solid #64748b'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontWeight: 600, color: apiKeyConnected ? '#065f46' : '#475569' }}>
+            {apiKeyConnected ? '🔑 API Key Conectada' : '🔓 Usar con API Key (Testing)'}
+          </span>
+        </div>
+
+        {!apiKeyConnected ? (
+          <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
+            <input
+              type="text"
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder="Pega tu API Key aquí (sk_...)"
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontFamily: 'monospace',
+                fontSize: '0.9em'
+              }}
+            />
+            <button
+              onClick={handleConnectApiKey}
+              disabled={!apiKeyInput}
+              className="btn-test-connect"
+              style={{ background: '#10b981' }}
+            >
+              Conectar
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <code style={{
+              background: '#065f46',
+              color: '#d1fae5',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '0.85em'
+            }}>
+              {apiKeyInput.substring(0, 15)}•••
+            </code>
+            <button
+              onClick={handleDisconnectApiKey}
+              className="btn-test-connect"
+              style={{ background: '#ef4444' }}
+            >
+              Desconectar
+            </button>
+          </div>
+        )}
       </div>
 
       {connectionStatus === 'success' && <div style={{ color: '#10b981', marginBottom: '1rem' }}>✅ Conexión establecida correctamente</div>}

@@ -220,6 +220,50 @@ const initializeDatabase = async () => {
           END $$;
       `);
 
+
+            // Create Environments Table
+            await pool.query(`
+              CREATE TABLE IF NOT EXISTS environments (
+                  id SERIAL PRIMARY KEY,
+                  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                  name VARCHAR(100) NOT NULL,
+                  description TEXT,
+                  color VARCHAR(7) DEFAULT '#10b981',
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+            `);
+
+            // Create API Keys Table
+            await pool.query(`
+              CREATE TABLE IF NOT EXISTS api_keys (
+                  id SERIAL PRIMARY KEY,
+                  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                  key_hash VARCHAR(255) NOT NULL UNIQUE,
+                  name VARCHAR(100) NOT NULL,
+                  prefix VARCHAR(20) NOT NULL,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  last_used_at TIMESTAMP,
+                  expires_at TIMESTAMP,
+                  is_active BOOLEAN DEFAULT true
+              )
+            `);
+
+            // Create indexes for API Keys
+            await pool.query(`
+              CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
+              CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+            `);
+
+            // Migration: Add environment_id to projects
+            await pool.query(`
+              DO $$ 
+              BEGIN 
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='environment_id') THEN
+                      ALTER TABLE projects ADD COLUMN environment_id INTEGER REFERENCES environments(id) ON DELETE SET NULL;
+                  END IF;
+              END $$;
+            `);
+
             console.log('✅ Database tables initialized successfully');
             return; // Success, exit function
 

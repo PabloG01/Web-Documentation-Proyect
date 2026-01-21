@@ -4,6 +4,13 @@ import '../styles/CreationTypeSelector.css';
 function CreationTypeSelector({ onSelect }) {
     const options = [
         {
+            type: 'environment',
+            icon: '🌐',
+            title: 'Crear Entorno',
+            description: 'Agrupa múltiples proyectos bajo un mismo cliente o área',
+            color: '#ec4899'
+        },
+        {
             type: 'project',
             icon: '📁',
             title: 'Crear Proyecto',

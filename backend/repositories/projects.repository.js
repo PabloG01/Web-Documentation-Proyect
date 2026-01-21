@@ -18,7 +18,7 @@ class ProjectsRepository extends BaseRepository {
      * @param {number} options.limit - Items per page (default: 10, max: 100)
      * @returns {Promise<{data: Array, pagination: Object}>}
      */
-    async findAll({ userId = null, page = 1, limit = 10 } = {}) {
+    async findAll({ userId = null, page = 1, limit = 10, environmentId = null } = {}) {
         const pageNum = Math.max(1, parseInt(page) || 1);
         const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
         const offset = (pageNum - 1) * limitNum;
@@ -33,22 +33,77 @@ class ProjectsRepository extends BaseRepository {
 
         const countParams = [];
         const dataParams = [];
+        let paramIndex = 1;
+
+        const conditions = [];
 
         if (userId) {
-            countQuery += ' WHERE user_id = $1';
-            dataQuery += ' WHERE projects.user_id = $1';
-            countParams.push(userId);
-            dataParams.push(userId);
+            conditions.push(`user_id = $${paramIndex}`);
+            // Special handling for join query alias if needed, but simple WHERE works for both if unambiguous
+            // or we use specific alias. Let's act strictly.
+            // Simplified:
         }
 
-        dataQuery += ' ORDER BY projects.created_at DESC';
+        // Re-write query building for robust multi-filter
+        let whereClause = '';
+        if (userId) {
+            whereClause += ` WHERE projects.user_id = $${paramIndex}`;
+            countParams.push(userId);
+            dataParams.push(userId);
+            paramIndex++;
+        }
 
-        const paginationStart = dataParams.length + 1;
-        dataQuery += ` LIMIT $${paginationStart} OFFSET $${paginationStart + 1}`;
-        dataParams.push(limitNum, offset);
+        if (environmentId) {
+            const prefix = whereClause ? ' AND' : ' WHERE';
+            whereClause += `${prefix} projects.environment_id = $${paramIndex}`;
+            // If userId was pushed, paramIndex is 2. If not, it's 1.
+            countParams.push(environmentId);
+            dataParams.push(environmentId);
+            paramIndex++;
+        }
+
+        return this.findAllWithEnv({ userId, page, limit, environmentId });
+    }
+
+    async findAllWithEnv({ userId, page, limit, environmentId }) {
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
+        const offset = (pageNum - 1) * limitNum;
+
+        let baseWhere = ' WHERE 1=1';
+        const params = [];
+        let pIdx = 1;
+
+        if (userId) {
+            baseWhere += ` AND projects.user_id = $${pIdx++}`;
+            params.push(userId);
+        }
+
+        if (environmentId !== undefined) {
+            if (environmentId === 'null') {
+                baseWhere += ` AND projects.environment_id IS NULL`;
+            } else if (environmentId) {
+                baseWhere += ` AND projects.environment_id = $${pIdx++}`;
+                params.push(environmentId);
+            }
+        }
+
+        const countQuery = `SELECT COUNT(*) FROM projects ${baseWhere}`;
+
+        const dataQuery = `
+            SELECT projects.*, users.username,
+            (SELECT COUNT(*)::int FROM api_specs WHERE api_specs.project_id = projects.id) as api_count
+            FROM projects 
+            LEFT JOIN users ON projects.user_id = users.id
+            ${baseWhere}
+            ORDER BY projects.created_at DESC
+            LIMIT $${pIdx++} OFFSET $${pIdx}
+        `;
+
+        const dataParams = [...params, limitNum, offset];
 
         const [countResult, dataResult] = await Promise.all([
-            this.query(countQuery, countParams),
+            this.query(countQuery, params),
             this.query(dataQuery, dataParams)
         ]);
 
@@ -68,40 +123,38 @@ class ProjectsRepository extends BaseRepository {
         };
     }
 
-    /**
-     * Create a new project
-     * @param {Object} data - Project data
-     * @param {number} data.userId - Owner user ID
-     * @param {string} data.code - Project code
-     * @param {string} data.name - Project name
-     * @param {string} data.description - Project description (optional)
-     * @param {string} data.color - Project color (default: #6366f1)
-     * @returns {Promise<Object>} Created project
-     */
-    async createProject({ userId, code, name, description = '', color = '#6366f1' }) {
+    // Override findAll to proxy to new method to avoid breaking changed file excessively
+    async findAll(args) {
+        return this.findAllWithEnv(args);
+    }
+
+    async createProject({ userId, code, name, description = '', color = '#6366f1', environmentId = null }) {
         const result = await this.query(
-            `INSERT INTO projects (user_id, code, name, description, color) 
-             VALUES ($1, $2, $3, $4, $5) 
+            `INSERT INTO projects (user_id, code, name, description, color, environment_id) 
+             VALUES ($1, $2, $3, $4, $5, $6) 
              RETURNING *`,
-            [userId, code, name, description, color]
+            [userId, code, name, description, color, environmentId]
         );
         return result.rows[0];
     }
 
-    /**
-     * Update a project
-     * @param {number} id - Project ID
-     * @param {Object} data - Data to update
-     * @returns {Promise<Object|null>} Updated project or null
-     */
-    async updateProject(id, { code, name, description, color }) {
-        const result = await this.query(
-            `UPDATE projects 
-             SET code = $1, name = $2, description = $3, color = $4 
-             WHERE id = $5 
-             RETURNING *`,
-            [code, name, description, color, id]
-        );
+    async updateProject(id, { code, name, description, color, environmentId }) {
+        // Build dynamic update
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (code) { fields.push(`code = $${idx++}`); values.push(code); }
+        if (name) { fields.push(`name = $${idx++}`); values.push(name); }
+        if (description !== undefined) { fields.push(`description = $${idx++}`); values.push(description); }
+        if (color) { fields.push(`color = $${idx++}`); values.push(color); }
+        if (environmentId !== undefined) { fields.push(`environment_id = $${idx++}`); values.push(environmentId); }
+
+        values.push(id);
+
+        const query = `UPDATE projects SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
+
+        const result = await this.query(query, values);
         return result.rows[0] || null;
     }
 }
