@@ -130,6 +130,27 @@ router.get('/', flexibleAuth, asyncHandler(async (req, res) => {
     const { page, limit } = sanitizePagination(req.query);
     const userOnlyBool = sanitizeBoolean(user_only);
 
+    // Si se autentica con API Key y tiene un proyecto específico, solo mostrar ESE proyecto
+    if (req.user?.authMethod === 'api_key' && req.apiKeyProjectId) {
+        const project = await projectsRepository.findById(req.apiKeyProjectId);
+        if (!project) {
+            return res.json({ data: [], pagination: { currentPage: 1, totalPages: 0, totalItems: 0 } });
+        }
+        // Retornar solo el proyecto asociado a la API Key
+        return res.json({
+            data: [project],
+            pagination: {
+                currentPage: 1,
+                totalPages: 1,
+                totalItems: 1,
+                itemsPerPage: limit,
+                hasNextPage: false,
+                hasPrevPage: false
+            }
+        });
+    }
+
+    // Autenticación normal o API Key global (project_id NULL)
     const result = await projectsRepository.findAll({
         userId: userOnlyBool && req.user ? req.user.id : null,
         page,

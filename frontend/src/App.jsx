@@ -8,6 +8,8 @@ import WorkspacePage from './pages/WorkspacePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import OpenApiGuidePage from './pages/OpenApiGuidePage';
+import GuidesPage from './pages/GuidesPage';
+import AppGuidePage from './pages/AppGuidePage';
 import ApiKeysPage from './pages/ApiKeysPage';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import './styles/global.css';
@@ -137,7 +139,10 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route path="/openapi-guide" element={<OpenApiGuidePage />} />
+          <Route path="/guides" element={<GuidesPage />} />
+          <Route path="/guides/openapi" element={<OpenApiGuidePage />} />
+          <Route path="/guides/app" element={<AppGuidePage />} />
+          <Route path="/openapi-guide" element={<Navigate to="/guides/openapi" replace />} />
           <Route
             path="/api-keys"
             element={

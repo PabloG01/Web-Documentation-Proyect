@@ -18,6 +18,9 @@ function Header() {
     if (path === '/workspace') {
       return location.pathname.startsWith('/workspace') ? 'nav-link active' : 'nav-link';
     }
+    if (path === '/guides') {
+      return location.pathname.startsWith('/guides') ? 'nav-link active' : 'nav-link';
+    }
     return location.pathname === path ? 'nav-link active' : 'nav-link';
   };
 
@@ -33,7 +36,7 @@ function Header() {
             <>
               <Link to="/workspace" className={isActive('/workspace')}>Workspace</Link>
               <Link to="/crear" className={isActive('/crear')}>Crear</Link>
-              <Link to="/openapi-guide" className={isActive('/openapi-guide')}>Guía OpenAPI</Link>
+              <Link to="/guides" className={isActive('/guides')}>Guías</Link>
               <button onClick={handleLogout} className="btn btn-secondary" style={{ marginLeft: '1rem' }}>
                 Cerrar Sesión ({user.username})
               </button>

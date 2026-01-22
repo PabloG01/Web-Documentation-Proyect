@@ -40,6 +40,7 @@ const flexibleAuth = async (req, res, next) => {
                 authMethod: 'api_key'
             };
             req.apiKeyId = key.id;
+            req.apiKeyProjectId = key.project_id; // null si es global, o ID específico
 
             // Actualizar last_used_at (no bloquear request)
             apiKeysRepository.updateLastUsed(key.id).catch(err => {
@@ -86,6 +87,7 @@ const apiKeyOnly = async (req, res, next) => {
             authMethod: 'api_key'
         };
         req.apiKeyId = key.id;
+        req.apiKeyProjectId = key.project_id; // null si es global, o ID específico
 
         apiKeysRepository.updateLastUsed(key.id).catch(err => {
             console.error('Error updating API key last_used_at:', err);

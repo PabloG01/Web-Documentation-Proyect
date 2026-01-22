@@ -15,29 +15,32 @@ class ApiKeysRepository extends BaseRepository {
      * Create a new API key
      * @param {Object} data
      * @param {number} data.userId - User ID
+     * @param {number} data.projectId - Project ID (optional)
      * @param {string} data.name - Key name/description
      * @param {string} data.keyHash - SHA-256 hash of the key
      * @param {string} data.prefix - Key prefix (e.g., sk_abc)
      * @param {Date} data.expiresAt - Optional expiration date
      */
-    async create({ userId, name, keyHash, prefix, expiresAt }) {
+    async create({ userId, projectId, name, keyHash, prefix, expiresAt }) {
         const result = await this.query(`
-            INSERT INTO api_keys (user_id, name, key_hash, prefix, expires_at)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, user_id, name, prefix, created_at, expires_at, is_active
-        `, [userId, name, keyHash, prefix, expiresAt || null]);
+            INSERT INTO api_keys (user_id, project_id, name, key_hash, prefix, expires_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, user_id, project_id, name, prefix, created_at, expires_at, is_active
+        `, [userId, projectId || null, name, keyHash, prefix, expiresAt || null]);
         return result.rows[0];
     }
 
     /**
      * Find API key by hash
      * @param {string} hash - SHA-256 hash of the key
-     * @returns {Object|null} API key record
+     * @returns {Object|null} API key record with project info
      */
     async findByHash(hash) {
         const result = await this.query(`
-            SELECT * FROM api_keys 
-            WHERE key_hash = $1 AND is_active = true
+            SELECT ak.*, p.name as project_name, p.user_id as project_owner_id
+            FROM api_keys ak
+            LEFT JOIN projects p ON ak.project_id = p.id
+            WHERE ak.key_hash = $1 AND ak.is_active = true
         `, [hash]);
         return result.rows[0] || null;
     }
@@ -49,10 +52,20 @@ class ApiKeysRepository extends BaseRepository {
      */
     async findByUser(userId) {
         const result = await this.query(`
-            SELECT id, name, prefix, created_at, last_used_at, expires_at, is_active
-            FROM api_keys 
-            WHERE user_id = $1 
-            ORDER BY created_at DESC
+            SELECT 
+                ak.id, 
+                ak.name, 
+                ak.prefix, 
+                ak.project_id,
+                p.name as project_name,
+                ak.created_at, 
+                ak.last_used_at, 
+                ak.expires_at, 
+                ak.is_active
+            FROM api_keys ak
+            LEFT JOIN projects p ON ak.project_id = p.id
+            WHERE ak.user_id = $1 
+            ORDER BY ak.created_at DESC
         `, [userId]);
         return result.rows;
     }
@@ -94,6 +107,21 @@ class ApiKeysRepository extends BaseRepository {
             RETURNING id
         `);
         return result.rows.length;
+    }
+
+    /**
+     * Find all API keys for a specific project
+     * @param {number} projectId - Project ID
+     * @returns {Array} List of API keys for the project
+     */
+    async findByProject(projectId) {
+        const result = await this.query(`
+            SELECT id, name, prefix, user_id, created_at, last_used_at, expires_at, is_active
+            FROM api_keys 
+            WHERE project_id = $1 AND is_active = true
+            ORDER BY created_at DESC
+        `, [projectId]);
+        return result.rows;
     }
 }
 

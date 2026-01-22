@@ -1,6 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const { apiKeysRepository } = require('../repositories');
+const { apiKeysRepository, projectsRepository } = require('../repositories');
 const { verifyToken } = require('../middleware/verifyToken');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const router = express.Router();
@@ -32,6 +32,9 @@ const router = express.Router();
  *               name:
  *                 type: string
  *                 description: Nombre descriptivo de la key
+ *               projectId:
+ *                 type: integer
+ *                 description: ID del proyecto asociado (opcional)
  *               expiresInDays:
  *                 type: integer
  *                 description: Días hasta expiración (opcional)
@@ -40,10 +43,21 @@ const router = express.Router();
  *         description: API Key creada (se muestra solo una vez)
  */
 router.post('/', verifyToken, asyncHandler(async (req, res) => {
-    const { name, expiresInDays } = req.body;
+    const { name, projectId, expiresInDays } = req.body;
 
     if (!name || !name.trim()) {
         throw new AppError('El nombre es requerido', 400);
+    }
+
+    // Si se proporciona projectId, validar que existe y pertenece al usuario
+    if (projectId) {
+        const project = await projectsRepository.findById(projectId);
+        if (!project) {
+            throw new AppError('Proyecto no encontrado', 404);
+        }
+        if (project.user_id !== req.user.id) {
+            throw new AppError('No tienes acceso a este proyecto', 403);
+        }
     }
 
     // Generar key segura (64 caracteres hex = 32 bytes)
@@ -61,6 +75,7 @@ router.post('/', verifyToken, asyncHandler(async (req, res) => {
 
     const apiKey = await apiKeysRepository.create({
         userId: req.user.id,
+        projectId: projectId || null,
         name: name.trim(),
         keyHash,
         prefix,

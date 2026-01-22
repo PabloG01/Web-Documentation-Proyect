@@ -151,7 +151,12 @@ const optionalVerifyToken = (req, res, next) => {
  */
 router.get('/', flexibleAuth, asyncHandler(async (req, res) => {
     const { project_id } = req.query;
-    const projectId = sanitizeInteger(project_id);
+    let projectId = sanitizeInteger(project_id);
+
+    // Si se autentica con API Key y tiene un proyecto específico, forzar filtrado por ese proyecto
+    if (req.user?.authMethod === 'api_key' && req.apiKeyProjectId) {
+        projectId = req.apiKeyProjectId;
+    }
 
     const result = await apiSpecsRepository.findAll({
         projectId
