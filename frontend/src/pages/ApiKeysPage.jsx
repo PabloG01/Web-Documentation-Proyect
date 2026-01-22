@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { apiKeysAPI } from '../services/api';
+import { apiKeysAPI, projectsAPI } from '../services/api';
 import { Plus, Trash2, Copy, Check } from '../components/Icons';
 import '../styles/ProjectsPage.css';
 import '../styles/LoadingStates.css';
 
 function ApiKeysPage() {
     const [keys, setKeys] = useState([]);
+    const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
-    const [formData, setFormData] = useState({ name: '', expiresInDays: '' });
+    const [formData, setFormData] = useState({ name: '', projectId: '', expiresInDays: '' });
     const [newKey, setNewKey] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
 
     useEffect(() => {
         loadKeys();
+        loadProjects();
     }, []);
 
     const loadKeys = async () => {
@@ -29,15 +31,35 @@ function ApiKeysPage() {
         }
     };
 
+    const loadProjects = async () => {
+        try {
+            const response = await projectsAPI.getAll();
+            setProjects(response.data.data || response.data);
+        } catch (err) {
+            console.error('Error loading projects:', err);
+        }
+    };
+
     const handleCreate = async (e) => {
         e.preventDefault();
         try {
+            const payload = {
+                name: formData.name,
+                expiresInDays: formData.expiresInDays ? parseInt(formData.expiresInDays) : null
+            };
+
+            // Add projectId only if selected
+            if (formData.projectId) {
+                payload.projectId = parseInt(formData.projectId);
+            }
+
             const response = await apiKeysAPI.create(
-                formData.name,
-                formData.expiresInDays ? parseInt(formData.expiresInDays) : null
+                payload.name,
+                payload.expiresInDays,
+                payload.projectId
             );
             setNewKey(response.data);
-            setFormData({ name: '', expiresInDays: '' });
+            setFormData({ name: '', projectId: '', expiresInDays: '' });
             setShowCreateForm(false);
             loadKeys();
         } catch (err) {
@@ -47,7 +69,7 @@ function ApiKeysPage() {
     };
 
     const handleRevoke = async (id) => {
-        if (!window.confirm('¿Seguro que quieres revocar esta API Key? Esta acción no se puede deshacer.')) {
+        if (!window.confirm('¿Seguro que quieres revocar (desactivar) esta API Key? Dejará de funcionar inmediatamente pero podrás eliminarla después.')) {
             return;
         }
         try {
@@ -56,6 +78,19 @@ function ApiKeysPage() {
         } catch (err) {
             console.error('Error revoking key:', err);
             alert('Error revocando API Key');
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('¿Seguro que quieres ELIMINAR permanentemente esta API Key? Esta acción NO se puede deshacer.')) {
+            return;
+        }
+        try {
+            await apiKeysAPI.deletePermanently(id);
+            loadKeys();
+        } catch (err) {
+            console.error('Error deleting key:', err);
+            alert('Error eliminando API Key');
         }
     };
 
@@ -185,6 +220,82 @@ function ApiKeysPage() {
                                 <small>Dejar vacío para sin expiración</small>
                             </div>
                         </div>
+
+
+                        {/* PROJECT SELECTOR - Enhanced Dropdown */}
+                        <div className="edit-row">
+                            <div className="edit-field">
+                                <label style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    fontSize: '0.95rem',
+                                    fontWeight: '600',
+                                    color: '#1f2937'
+                                }}>
+                                    🎯 Ámbito de Acceso
+                                </label>
+                                <select
+                                    value={formData.projectId}
+                                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                                    style={{
+                                        width: '100%',
+                                        padding: '14px 16px',
+                                        fontSize: '1rem',
+                                        borderRadius: '10px',
+                                        border: '2px solid #e5e7eb',
+                                        background: 'linear-gradient(to bottom, #ffffff, #f9fafb)',
+                                        color: '#1f2937',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        fontWeight: '500',
+                                        outline: 'none',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                                    }}
+                                    onFocus={(e) => {
+                                        e.target.style.borderColor = '#6366f1';
+                                        e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.style.borderColor = '#e5e7eb';
+                                        e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                                    }}
+                                >
+                                    <option value="">
+                                        🌐 Acceso Global - Todos los proyectos
+                                    </option>
+                                    {projects.length > 0 && (
+                                        <optgroup label="───────── Proyectos Específicos ─────────">
+                                            {projects.map(proj => (
+                                                <option key={proj.id} value={proj.id}>
+                                                    📁 {proj.code ? `[${proj.code}] ` : ''}{proj.name}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    )}
+                                </select>
+                                <small style={{
+                                    display: 'block',
+                                    marginTop: '8px',
+                                    color: '#64748b',
+                                    lineHeight: '1.5',
+                                    padding: '8px 12px',
+                                    background: '#f1f5f9',
+                                    borderRadius: '6px',
+                                    borderLeft: '3px solid #6366f1'
+                                }}>
+                                    {!formData.projectId ? (
+                                        <>
+                                            <strong>🌐 Acceso Global:</strong> Esta API Key podrá acceder a todos tus proyectos, documentos y APIs.
+                                        </>
+                                    ) : (
+                                        <>
+                                            <strong>🔒 Acceso Restringido:</strong> Esta API Key solo podrá acceder a los recursos del proyecto seleccionado.
+                                        </>
+                                    )}
+                                </small>
+                            </div>
+                        </div>
                         <div className="edit-actions">
                             <button type="submit" className="btn btn-primary btn-small">
                                 Generar Key
@@ -194,7 +305,7 @@ function ApiKeysPage() {
                                 className="btn btn-secondary btn-small"
                                 onClick={() => {
                                     setShowCreateForm(false);
-                                    setFormData({ name: '', expiresInDays: '' });
+                                    setFormData({ name: '', projectId: '', expiresInDays: '' });
                                 }}
                             >
                                 Cancelar
@@ -229,9 +340,19 @@ function ApiKeysPage() {
                                         <p style={{ fontFamily: 'monospace', fontSize: '0.9em', color: '#64748b' }}>
                                             {key.prefix}_••••••••
                                         </p>
+                                        {key.project_name && (
+                                            <p style={{ fontSize: '0.85em', color: '#6366f1', margin: '4px 0 0 0' }}>
+                                                📁 Proyecto: <strong>{key.project_name}</strong>
+                                            </p>
+                                        )}
+                                        {!key.project_id && (
+                                            <p style={{ fontSize: '0.85em', color: '#10b981', margin: '4px 0 0 0' }}>
+                                                🌐 Acceso global
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="project-stats">
+                                <div className="project-stats" style={{ flexWrap: 'wrap', gap: '8px' }}>
                                     <span className="stat-badge">
                                         📅 Creada: {formatDate(key.created_at)}
                                     </span>
@@ -257,13 +378,30 @@ function ApiKeysPage() {
                                     )}
                                 </div>
                             </div>
-                            <div className="project-actions">
+                            <div className="project-actions" style={{ display: 'flex', gap: '8px' }}>
                                 {key.is_active && !isExpired(key.expires_at) && (
                                     <button
                                         className="btn btn-small btn-secondary"
                                         onClick={() => handleRevoke(key.id)}
+                                        title="Desactivar esta API Key"
                                     >
                                         <Trash2 size={14} /> Revocar
+                                    </button>
+                                )}
+
+                                {/* Mostrar botón eliminar para keys revocadas o expiradas */}
+                                {(!key.is_active || isExpired(key.expires_at)) && (
+                                    <button
+                                        className="btn btn-small"
+                                        onClick={() => handleDelete(key.id)}
+                                        title="Eliminar permanentemente esta API Key"
+                                        style={{
+                                            background: '#dc2626',
+                                            color: 'white',
+                                            border: 'none'
+                                        }}
+                                    >
+                                        <Trash2 size={14} /> Eliminar
                                     </button>
                                 )}
                             </div>

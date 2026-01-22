@@ -98,6 +98,20 @@ class ApiKeysRepository extends BaseRepository {
     }
 
     /**
+     * Delete API key permanently from database
+     * @param {number} id - API key ID
+     * @param {number} userId - User ID (for ownership check)
+     */
+    async deletePermanently(id, userId) {
+        const result = await this.query(`
+            DELETE FROM api_keys 
+            WHERE id = $1 AND user_id = $2
+            RETURNING id
+        `, [id, userId]);
+        return result.rows.length > 0;
+    }
+
+    /**
      * Delete expired keys (cleanup job)
      */
     async deleteExpired() {

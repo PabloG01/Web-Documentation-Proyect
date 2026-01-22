@@ -129,4 +129,29 @@ router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     res.json({ message: 'API Key revocada correctamente' });
 }));
 
+/**
+ * @swagger
+ * /api-keys/{id}/permanent:
+ *   delete:
+ *     summary: Eliminar permanentemente API Key
+ *     tags: [API Keys]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ */
+router.delete('/:id/permanent', verifyToken, asyncHandler(async (req, res) => {
+    const deleted = await apiKeysRepository.deletePermanently(req.params.id, req.user.id);
+
+    if (!deleted) {
+        throw new AppError('API Key no encontrada', 404);
+    }
+
+    res.json({ message: 'API Key eliminada permanentemente' });
+}));
+
 module.exports = router;

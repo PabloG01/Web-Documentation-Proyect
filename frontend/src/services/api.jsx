@@ -141,8 +141,9 @@ export const bitbucketAPI = {
 // API Keys Management
 export const apiKeysAPI = {
     getAll: () => api.get('/api-keys'),
-    create: (name, expiresInDays) => api.post('/api-keys', { name, expiresInDays }),
-    revoke: (id) => api.delete(`/api-keys/${id}`)
+    create: (name, expiresInDays, projectId = null) => api.post('/api-keys', { name, expiresInDays, projectId }),
+    revoke: (id) => api.delete(`/api-keys/${id}`),
+    deletePermanently: (id) => api.delete(`/api-keys/${id}/permanent`)
 };
 
 // Stats
