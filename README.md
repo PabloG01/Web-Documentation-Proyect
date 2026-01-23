@@ -56,6 +56,12 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 - **Puntuación de calidad con sugerencias de mejora**
 - Guía completa de implementación incluida
 
+### 📚 **Centro de Guías**
+- **Guía de App**: Tutorial interactivo sobre el uso de la plataforma
+- **Guía OpenAPI**: Documentación educativa sobre el estándar OpenAPI
+- **Mejores Prácticas**: Consejos integrados en la interfaz
+- **Onboarding**: Flujo de bienvenida para nuevos usuarios
+
 ### 🔗 **Análisis de Repositorios Git**
 - Conexión a repositorios GitHub, GitLab y Bitbucket
 - **Detección automática de frameworks** (Express, NestJS, Laravel, Symfony, FastAPI, Flask, Next.js, Fastify, Koa, Hapi)
@@ -71,7 +77,7 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 ### 🏠 **Workspace Unificado**
 - Dashboard centralizado con navegación por secciones
 - Sidebar colapsable con estadísticas en tiempo real
-- Secciones: Proyectos, Documentos, APIs, Repositorios
+- Secciones: Proyectos, Documentos, APIs, Repositorios, Guías
 - Navegación fluida entre componentes
 
 ### 🚀 **API REST con Swagger**
@@ -97,6 +103,7 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 
 ### Frontend
 - **React 19** - Biblioteca UI
+- **Vite** - Build tool y dev server ultrarrápido
 - **React Router DOM 6** - Navegación SPA
 - **Axios** - Cliente HTTP
 - **React Markdown** - Renderizado Markdown
@@ -120,7 +127,7 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 - Docker Desktop instalado
 - Docker Compose instalado
 
-#### Instrucciar
+#### Instrucciones
 ```bash
 # 1. Clonar el repositorio
 git clone <url-repositorio>
@@ -157,9 +164,9 @@ El archivo `docker-compose.yml` define 3 servicios:
    - Hot reload habilitado
    - Espera a que DB esté saludable antes de iniciar
 
-3. **docapp-frontend** (React App)
+3. **docapp-frontend** (React App + Vite)
    - Puerto: `3000:3000`
-   - Hot reload habilitado
+   - Hot reload habilitado (HMR)
    - Polling activado para detección de cambios
 
 ### Opción 2: Desarrollo Local
@@ -194,11 +201,14 @@ cd frontend
 # Instalar dependencias
 npm install --legacy-peer-deps
 
-# Iniciar servidor de desarrollo
+# Iniciar servidor de desarrollo (Vite)
 npm start
 
 # Build de producción
 npm run build
+
+# Previsualizar build
+npm run preview
 ```
 
 ## 📂 Estructura del Proyecto
