@@ -468,7 +468,7 @@ function ApiKeysPage() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0 }}>\ud83d\udcca estadísticas de Uso</h2>
+                            <h2 style={{ margin: 0 }}>\ud83d\udcca Estad\u00edsticas de Uso</h2>
                             <button onClick={closeUsageModal} style={{
                                 background: 'none',
                                 border: 'none',
@@ -482,88 +482,88 @@ function ApiKeysPage() {
 
                         {usageModal.loading ? (
                             <div style={{ textAlign: 'center', padding: '40px' }}>
-                                <div className="spinner-large"></div>
-                                <p>Cargando estadísticas...</p>
+                                <div className=\"spinner-large\"></div>
+                                <p>Cargando estad\u00edsticas...</p>
                             </div>
-                        ) : usageModal.stats ? (
-                            <>
-                                <div style={{
-                                    background: '#f3f4f6',
-                                    padding: '16px',
-                                    borderRadius: '12px',
-                                    marginBottom: '24px',
-                                    textAlign: 'center'
-                                }}>
-                                    <h1 style={{ fontSize: '3em', margin: 0, color: '#4338ca' }}>
-                                        {usageModal.stats.usage_count || 0}
-                                    </h1>
-                                    <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Total de usos</p>
-                                </div>
+                    ) : usageModal.stats ? (
+                    <>
+                        <div style={{
+                            background: '#f3f4f6',
+                            padding: '16px',
+                            borderRadius: '12px',
+                            marginBottom: '24px',
+                            textAlign: 'center'
+                        }}>
+                            <h1 style={{ fontSize: '3em', margin: 0, color: '#4338ca' }}>
+                                {usageModal.stats.usage_count || 0}
+                            </h1>
+                            <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Total de usos</p>
+                        </div>
 
-                                <h4 style={{ marginBottom: '12px' }}>📝 Últimos 10 accesos</h4>
-                                {usageModal.stats.recent_uses && usageModal.stats.recent_uses.length > 0 ? (
-                                    <div style={{ overflowX: 'auto' }}>
-                                        <table style={{
-                                            width: '100%',
-                                            borderCollapse: 'collapse',
-                                            fontSize: '0.9em'
-                                        }}>
-                                            <thead>
-                                                <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
-                                                    <th style={{ padding: '12px', textAlign: 'left' }}>Fecha/Hora</th>
-                                                    <th style={{ padding: '12px', textAlign: 'left' }}>Método</th>
-                                                    <th style={{ padding: '12px', textAlign: 'left' }}>Endpoint</th>
-                                                    <th style={{ padding: '12px', textAlign: 'left' }}>IP</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {usageModal.stats.recent_uses.map((use, idx) => (
-                                                    <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                                        <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em' }}>
-                                                            {new Date(use.used_at).toLocaleString('es-ES')}
-                                                        </td>
-                                                        <td style={{ padding: '12px' }}>
-                                                            <span style={{
-                                                                background: use.method === 'GET' ? '#d1fae5' :
-                                                                    use.method === 'POST' ? '#dbeafe' :
-                                                                        use.method === 'PUT' ? '#fef3c7' :
-                                                                            use.method === 'DELETE' ? '#fee2e2' : '#f3f4f6',
-                                                                color: use.method === 'GET' ? '#065f46' :
-                                                                    use.method === 'POST' ? '#1e40af' :
-                                                                        use.method === 'PUT' ? '#92400e' :
-                                                                            use.method === 'DELETE' ? '#991b1b' : '#4b5563',
-                                                                padding: '4px 8px',
-                                                                borderRadius: '4px',
-                                                                fontSize: '0.8em',
-                                                                fontWeight: '600'
-                                                            }}>
-                                                                {use.method}
-                                                            </span>
-                                                        </td>
-                                                        <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em', color: '#6366f1' }}>
-                                                            {use.endpoint}
-                                                        </td>
-                                                        <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em', color: '#6b7280' }}>
-                                                            {use.ip_address}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ) : (
-                                    <p style={{ textAlign: 'center', color: '#9ca3af', padding: '40px' }}>
-                                        No hay registros de uso disponibles
-                                    </p>
-                                )}
-                            </>
+                        <h4 style={{ marginBottom: '12px' }}>📝 Últimos 10 accesos</h4>
+                        {usageModal.stats.recent_uses && usageModal.stats.recent_uses.length > 0 ? (
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse',
+                                    fontSize: '0.9em'
+                                }}>
+                                    <thead>
+                                        <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+                                            <th style={{ padding: '12px', textAlign: 'left' }}>Fecha/Hora</th>
+                                            <th style={{ padding: '12px', textAlign: 'left' }}>Método</th>
+                                            <th style={{ padding: '12px', textAlign: 'left' }}>Endpoint</th>
+                                            <th style={{ padding: '12px', textAlign: 'left' }}>IP</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {usageModal.stats.recent_uses.map((use, idx) => (
+                                            <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                                <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em' }}>
+                                                    {new Date(use.used_at).toLocaleString('es-ES')}
+                                                </td>
+                                                <td style={{ padding: '12px' }}>
+                                                    <span style={{
+                                                        background: use.method === 'GET' ? '#d1fae5' :
+                                                            use.method === 'POST' ? '#dbeafe' :
+                                                                use.method === 'PUT' ? '#fef3c7' :
+                                                                    use.method === 'DELETE' ? '#fee2e2' : '#f3f4f6',
+                                                        color: use.method === 'GET' ? '#065f46' :
+                                                            use.method === 'POST' ? '#1e40af' :
+                                                                use.method === 'PUT' ? '#92400e' :
+                                                                    use.method === 'DELETE' ? '#991b1b' : '#4b5563',
+                                                        padding: '4px 8px',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.8em',
+                                                        fontWeight: '600'
+                                                    }}>
+                                                        {use.method}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em', color: '#6366f1' }}>
+                                                    {use.endpoint}
+                                                </td>
+                                                <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em', color: '#6b7280' }}>
+                                                    {use.ip_address}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         ) : (
-                            <p style={{ textAlign: 'center', color: '#ef4444' }}>Error cargando estadísticas</p>
+                            <p style={{ textAlign: 'center', color: '#9ca3af', padding: '40px' }}>
+                                No hay registros de uso disponibles
+                            </p>
                         )}
-                    </div>
+                    </>
+                    ) : (
+                    <p style={{ textAlign: 'center', color: '#ef4444' }}>Error cargando estad\u00edsticas</p>
+                        )}
                 </div>
-            )
-            }
+                </div>
+    )
+}
         </div >
     );
 }

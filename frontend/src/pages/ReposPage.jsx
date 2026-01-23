@@ -4,9 +4,11 @@ import { reposAPI, projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import EndpointPreview from '../components/EndpointPreview';
 import ScoreBreakdown from '../components/ScoreBreakdown';
+import OAuthSetupCard from '../components/OAuthSetupCard';
 import { GitBranch, Plus, X, Folder, FileText, RefreshCw, Trash2, Eye, Zap, Lock, AlertTriangle, CheckCircle, Package, Search, Pencil, Code } from '../components/Icons';
 // import GitHubConnect from '../components/GitHubConnect'; // Uncomment when GitHub OAuth is configured
 import '../styles/ReposPage.css';
+import '../styles/ReposPageOAuth.css';
 
 function ReposPage({ embedded = false, onStatsChange }) {
     const { user } = useContext(AuthContext);
@@ -38,6 +40,9 @@ function ReposPage({ embedded = false, onStatsChange }) {
 
     // State for score breakdown
     const [expandedScoreFileId, setExpandedScoreFileId] = useState(null);
+
+    // State for OAuth Setup modal
+    const [showOAuthSetup, setShowOAuthSetup] = useState(false);
 
     const loadRepos = useCallback(async () => {
         try {
@@ -297,6 +302,56 @@ function ReposPage({ embedded = false, onStatsChange }) {
                 />
             </div>
             */}
+
+            {/* OAuth Configuration Button */}
+            <div className="oauth-setup-trigger">
+                <button
+                    className="btn btn-secondary"
+                    onClick={() => setShowOAuthSetup(true)}
+                >
+                    ⚙️ Configurar OAuth Apps
+                </button>
+            </div>
+
+            {/* OAuth Configuration Modal */}
+            {showOAuthSetup && (
+                <div className="oauth-modal-overlay" onClick={() => setShowOAuthSetup(false)}>
+                    <div className="oauth-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="oauth-modal-header">
+                            <h2>⚙️ Configurar Credenciales OAuth</h2>
+                            <button
+                                className="modal-close-btn"
+                                onClick={() => setShowOAuthSetup(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="oauth-modal-content">
+                            <p className="oauth-description">
+                                Configura tus propias credenciales OAuth para acceder a repositorios privados de GitHub y Bitbucket.
+                            </p>
+                            <div className="oauth-cards-grid">
+                                <OAuthSetupCard
+                                    provider="github"
+                                    providerName="GitHub"
+                                    onSave={() => {
+                                        console.log('GitHub OAuth configured');
+                                        setTimeout(() => setShowOAuthSetup(false), 1500);
+                                    }}
+                                />
+                                <OAuthSetupCard
+                                    provider="bitbucket"
+                                    providerName="Bitbucket"
+                                    onSave={() => {
+                                        console.log('Bitbucket OAuth configured');
+                                        setTimeout(() => setShowOAuthSetup(false), 1500);
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Analysis Form */}
             {showAnalyzeForm && (

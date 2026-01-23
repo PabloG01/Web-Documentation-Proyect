@@ -143,9 +143,9 @@ export const apiKeysAPI = {
     getAll: () => api.get('/api-keys'),
     create: (name, expiresInDays, projectId = null) => api.post('/api-keys', { name, expiresInDays, projectId }),
     revoke: (id) => api.delete(`/api-keys/${id}`),
-    deletePermanently: (id) => api.delete(`/api-keys/${id}/permanent`)
+    deletePermanently: (id) => api.delete(`/api-keys/${id}/permanent`),
+    getUsageStats: (id) => api.get(`/api-keys/${id}/usage`)
 };
-
 // Stats
 export const statsAPI = {
     getStats: () => api.get('/stats')

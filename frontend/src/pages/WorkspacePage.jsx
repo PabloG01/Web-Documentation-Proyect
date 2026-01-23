@@ -50,12 +50,26 @@ function WorkspacePage() {
                 apiSpecsAPI.getAll().catch(() => ({ data: [] })),
                 reposAPI.getAll().catch(() => ({ data: [] }))
             ]);
+
+            // Helper to extract count safely from various response formats
+            const getCount = (res) => {
+                if (!res || !res.data) return 0;
+                // Direct array
+                if (Array.isArray(res.data)) return res.data.length;
+                // Paginated response style { data: [], ... }
+                if (res.data.data && Array.isArray(res.data.data)) return res.data.data.length;
+                // Count property
+                if (typeof res.data.count === 'number') return res.data.count;
+                if (typeof res.data.total === 'number') return res.data.total;
+                return 0;
+            };
+
             setStats({
-                environments: environmentsRes.data?.length || 0,
-                projects: projectsRes.data?.length || 0,
-                documents: docsRes.data?.length || 0,
-                apis: apisRes.data?.length || 0,
-                repos: reposRes.data?.length || 0
+                environments: getCount(environmentsRes),
+                projects: getCount(projectsRes),
+                documents: getCount(docsRes),
+                apis: getCount(apisRes),
+                repos: getCount(reposRes)
             });
         } catch (error) {
             console.error('Error loading stats:', error);

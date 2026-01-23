@@ -129,20 +129,21 @@ function AppGuidePage() {
                 >
                     <h1>👋 Bienvenido a DocApp</h1>
                     <p>
-                        <strong>DocApp</strong> es una plataforma integral para gestionar la documentación de tus proyectos y APIs.
-                        Facilita la creación, organización y visualización de documentación técnica de manera profesional.
+                        <strong>DocApp</strong> es una plataforma integral para gestionar documentación técnica y especificaciones OpenAPI.
+                        Permite centralizar proyectos, generar documentación automáticamente desde código, y gestionar accesos mediante API Keys.
                     </p>
 
                     <div className="info-box">
                         <h3>✨ Características principales</h3>
                         <ul>
-                            <li>🌍 <strong>Entornos</strong>: Organiza tus proyectos por entorno (desarrollo, producción, etc.)</li>
-                            <li>📁 <strong>Proyectos</strong>: Gestiona múltiples proyectos de forma centralizada</li>
-                            <li>📄 <strong>Documentos</strong>: Crea documentación en Markdown con vista previa</li>
-                            <li>🔍 <strong>Repositorios</strong>: Genera documentación automáticamente desde tu código</li>
-                            <li>🧪 <strong>APIs</strong>: Visualiza y prueba especificaciones OpenAPI</li>
-                            <li>⚡ <strong>API Tester</strong>: Prueba endpoints en tiempo real</li>
-                            <li>🔑 <strong>API Keys</strong>: Comparte acceso a proyectos sin necesidad de registro</li>
+                            <li><strong>Autenticación</strong>: Registro, login y OAuth con GitHub/Bitbucket</li>
+                            <li><strong>Entornos</strong>: Organiza proyectos por contexto (Dev, Staging, Prod)</li>
+                            <li><strong>Proyectos</strong>: Contenedores con código, color y workspace integrado</li>
+                            <li><strong>Documentos Markdown</strong>: Editor con vista previa y versionado</li>
+                            <li><strong>Especificaciones OpenAPI</strong>: From JSDoc comments, archivos o repos</li>
+                            <li><strong>Repositorios</strong>: GitHub/Bitbucket con análisis automático de código</li>
+                            <li><strong>API Keys</strong>: Acceso M2M con monitoreo de uso en tiempo real</li>
+                            <li><strong>API Tester</strong>: Prueba endpoints directamente desde la UI</li>
                         </ul>
                     </div>
                 </section>
@@ -155,31 +156,42 @@ function AppGuidePage() {
                 >
                     <h1>🚀 Primeros Pasos</h1>
 
-                    <h2>1. Registro e Inicio de Sesión</h2>
-                    <p>Para comenzar a usar DocApp, primero debes crear una cuenta:</p>
+                    <h2>1. Autenticación y Registro</h2>
+                    <p>DocApp ofrece múltiples formas de autenticación para adaptarse a tu flujo de trabajo:</p>
 
                     <div className="steps-list">
                         <div className="step-item">
                             <div className="step-number">1</div>
                             <div className="step-content">
-                                <h3>Crear una cuenta</h3>
-                                <p>Haz clic en <strong>"Registrarse"</strong> en el menú superior y completa el formulario con tu información.</p>
+                                <h3>Registro Tradicional</h3>
+                                <p>Crea una cuenta con tu <strong>email y contraseña</strong> desde el botón "Registrarse".</p>
+                                <ul>
+                                    <li>Username único</li>
+                                    <li>Email válido</li>
+                                    <li>Contraseña segura</li>
+                                </ul>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">2</div>
                             <div className="step-content">
-                                <h3>Iniciar sesión</h3>
-                                <p>Una vez registrado, inicia sesión con tus credenciales desde el botón <strong>"Iniciar Sesión"</strong>.</p>
+                                <h3>OAuth con GitHub/Bitbucket (Opcional)</h3>
+                                <p>Conecta tu cuenta de <strong>GitHub</strong> o <strong>Bitbucket</strong> para:</p>
+                                <ul>
+                                    <li>Importar repositorios directamente</li>
+                                    <li>Analizar código automáticamente</li>
+                                    <li>Generar specs desde repos privados</li>
+                                </ul>
+                                <p><em>Requiere configurar credenciales OAuth (Client ID y Secret) por usuario</em></p>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">3</div>
                             <div className="step-content">
-                                <h3>Acceder al Workspace</h3>
-                                <p>Después de iniciar sesión, verás el menú completo con la opción <strong>"Workspace"</strong> donde podrás gestionar todo tu contenido.</p>
+                                <h3>Sesión Única</h3>
+                                <p>DocApp mantiene <strong>una sola sesión activa</strong> por usuario para mayor seguridad. Al iniciar sesión en un nuevo dispositivo, las sesiones anteriores se cerrarán automáticamente.</p>
                             </div>
                         </div>
                     </div>
@@ -193,7 +205,8 @@ function AppGuidePage() {
                 >
                     <h1>🌍 Entornos</h1>
                     <p>
-                        Los entornos te permiten organizar tus proyectos según el contexto: desarrollo, staging, producción, etc.
+                        Los entornos te permiten organizar tus proyectos según el contexto: <strong>desarrollo, staging, producción,</strong> etc.
+                        Son especialmente útiles para equipos que trabajan con múltiples ambientes.
                     </p>
 
                     <h2>Crear un nuevo entorno</h2>
@@ -208,7 +221,7 @@ function AppGuidePage() {
                         <div className="step-item">
                             <div className="step-number">2</div>
                             <div className="step-content">
-                                <p>Haz clic en el botón <strong>"Crear Entorno"</strong></p>
+                                <p>Haz clic en el botón <strong>"+ Crear Entorno"</strong></p>
                             </div>
                         </div>
 
@@ -217,8 +230,9 @@ function AppGuidePage() {
                             <div className="step-content">
                                 <p>Completa el formulario:</p>
                                 <ul>
-                                    <li><strong>Nombre</strong>: Ej. "Desarrollo", "Producción"</li>
-                                    <li><strong>Descripción</strong>: Breve descripción del entorno</li>
+                                    <li><strong>Nombre</strong>: Ej. "Desarrollo", "Producción", "Staging"</li>
+                                    <li><strong>Descripción</strong>: Breve descripción del propósito del entorno</li>
+                                    <li><strong>Color</strong>: Elige un color para identificación visual rápida</li>
                                 </ul>
                             </div>
                         </div>
@@ -226,7 +240,7 @@ function AppGuidePage() {
 
                     <div className="warning-box">
                         <h3>💡 Consejo</h3>
-                        <p>Crea entornos separados para cada etapa de tu ciclo de desarrollo para mantener una mejor organización.</p>
+                        <p>Usa entornos separados para cada etapa de tu ciclo de desarrollo. Los proyectos se pueden filtrar por entorno para una vista rápida del estado de cada ambiente.</p>
                     </div>
                 </section>
 
@@ -237,7 +251,7 @@ function AppGuidePage() {
                     className="guide-section"
                 >
                     <h1>📁 Proyectos</h1>
-                    <p>Los proyectos son contenedores para tu documentación y APIs. Cada proyecto se vincula a un entorno.</p>
+                    <p>Los proyectos son la unidad organizativa principal de DocApp. Cada proyecto es un contenedor para documentos, especificaciones OpenAPI y repositorios vinculados.</p>
 
                     <h2>Crear un proyecto</h2>
                     <div className="steps-list">
@@ -251,30 +265,43 @@ function AppGuidePage() {
                         <div className="step-item">
                             <div className="step-number">2</div>
                             <div className="step-content">
-                                <p>Haz clic en el botón <strong>"Crear Proyecto"</strong></p>
+                                <p>Haz clic en el botón <strong>"+ Crear Proyecto"</strong></p>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">3</div>
                             <div className="step-content">
-                                <p>Completa los campos:</p>
+                                <p>Completa el formulario con toda la información:</p>
                                 <ul>
-                                    <li><strong>Nombre</strong>: Nombre del proyecto</li>
-                                    <li><strong>Extensión</strong>: Identificador único (ej. "api-v1")</li>
-                                    <li><strong>Descripción</strong>: Descripción del proyecto</li>
-                                    <li><strong>Entorno</strong>: Selecciona el entorno asociado</li>
+                                    <li><strong>Código</strong>: Identificador corto (ej. "SGG", "API", "CORE") - aparecerá como prefijo en todos los recursos</li>
+                                    <li><strong>Nombre</strong>: Nombre descriptivo completo del proyecto</li>
+                                    <li><strong>Descripción</strong>: Detalles sobre el proyecto (opcional)</li>
+                                    <li><strong>Color</strong>: Color para identificación visual – aparecerá como borde lateral en las tarjetas</li>
+                                    <li><strong>Entorno</strong>: Asigna el entorno al que pertenece (Dev, Prod, etc.)</li>
                                 </ul>
                             </div>
                         </div>
                     </div>
 
+                    <div className="info-box">
+                        <h3>✨ Workspace Integrado</h3>
+                        <p>Al hacer clic en "Ver Workspace" en un proyecto, accedes a una vista unificada con:</p>
+                        <ul>
+                            <li>Todos los <strong>documentos</strong> del proyecto</li>
+                            <li>Todas las <strong>especificaciones OpenAPI</strong> asociadas</li>
+                            <li>Todos los <strong>repositorios</strong> vinculados</li>
+                            <li>Acceso directo al <strong>API Tester</strong></li>
+                        </ul>
+                    </div>
+
                     <h2>Gestionar proyectos</h2>
                     <p>Desde la lista de proyectos puedes:</p>
                     <ul>
-                        <li>✏️ Editar información del proyecto</li>
-                        <li>🗑️ Eliminar proyectos que ya no necesites</li>
-                        <li>👁️ Ver todos los documentos y APIs asociados</li>
+                        <li>✏️ <strong>Editar</strong>: Modificar nombre, código, color y entorno</li>
+                        <li>🗑️ <strong>Eliminar</strong>: Borrar proyecto y todo su contenido asociado</li>
+                        <li>👁️ <strong>Ver Workspace</strong>: Acceder a todos los recursos del proyecto</li>
+                        <li>🔍 <strong>Filtrar</strong>: Por entorno o por búsqueda de texto</li>
                     </ul>
                 </section>
 
@@ -285,39 +312,43 @@ function AppGuidePage() {
                     className="guide-section"
                 >
                     <h1>📄 Documentos</h1>
-                    <p>Crea y gestiona documentación técnica en formato Markdown con vista previa en tiempo real.</p>
+                    <p>Crea y gestiona documentación técnica en formato <strong>Markdown</strong> con vista previa en tiempo real. Cada documento se asocia a un proyecto específico.</p>
 
                     <h2>Crear un documento</h2>
                     <div className="steps-list">
                         <div className="step-item">
                             <div className="step-number">1</div>
                             <div className="step-content">
-                                <p>Ve a <strong>Workspace → Documentos</strong></p>
+                                <p>Ve a <strong>Crear → Documento</strong> en el menú principal</p>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">2</div>
                             <div className="step-content">
-                                <p>Haz clic en el botón <strong>"Crear Documento"</strong></p>
+                                <p>Completa el formulario con toda la información:</p>
+                                <ul>
+                                    <li><strong>Proyecto</strong>: Selecciona el proyecto al que pertenece</li>
+                                    <li><strong>Tipo</strong>: Manual, Tutorial, Guía, Referencia, API Doc, etc.</li>
+                                    <li><strong>Título</strong>: Nombre descriptivo del documento</li>
+                                    <li><strong>Descripción</strong>: Resumen breve del contenido</li>
+                                    <li><strong>Contenido (Markdown)</strong>: Escribe usando sintaxis Markdown</li>
+                                    <li><strong>Versión</strong>: Número de versión (ej. 1.0.0)</li>
+                                    <li><strong>Autor</strong>: Nombre del autor</li>
+                                </ul>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">3</div>
                             <div className="step-content">
-                                <p>Completa el formulario:</p>
-                                <ul>
-                                    <li><strong>Título</strong>: Nombre del documento</li>
-                                    <li><strong>Proyecto</strong>: Proyecto al que pertenece</li>
-                                    <li><strong>Contenido</strong>: Escribe en Markdown</li>
-                                </ul>
+                                <p>Usa la <strong>vista previa</strong> para verificar cómo se verá el documento renderizado</p>
                             </div>
                         </div>
                     </div>
 
                     <h2>Soporte de Markdown</h2>
-                    <p>Los documentos soportan todo el estándar Markdown:</p>
+                    <p>Los documentos soportan todo el estándar Markdown incluyendo:</p>
 
                     <CodeBlock
                         language="markdown"
@@ -348,48 +379,71 @@ function ejemplo() {
                     ref={el => sectionRefs.current['repositorios'] = el}
                     className="guide-section"
                 >
-                    <h1>🔍 Repositorios</h1>
+                    <h1>� Repositorios</h1>
                     <p>
-                        DocApp puede analizar automáticamente el código de tus repositorios y generar documentación OpenAPI
-                        usando inteligencia artificial.
+                        Conecta repositorios de <strong>GitHub</strong> o <strong>Bitbucket</strong> para analizar automáticamente el código
+                        y generar especificaciones OpenAPI desde comentarios JSDoc/Swagger o estructura de rutas.
                     </p>
 
-                    <h2>Analizar un repositorio</h2>
+                    <h2>Conectar con GitHub/Bitbucket</h2>
                     <div className="steps-list">
                         <div className="step-item">
                             <div className="step-number">1</div>
                             <div className="step-content">
-                                <p>Ve a <strong>Workspace → Repositorios</strong></p>
+                                <h3>Configurar OAuth (Opcional)</h3>
+                                <p>Para acceder a repositorios privados, configura tus credenciales OAuth:</p>
+                                <ul>
+                                    <li>Crea una OAuth App en GitHub o Bitbucket</li>
+                                    <li>Guarda el <strong>Client ID</strong> y <strong>Client Secret</strong> en tu perfil de usuario</li>
+                                    <li>Define el <strong>Callback URL</strong> de tu aplicación</li>
+                                </ul>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">2</div>
                             <div className="step-content">
-                                <p>Ingresa la <strong>URL del repositorio</strong> (debe ser público)</p>
+                                <h3>Conectar Cuenta</h3>
+                                <p>Click en <strong>"Conectar GitHub"</strong> o <strong>"Conectar Bitbucket"</strong> y autoriza el acceso</p>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">3</div>
                             <div className="step-content">
-                                <p>Haz clic en <strong>"Analizar Repositorio"</strong></p>
+                                <h3>Seleccionar Repositorio</h3>
+                                <p>Elige visibilidad (públicos/privados/todos) y selecciona el repositorio a analizar</p>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">4</div>
                             <div className="step-content">
-                                <p>El sistema analizará el código y generará la especificación OpenAPI automáticamente</p>
+                                <h3>Analizar Código</h3>
+                                <p>El sistema buscará:</p>
+                                <ul>
+                                    <li>Archivos con rutas API (.js, .ts, .py, etc.)</li>
+                                    <li>Comentarios JSDoc/Swagger</li>
+                                    <li>Endpoints y métodos HTTP</li>
+                                    <li>Parámetros y schemas</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="step-item">
+                            <div className="step-number">5</div>
+                            <div className="step-content">
+                                <h3>Generar Especificación</h3>
+                                <p>Selecciona archivos analizados y genera una especificación OpenAPI completa</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="info-box">
-                        <h3>🤖 Análisis con IA</h3>
+                        <h3>🤖 Análisis Automático</h3>
                         <p>
-                            El sistema utiliza Google Gemini para analizar tu código, detectar endpoints,
-                            parámetros y generar ejemplos realistas basados en la estructura de tu proyecto.
+                            El sistema puede usar <strong>Google Gemini</strong> (si configuras API Key) para mejorar la documentación generada,
+                            agregando descripciones, ejemplos y detalles adicionales.
                         </p>
                     </div>
 
@@ -466,7 +520,7 @@ function ejemplo() {
                         <div className="step-item">
                             <div className="step-number">4</div>
                             <div className="step-content">
-                                <p>Si no existen tokens la applicación generará una especificación OpenAPI basadas en el código</p>
+                                <p>Si no existen tokens la aplicación generará una especificación OpenAPI basadas en el código</p>
                             </div>
                         </div>
 
@@ -586,20 +640,21 @@ function ejemplo() {
                     ref={el => sectionRefs.current['api-keys'] = el}
                     className="guide-section"
                 >
-                    <h1>🔑 API Keys</h1>
+                    <h1>🔑 API Keys - Acceso Machine-to-Machine</h1>
                     <p>
-                        Las API Keys te permiten <strong>compartir acceso a proyectos específicos</strong> con personas que no tienen
-                        una cuenta en DocApp, permitiéndoles visualizar la documentación de tus APIs.
+                        Las API Keys permiten <strong>acceso programático</strong> (M2M - Machine to Machine) a la plataforma sin necesidad de autenticación
+                        con usuario y contraseña. Ideal para integraciones, CI/CD, scripts automatizados y acceso desde otras aplicaciones.
                     </p>
 
-                    <h2>¿Para qué sirven las API Keys?</h2>
                     <div className="info-box">
-                        <h3>💡 Casos de uso</h3>
+                        <h3>✨ ¿Qué son las API Keys?</h3>
+                        <p>Son claves de acceso que reemplazan la autenticación tradicional de usuario, permitiendo:</p>
                         <ul>
-                            <li>Compartir documentación de APIs con clientes externos</li>
-                            <li>Permitir a colaboradores visualizar especificaciones sin necesidad de registro</li>
-                            <li>Generar acceso público a documentación de proyectos específicos</li>
-                            <li>Facilitar la integración con terceros sin comprometer la seguridad</li>
+                            <li><strong>Acceso automatizado</strong>: Scripts, servidores, piplines CI/CD</li>
+                            <li><strong>Acceso global o restringido</strong>: Todas tus resources o solo un proyecto</li>
+                            <li><strong>Monitoreo de uso</strong>: Rastrea cada acceso en tiempo real</li>
+                            <li><strong>Expiración configurable</strong>: Define tiempo de vida o sin expiración</li>
+                            <li><strong>Revocación instantánea</strong>: Desactiva acceso en cualquier momento</li>
                         </ul>
                     </div>
 
@@ -608,70 +663,135 @@ function ejemplo() {
                         <div className="step-item">
                             <div className="step-number">1</div>
                             <div className="step-content">
-                                <p>Ve a <strong>Workspace → API Keys</strong></p>
+                                <p>Ve a <strong>Workspace → API Keys</strong> y click en <strong>"+ Generar Nueva Key"</strong></p>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">2</div>
                             <div className="step-content">
-                                <p>Haz clic en el botón <strong>"Crear API Key"</strong></p>
+                                <h3>Configurar la Key</h3>
+                                <ul>
+                                    <li><strong>Nombre</strong>: Identificador descriptivo (ej. "Servidor Producción", "CI/CD Pipeline")</li>
+                                    <li><strong>Días hasta expiración</strong>: Déjalo vacío para sin expiración, o define días (ej. 90)</li>
+                                    <li><strong>Ámbito de Acceso</strong>:
+                                        <ul>
+                                            <li>🌐 <strong>Acceso Global</strong>: Accede a todos tus proyectos, documentos y APIs</li>
+                                            <li>📁 <strong>Proyecto Específico</strong>: Solo accede a recursos del proyecto seleccionado</li>
+                                        </ul>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
 
                         <div className="step-item">
                             <div className="step-number">3</div>
                             <div className="step-content">
-                                <p>Completa el formulario:</p>
+                                <h3>Copiar la Key</h3>
+                                <p><strong>⚠️ IMPORTANTE:</strong> La key completa se muestra <strong>solo una vez</strong>. Cópiala inmediatamente y guárdala de forma segura.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2>Usar la API Key</h2>
+                    <p>Incluye el header <code>X-API-Key</code> en tus requests HTTP:</p>
+
+                    <CodeBlock
+                        language="bash"
+                        title="Ejemplo de uso con curl"
+                        code={`# GET request con API Key
+curl -H "X-API-Key: docapp_xxxxxxxxxxxxxxxxx" \\
+  https://tu-dominio.com/api-specs
+
+# POST request
+curl -X POST \\
+  -H "X-API-Key: docapp_xxxxxxxxxxxxxxxxx" \\
+  -H "Content-Type: application/json" \\
+  -d '{"name": "Mi Especificación"}' \\
+  https://tu-dominio.com/api-specs`}
+                    />
+
+                    <h2>📊 Monitoreo de Uso</h2>
+                    <p>Cada API Key rastrea automáticamente su uso. En la lista de keys verás:</p>
+
+                    <div className="steps-list">
+                        <div className="step-item">
+                            <div className="step-number">1</div>
+                            <div className="step-content">
+                                <h3>Badge de Usos</h3>
+                                <p>Click en el badge <strong>📊 Usos: X</strong> para abrir el modal de estadísticas</p>
+                            </div>
+                        </div>
+
+                        <div className="step-item">
+                            <div className="step-number">2</div>
+                            <div className="step-content">
+                                <h3>Modal de Estadísticas</h3>
+                                <p>Verás información detallada:</p>
                                 <ul>
-                                    <li><strong>Nombre</strong>: Identificador de la API Key (ej. "Cliente XYZ")</li>
-                                    <li><strong>Proyecto</strong>: Selecciona el proyecto al que dará acceso</li>
-                                    <li><strong>Descripción</strong> (opcional): Propósito de la API Key</li>
+                                    <li>📊 <strong>Total de usos</strong>: Contador acumulado de todas las veces que se usó</li>
+                                    <li>📝 <strong>Últimos 10 accesos</strong>: Tabla con detalles de cada uso:
+                                        <ul>
+                                            <li><strong>Fecha/Hora</strong>: Cuándo se usó</li>
+                                            <li><strong>Método HTTP</strong>: GET, POST, PUT, DELETE (con colores)</li>
+                                            <li><strong>Endpoint</strong>: Ruta accedida</li>
+                                            <li><strong>IP</strong>: Dirección IP del cliente</li>
+                                        </ul>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
-
-                        <div className="step-item">
-                            <div className="step-number">4</div>
-                            <div className="step-content">
-                                <p>La aplicación generará una <strong>clave única</strong> automáticamente</p>
-                            </div>
-                        </div>
-
-                        <div className="step-item">
-                            <div className="step-number">5</div>
-                            <div className="step-content">
-                                <p>Copia la API Key y compártela con las personas que necesiten acceso</p>
-                            </div>
-                        </div>
                     </div>
-
-                    <h2>Gestionar API Keys</h2>
-                    <p>Desde la sección de API Keys puedes:</p>
-                    <ul>
-                        <li>📋 Ver todas las API Keys creadas</li>
-                        <li>👁️ Consultar a qué proyecto está asociada cada clave</li>
-                        <li>🗑️ Eliminar API Keys que ya no necesites</li>
-                        <li>📊 Monitorear el uso de cada clave</li>
-                    </ul>
 
                     <div className="warning-box">
                         <h3>🔒 Seguridad</h3>
-                        <p>
-                            Las API Keys solo permiten <strong>visualizar</strong> la documentación del proyecto asociado.
-                            No otorgan permisos de edición ni acceso a otros proyectos. Puedes revocar una API Key
-                            en cualquier momento eliminándola desde la sección de gestión.
-                        </p>
+                        <p>Solo se guardan los <strong>últimos 10 accesos</strong> por eficiencia. Los logs más antiguos se eliminan automáticamente.</p>
+                    </div>
+
+                    <h2>Gestionar API Keys</h2>
+
+                    <div className="benefits-grid">
+                        <div className="benefit-card">
+                            <div className="benefit-icon">🚫</div>
+                            <h3>Revocar</h3>
+                            <p>Desactiva la key sin borrarla. Aparecerá con estado "Revocada" y puedes eliminarla después.</p>
+                        </div>
+
+                        <div className="benefit-card">
+                            <div className="benefit-icon">🗑️</div>
+                            <h3>Eliminar</h3>
+                            <p>Borra permanentemente keys revocadas o expiradas. Solo aparece para keys inactivas.</p>
+                        </div>
+
+                        <div className="benefit-card">
+                            <div className="benefit-icon">⚡</div>
+                            <h3>Estados Visuales</h3>
+                            <p>
+                                ✅ Activa (borde verde)<br />
+                                🚫 Revocada (borde gris)<br />
+                                ❌ Expirada (borde rojo)
+                            </p>
+                        </div>
+
+                        <div className="benefit-card">
+                            <div className="benefit-icon">📊</div>
+                            <h3>Monitoreo</h3>
+                            <p>Rastreo en tiempo real de cada uso con IP, endpoint y método HTTP.</p>
+                        </div>
+                    </div>
+
+                    <div className="info-box">
+                        <h3>💡 Mejores Prácticas</h3>
+                        <ul>
+                            <li>Usa <strong>nombres descriptivos</strong> que identifiquen su propósito</li>
+                            <li>Limita el <strong>alcance</strong> cuando sea posible (por proyecto vs global)</li>
+                            <li>Define <strong>expiración</strong> para keys temporales</li>
+                            <li><strong>Monitorea uso regularmente</strong> para detectar actividad sospechosa</li>
+                            <li><strong>Revoca keys</strong> que no estés usando</li>
+                            <li><strong>Rota keys</strong> periódicamente en producción</li>
+                        </ul>
                     </div>
                 </section>
-
-                <div className="guide-footer">
-                    <h2>¿Necesitas más ayuda?</h2>
-                    <p>
-                        Si tienes dudas sobre alguna funcionalidad específica, consulta la{' '}
-                        <a href="/guides/openapi">Guía OpenAPI</a> para aprender más sobre especificaciones de API.
-                    </p>
-                </div>
             </main>
         </div>
     );

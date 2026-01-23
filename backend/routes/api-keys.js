@@ -154,4 +154,29 @@ router.delete('/:id/permanent', verifyToken, asyncHandler(async (req, res) => {
     res.json({ message: 'API Key eliminada permanentemente' });
 }));
 
+/**
+ * @swagger
+ * /api-keys/{id}/usage:
+ *   get:
+ *     summary: Obtener estadísticas de uso de una API Key
+ *     tags: [API Keys]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ */
+router.get('/:id/usage', verifyToken, asyncHandler(async (req, res) => {
+    const stats = await apiKeysRepository.getUsageStats(req.params.id, req.user.id);
+
+    if (!stats) {
+        throw new AppError('API Key no encontrada', 404);
+    }
+
+    res.json(stats);
+}));
+
 module.exports = router;

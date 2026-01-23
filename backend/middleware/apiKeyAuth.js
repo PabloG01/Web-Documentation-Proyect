@@ -42,9 +42,13 @@ const flexibleAuth = async (req, res, next) => {
             req.apiKeyId = key.id;
             req.apiKeyProjectId = key.project_id; // null si es global, o ID específico
 
-            // Actualizar last_used_at (no bloquear request)
-            apiKeysRepository.updateLastUsed(key.id).catch(err => {
-                console.error('Error updating API key last_used_at:', err);
+            // Actualizar last_used_at y registrar uso (no bloquear request)
+            const endpoint = req.originalUrl || req.url;
+            const method = req.method;
+            const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+
+            apiKeysRepository.updateLastUsed(key.id, endpoint, method, ipAddress).catch(err => {
+                console.error('Error updating API key usage:', err);
             });
 
             return next();
@@ -89,8 +93,13 @@ const apiKeyOnly = async (req, res, next) => {
         req.apiKeyId = key.id;
         req.apiKeyProjectId = key.project_id; // null si es global, o ID específico
 
-        apiKeysRepository.updateLastUsed(key.id).catch(err => {
-            console.error('Error updating API key last_used_at:', err);
+        // Actualizar last_used_at y registrar uso
+        const endpoint = req.originalUrl || req.url;
+        const method = req.method;
+        const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+
+        apiKeysRepository.updateLastUsed(key.id, endpoint, method, ipAddress).catch(err => {
+            console.error('Error updating API key usage:', err);
         });
 
         next();

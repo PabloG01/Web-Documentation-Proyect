@@ -32,9 +32,11 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
       // as they're included in the project list response
 
       // Optimized: Use stats endpoint instead of loading all data
-      const [projectsRes, statsRes] = await Promise.all([
+      const [projectsRes, statsRes, docsRes, apisRes] = await Promise.all([
         projectsAPI.getAll(currentPage, itemsPerPage, environmentId),
-        statsAPI.getStats() // Only counts, not full data
+        statsAPI.getStats(),
+        documentsAPI.getAll(),
+        apiSpecsAPI.getAll()
       ]);
 
       // Manejar formato de respuesta paginada
@@ -46,10 +48,16 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
         setPagination(null);
       }
 
-      // Set documents and apiSpecs as empty arrays since we only need counts
-      // Counts are used for display purposes only
-      setDocuments([]);
-      setApiSpecs([]);
+      // Helper to extract data array safely
+      const getDataArray = (res) => {
+        if (!res || !res.data) return [];
+        if (Array.isArray(res.data)) return res.data;
+        if (res.data.data && Array.isArray(res.data.data)) return res.data.data;
+        return [];
+      };
+
+      setDocuments(getDataArray(docsRes));
+      setApiSpecs(getDataArray(apisRes));
     } catch (err) {
       console.error('Error al cargar datos:', err);
     } finally {

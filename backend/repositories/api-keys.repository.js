@@ -61,7 +61,8 @@ class ApiKeysRepository extends BaseRepository {
                 ak.created_at, 
                 ak.last_used_at, 
                 ak.expires_at, 
-                ak.is_active
+                ak.is_active,
+                ak.usage_count
             FROM api_keys ak
             LEFT JOIN projects p ON ak.project_id = p.id
             WHERE ak.user_id = $1 
@@ -71,15 +72,39 @@ class ApiKeysRepository extends BaseRepository {
     }
 
     /**
-     * Update last_used_at timestamp
+     * Update last_used_at timestamp and log usage
      * @param {number} id - API key ID
+     * @param {string} endpoint - Request endpoint
+     * @param {string} method - HTTP method
+     * @param {string} ipAddress - Client IP address
      */
-    async updateLastUsed(id) {
+    async updateLastUsed(id, endpoint = null, method = null, ipAddress = null) {
+        // Update last used timestamp and increment counter
         await this.query(`
             UPDATE api_keys 
-            SET last_used_at = NOW() 
+            SET last_used_at = NOW(),
+                usage_count = COALESCE(usage_count, 0) + 1
             WHERE id = $1
         `, [id]);
+
+        // Log usage if details provided
+        if (endpoint) {
+            await this.query(`
+                INSERT INTO api_key_usage_logs (api_key_id, endpoint, method, ip_address)
+                VALUES ($1, $2, $3, $4)
+            `, [id, endpoint, method, ipAddress]);
+
+            // Keep only last 10 logs per key
+            await this.query(`
+                DELETE FROM api_key_usage_logs
+                WHERE id IN (
+                    SELECT id FROM api_key_usage_logs
+                    WHERE api_key_id = $1
+                    ORDER BY used_at DESC
+                    OFFSET 10
+                )
+            `, [id]);
+        }
     }
 
     /**
@@ -136,6 +161,36 @@ class ApiKeysRepository extends BaseRepository {
             ORDER BY created_at DESC
         `, [projectId]);
         return result.rows;
+    }
+
+    /**
+     * Get usage statistics for an API key
+     * @param {number} id - API key ID
+     * @param {number} userId - User ID (for ownership check)
+     * @returns {Object} Usage stats including count and recent uses
+     */
+    async getUsageStats(id, userId) {
+        const result = await this.query(`
+            SELECT 
+                ak.usage_count,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'used_at', ul.used_at,
+                            'endpoint', ul.endpoint,
+                            'method', ul.method,
+                            'ip_address', ul.ip_address
+                        ) ORDER BY ul.used_at DESC
+                    ) FILTER (WHERE ul.id IS NOT NULL),
+                    '[]'::json
+                ) as recent_uses
+            FROM api_keys ak
+            LEFT JOIN api_key_usage_logs ul ON ak.id = ul.api_key_id
+            WHERE ak.id = $1 AND ak.user_id = $2
+            GROUP BY ak.id, ak.usage_count
+        `, [id, userId]);
+
+        return result.rows[0] || null;
     }
 }
 

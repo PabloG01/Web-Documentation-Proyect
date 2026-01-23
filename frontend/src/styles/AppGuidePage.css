@@ -133,7 +133,7 @@
 
 .guide-section ul {
     margin: 1rem 0;
-    padding-left: 1.5rem;
+    padding-left: 0.5rem;
     color: #1a1a1a;
 }
 
@@ -166,12 +166,16 @@
 
 /* Info Box */
 .info-box {
+    display: block !important;
+    /* Override flex from GuidesPage.css */
     background: #e8eef7;
     border: 1px solid #c7d2fe;
     border-left: 4px solid #8b5cf6;
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1.5rem 1.5rem 1.5rem 0.75rem;
+    /* top right bottom left */
     margin: 2rem 0;
+    text-align: left !important;
 }
 
 .info-box h3 {
@@ -179,16 +183,46 @@
     margin-top: 0;
     margin-bottom: 1rem;
     font-size: 1.1rem;
+    text-align: left !important;
+}
+
+.info-box p {
+    text-align: left !important;
+    margin: 0.5rem 0;
 }
 
 .info-box ul {
-    margin: 0;
-    padding-left: 1.5rem;
+    margin: 0 !important;
+    padding-left: 0.5rem !important;
+    text-align: left !important;
+    list-style-type: disc !important;
+    display: block !important;
 }
 
-.info-box li {
+/* Override MarkdownRenderer.css if applied */
+.markdown-content .info-box ul,
+.guide-section .info-box ul {
+    margin: 0 !important;
+    padding-left: 0.5rem !important;
+    list-style: disc !important;
+}
+
+.info-box ul li {
     color: #1a1a1a;
     line-height: 1.8;
+    text-align: left !important;
+    margin-bottom: 0.5rem;
+    display: list-item !important;
+    list-style-type: disc !important;
+    padding-left: 0 !important;
+    position: static !important;
+}
+
+/* Eliminar el pseudo-elemento ::before de los li dentro de info-box */
+.info-box ul li::before,
+.guide-section .info-box ul li::before {
+    content: none !important;
+    display: none !important;
 }
 
 /* Warning Box */
@@ -197,8 +231,10 @@
     border: 1px solid #fbbf24;
     border-left: 4px solid #f59e0b;
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1.5rem 1.5rem 1.5rem 0.75rem;
+    /* top right bottom left */
     margin: 2rem 0;
+    text-align: left !important;
 }
 
 .warning-box h3 {
@@ -206,11 +242,68 @@
     margin-top: 0;
     margin-bottom: 0.75rem;
     font-size: 1.1rem;
+    text-align: left !important;
 }
 
 .warning-box p {
     color: #1a1a1a;
     margin: 0;
+    text-align: left !important;
+}
+
+.warning-box ul {
+    margin: 0 !important;
+    padding-left: 0.5rem !important;
+    text-align: left !important;
+    list-style-type: disc !important;
+    display: block !important;
+}
+
+.guide-section .warning-box ul {
+    margin: 0 !important;
+    padding-left: 0.5rem !important;
+    list-style: disc !important;
+}
+
+.warning-box ul li {
+    color: #1a1a1a;
+    line-height: 1.8;
+    display: list-item !important;
+    list-style-type: disc !important;
+    padding-left: 0 !important;
+    position: static !important;
+}
+
+/* Eliminar el pseudo-elemento ::before de los li dentro de warning-box */
+.warning-box ul li::before,
+.guide-section .warning-box ul li::before {
+    content: none !important;
+    display: none !important;
+}
+
+/* Emoji icon styling */
+.emoji-icon {
+    display: inline-block;
+    margin-right: 0.25rem;
+    font-style: normal;
+}
+
+/* ULTRA-SPECIFIC RULES TO OVERRIDE ALL PADDING */
+/* These rules have maximum specificity to override any conflicting CSS */
+.app-guide-page .guide-content .guide-section .info-box ul,
+.guide-content .guide-section .info-box ul,
+div.info-box ul,
+.info-box>ul {
+    padding-left: 0.5rem !important;
+    margin-left: 0 !important;
+}
+
+.app-guide-page .guide-content .guide-section .warning-box ul,
+.guide-content .guide-section .warning-box ul,
+div.warning-box ul,
+.warning-box>ul {
+    padding-left: 0.5rem !important;
+    margin-left: 0 !important;
 }
 
 /* Steps List */
