@@ -21,7 +21,7 @@ const initializeDatabase = async () => {
             await pool.query('SELECT NOW()');
             console.log('Database connection established successfully');
 
-            // Create Users Table
+            // Create Users Table (Updated with all OAuth fields)
             await pool.query(`
               CREATE TABLE IF NOT EXISTS users (
                   id SERIAL PRIMARY KEY,
@@ -29,76 +29,75 @@ const initializeDatabase = async () => {
                   email VARCHAR(100) UNIQUE NOT NULL,
                   password_hash VARCHAR(255) NOT NULL,
                   active_session_token VARCHAR(64),
+                  -- GitHub OAuth
                   github_id VARCHAR(50),
                   github_username VARCHAR(100),
                   github_token TEXT,
                   github_connected_at TIMESTAMP,
+                  github_client_id TEXT,
+                  github_client_secret TEXT,
+                  github_callback_url TEXT,
+                  -- Bitbucket OAuth
+                  bitbucket_id VARCHAR(50),
+                  bitbucket_username VARCHAR(100),
+                  bitbucket_token TEXT,
+                  bitbucket_refresh_token TEXT,
+                  bitbucket_connected_at TIMESTAMP,
+                  bitbucket_client_id TEXT,
+                  bitbucket_client_secret TEXT,
+                  bitbucket_callback_url TEXT,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )
           `);
 
-            // Add GitHub columns if they don't exist (for existing installations)
+            // Migration: Add columns if they don't exist (for backward compatibility)
             await pool.query(`
           DO $$ 
           BEGIN 
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_id') THEN
-                  ALTER TABLE users ADD COLUMN github_id VARCHAR(50);
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_username') THEN
-                  ALTER TABLE users ADD COLUMN github_username VARCHAR(100);
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_token') THEN
-                  ALTER TABLE users ADD COLUMN github_token TEXT;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_connected_at') THEN
-                  ALTER TABLE users ADD COLUMN github_connected_at TIMESTAMP;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_id') THEN
-                  ALTER TABLE users ADD COLUMN bitbucket_id VARCHAR(50);
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_username') THEN
-                  ALTER TABLE users ADD COLUMN bitbucket_username VARCHAR(100);
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_token') THEN
-                  ALTER TABLE users ADD COLUMN bitbucket_token TEXT;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_refresh_token') THEN
-                  ALTER TABLE users ADD COLUMN bitbucket_refresh_token TEXT;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_connected_at') THEN
-                  ALTER TABLE users ADD COLUMN bitbucket_connected_at TIMESTAMP;
-              END IF;
-              -- Per-user OAuth app credentials (encrypted)
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_client_id') THEN
-                  ALTER TABLE users ADD COLUMN github_client_id TEXT;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_client_secret') THEN
-                  ALTER TABLE users ADD COLUMN github_client_secret TEXT;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_callback_url') THEN
-                  ALTER TABLE users ADD COLUMN github_callback_url TEXT;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_client_id') THEN
-                  ALTER TABLE users ADD COLUMN bitbucket_client_id TEXT;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_client_secret') THEN
-                  ALTER TABLE users ADD COLUMN bitbucket_client_secret TEXT;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_callback_url') THEN
-                  ALTER TABLE users ADD COLUMN bitbucket_callback_url TEXT;
-              END IF;
-              -- Active session token for single-session authentication
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_session_token') THEN
-                  ALTER TABLE users ADD COLUMN active_session_token VARCHAR(64);
-              END IF;
+              -- GitHub Columns
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_id') THEN ALTER TABLE users ADD COLUMN github_id VARCHAR(50); END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_username') THEN ALTER TABLE users ADD COLUMN github_username VARCHAR(100); END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_token') THEN ALTER TABLE users ADD COLUMN github_token TEXT; END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_connected_at') THEN ALTER TABLE users ADD COLUMN github_connected_at TIMESTAMP; END IF;
+              
+              -- Bitbucket Columns
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_id') THEN ALTER TABLE users ADD COLUMN bitbucket_id VARCHAR(50); END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_username') THEN ALTER TABLE users ADD COLUMN bitbucket_username VARCHAR(100); END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_token') THEN ALTER TABLE users ADD COLUMN bitbucket_token TEXT; END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_refresh_token') THEN ALTER TABLE users ADD COLUMN bitbucket_refresh_token TEXT; END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_connected_at') THEN ALTER TABLE users ADD COLUMN bitbucket_connected_at TIMESTAMP; END IF;
+              
+              -- OAuth App Credentials
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_client_id') THEN ALTER TABLE users ADD COLUMN github_client_id TEXT; END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_client_secret') THEN ALTER TABLE users ADD COLUMN github_client_secret TEXT; END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='github_callback_url') THEN ALTER TABLE users ADD COLUMN github_callback_url TEXT; END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_client_id') THEN ALTER TABLE users ADD COLUMN bitbucket_client_id TEXT; END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_client_secret') THEN ALTER TABLE users ADD COLUMN bitbucket_client_secret TEXT; END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bitbucket_callback_url') THEN ALTER TABLE users ADD COLUMN bitbucket_callback_url TEXT; END IF;
+              
+              -- Session
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_session_token') THEN ALTER TABLE users ADD COLUMN active_session_token VARCHAR(64); END IF;
           END $$;
       `);
 
-            // Create Projects Table
+            // Create Environments Table
+            await pool.query(`
+              CREATE TABLE IF NOT EXISTS environments (
+                  id SERIAL PRIMARY KEY,
+                  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                  name VARCHAR(100) NOT NULL,
+                  description TEXT,
+                  color VARCHAR(7) DEFAULT '#10b981',
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+            `);
+
+            // Create Projects Table (Updated with environment_id)
             await pool.query(`
               CREATE TABLE IF NOT EXISTS projects (
                   id SERIAL PRIMARY KEY,
                   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                  environment_id INTEGER REFERENCES environments(id) ON DELETE SET NULL,
                   code VARCHAR(20) NOT NULL,
                   name VARCHAR(100) NOT NULL,
                   description TEXT,
@@ -106,6 +105,16 @@ const initializeDatabase = async () => {
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )
           `);
+
+            // Migration for projects
+            await pool.query(`
+              DO $$ 
+              BEGIN 
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='environment_id') THEN
+                      ALTER TABLE projects ADD COLUMN environment_id INTEGER REFERENCES environments(id) ON DELETE SET NULL;
+                  END IF;
+              END $$;
+            `);
 
             // Create Documents Table
             await pool.query(`
@@ -124,7 +133,7 @@ const initializeDatabase = async () => {
               )
           `);
 
-            // Create API Specs Table
+            // Create API Specs Table (Updated with source fields)
             await pool.query(`
               CREATE TABLE IF NOT EXISTS api_specs (
                   id SERIAL PRIMARY KEY,
@@ -140,7 +149,20 @@ const initializeDatabase = async () => {
               )
           `);
 
-            // Create Repo Connections Table
+            // Migration for api_specs
+            await pool.query(`
+              DO $$ 
+              BEGIN 
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_specs' AND column_name='source_type') THEN
+                      ALTER TABLE api_specs ADD COLUMN source_type VARCHAR(50) DEFAULT 'json';
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_specs' AND column_name='source_code') THEN
+                      ALTER TABLE api_specs ADD COLUMN source_code TEXT;
+                  END IF;
+              END $$;
+            `);
+
+            // Create Repo Connections Table (Updated with private repo fields)
             await pool.query(`
               CREATE TABLE IF NOT EXISTS repo_connections (
                   id SERIAL PRIMARY KEY,
@@ -157,6 +179,19 @@ const initializeDatabase = async () => {
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               )
           `);
+
+            // Migration for repo_connections
+            await pool.query(`
+              DO $$ 
+              BEGIN 
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='repo_connections' AND column_name='auth_token_encrypted') THEN
+                      ALTER TABLE repo_connections ADD COLUMN auth_token_encrypted TEXT;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='repo_connections' AND column_name='is_private') THEN
+                      ALTER TABLE repo_connections ADD COLUMN is_private BOOLEAN DEFAULT FALSE;
+                  END IF;
+              END $$;
+            `);
 
             // Create Repo Files Table
             await pool.query(`
@@ -194,74 +229,42 @@ const initializeDatabase = async () => {
           ON api_spec_versions(api_spec_id, version_number DESC)
       `);
 
-            // Migration: Add auth_token_encrypted and is_private columns to repo_connections
-            await pool.query(`
-          DO $$ 
-          BEGIN 
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='repo_connections' AND column_name='auth_token_encrypted') THEN
-                  ALTER TABLE repo_connections ADD COLUMN auth_token_encrypted TEXT;
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='repo_connections' AND column_name='is_private') THEN
-                  ALTER TABLE repo_connections ADD COLUMN is_private BOOLEAN DEFAULT FALSE;
-              END IF;
-          END $$;
-      `);
-
-            // Migration: Add source_type and source_code columns to api_specs
-            await pool.query(`
-          DO $$ 
-          BEGIN 
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_specs' AND column_name='source_type') THEN
-                  ALTER TABLE api_specs ADD COLUMN source_type VARCHAR(50) DEFAULT 'json';
-              END IF;
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_specs' AND column_name='source_code') THEN
-                  ALTER TABLE api_specs ADD COLUMN source_code TEXT;
-              END IF;
-          END $$;
-      `);
-
-
-            // Create Environments Table
-            await pool.query(`
-              CREATE TABLE IF NOT EXISTS environments (
-                  id SERIAL PRIMARY KEY,
-                  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                  name VARCHAR(100) NOT NULL,
-                  description TEXT,
-                  color VARCHAR(7) DEFAULT '#10b981',
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-              )
-            `);
 
             // Create API Keys Table
             await pool.query(`
               CREATE TABLE IF NOT EXISTS api_keys (
                   id SERIAL PRIMARY KEY,
                   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                  project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
                   key_hash VARCHAR(255) NOT NULL UNIQUE,
                   name VARCHAR(100) NOT NULL,
                   prefix VARCHAR(20) NOT NULL,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   last_used_at TIMESTAMP,
                   expires_at TIMESTAMP,
-                  is_active BOOLEAN DEFAULT true
+                  is_active BOOLEAN DEFAULT true,
+                  usage_count INTEGER DEFAULT 0
               )
+            `);
+
+            // Migration for api_keys
+            await pool.query(`
+                DO $$ 
+                BEGIN 
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_keys' AND column_name='project_id') THEN
+                        ALTER TABLE api_keys ADD COLUMN project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='api_keys' AND column_name='usage_count') THEN
+                        ALTER TABLE api_keys ADD COLUMN usage_count INTEGER DEFAULT 0;
+                    END IF;
+                END $$;
             `);
 
             // Create indexes for API Keys
             await pool.query(`
               CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
               CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
-            `);
-
-            // Migration: Add environment_id to projects
-            await pool.query(`
-              DO $$ 
-              BEGIN 
-                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='environment_id') THEN
-                      ALTER TABLE projects ADD COLUMN environment_id INTEGER REFERENCES environments(id) ON DELETE SET NULL;
-                  END IF;
-              END $$;
+              CREATE INDEX IF NOT EXISTS idx_api_keys_project_id ON api_keys(project_id);
             `);
 
             console.log('✅ Database tables initialized successfully');

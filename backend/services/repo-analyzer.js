@@ -32,7 +32,7 @@ const FRAMEWORK_PATTERNS = {
     express: {
         type: 'node',
         packageDeps: ['express'],
-        codePatterns: [/app\.(get|post|put|delete|patch)\s*\(/g, /router\.(get|post|put|delete|patch)\s*\(/g]
+        codePatterns: [/\w+\.(get|post|put|delete|patch)\s*\(/g]
     },
     nestjs: {
         type: 'node',
@@ -348,7 +348,8 @@ function analyzeFileContent(content, framework = null) {
     // Extract unique endpoints using Set to avoid duplicates
     const seenEndpoints = new Set();
     const routePatterns = [
-        /(?:router|app)\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+        // Match any object calling standard HTTP methods (e.g. app.get, router.post, api.put, etc.)
+        /\w+\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
         /Route::(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
         /fastify\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi
     ];

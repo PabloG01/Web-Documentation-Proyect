@@ -45,8 +45,8 @@ function parseExpressFile(content, filePath) {
     // Parse route definitions - track seen to avoid duplicates
     const seenEndpoints = new Set();
 
-    // Pattern 1: router.method('/path', ...) or app.method('/path', ...)
-    const standardRoutePattern = /(?:router|app)\.(get|post|put|patch|delete|options|head)\s*\(\s*['"`]([^'"`]+)['"`]/gi;
+    // Pattern 1: object.method('/path', ...) - broader match for router, app, api, etc.
+    const standardRoutePattern = /\w+\.(get|post|put|patch|delete|options|head)\s*\(\s*['"`]([^'"`]+)['"`]/gi;
     let match;
 
     while ((match = standardRoutePattern.exec(content)) !== null) {

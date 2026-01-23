@@ -68,6 +68,15 @@ function CreatePage() {
   const handleCreationTypeSelect = (type) => {
     console.log('Selected creation type:', type);
 
+    // If type is document but no projects exist, redirect to project creation
+    if (type === 'document' && !hasProjects) {
+      alert('⚠️ Antes de crear un documento, debes crear al menos un proyecto.');
+      setCreationType('project');
+      setShowProjectForm(true);
+      setStep(1);
+      return;
+    }
+
     setCreationType(type);
     if (type === 'project') {
       setShowProjectForm(true);
@@ -89,6 +98,8 @@ function CreatePage() {
     setSelectedType(type);
     setStep(3);
   };
+
+  // ... (keeping handleEnvironmentSubmit and handleProjectSubmit as is) ...
 
   const handleEnvironmentSubmit = async (e) => {
     e.preventDefault();
@@ -116,12 +127,20 @@ function CreatePage() {
 
   const handleProjectSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate environment
+    const envId = environmentId || newProject.environment_id;
+    if (!envId) {
+      alert('❌ Error: Debes seleccionar un entorno para el proyecto.');
+      return;
+    }
+
     try {
       setSaving(true);
       const projectData = {
         ...newProject,
         code: newProject.code.toUpperCase(),
-        environment_id: environmentId || newProject.environment_id || null
+        environment_id: envId
       };
       const response = await projectsAPI.create(projectData);
       alert('✅ ¡Proyecto creado exitosamente!');
@@ -188,17 +207,14 @@ function CreatePage() {
       setStep(1);
       setSelectedProjectId(null);
     } else if (step === 1) {
-      // Only go back to step 0 if there are projects (choice is available)
-      if (hasProjects) {
-        setStep(0);
-        setCreationType(null);
-        setShowProjectForm(false);
-        // Clean up URL if going back to start
-        if (environmentId) {
-          navigate('/crear');
-        }
+      // Always allow going back to step 0 if we started there
+      setStep(0);
+      setCreationType(null);
+      setShowProjectForm(false);
+      // Clean up URL if going back to start
+      if (environmentId) {
+        navigate('/crear');
       }
-      // If no projects, stay on project form (can't go back)
     }
   };
 
@@ -222,97 +238,59 @@ function CreatePage() {
     );
   }
 
-  // NO PROJECTS: Force project creation first
-  if (!hasProjects && step === 0) {
+  const hasEnvironments = environments.length > 0;
+
+  // NO ENVIRONMENTS: Force environment creation first
+  if (initialCheckDone && environments.length === 0 && step === 0) {
     return (
       <div className="create-page">
         <div className="page-header">
           <h1>Bienvenido</h1>
-          <p>Para comenzar, crea tu primer proyecto</p>
+          <p>Para comenzar, crea tu primer entorno</p>
         </div>
         <div className="welcome-message">
-          <h2>¡Comienza creando un proyecto!</h2>
-          <p>Los proyectos te ayudan a organizar tu documentación. Una vez que tengas al menos un proyecto, podrás crear documentos.</p>
+          <h2>¡Comienza creando un entorno!</h2>
+          <p>Los entornos agrupan tus proyectos (ej: Desarrollo, Producción, o por Cliente). Debes crear al menos un entorno antes de crear proyectos.</p>
         </div>
         <div className="project-form-container">
-          <form className="create-project-form-page" onSubmit={handleProjectSubmit}>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Código del Proyecto*</label>
-                <input
-                  type="text"
-                  value={newProject.code}
-                  onChange={(e) => setNewProject({ ...newProject, code: e.target.value.toUpperCase() })}
-                  placeholder="PRY"
-                  maxLength="10"
-                  required
-                />
-                <small>Máx 10 caracteres, sin espacios</small>
-              </div>
-              <div className="form-group">
-                <label>Color</label>
-                <div className="color-picker">
-                  {colors.map(color => (
-                    <div
-                      key={color}
-                      className={`color-option ${newProject.color === color ? 'selected' : ''}`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setNewProject({ ...newProject, color })}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
+          <form className="create-project-form-page" onSubmit={handleEnvironmentSubmit}>
             <div className="form-group">
-              <label>Entorno</label>
-              <select
-                value={environmentId || newProject.environment_id || ''}
-                onChange={(e) => setNewProject({ ...newProject, environment_id: e.target.value })}
-                disabled={!!environmentId}
-                className="form-select"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  background: 'var(--bg-primary, #f8fafc)',
-                  border: '1px solid var(--border-color, #e2e8f0)',
-                  borderRadius: '8px',
-                  color: 'var(--text-primary)',
-                  fontSize: '1rem'
-                }}
-              >
-                <option value="">-- Sin Entorno (General) --</option>
-                {environments.map(env => (
-                  <option key={env.id} value={env.id}>
-                    {env.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Nombre del Proyecto*</label>
+              <label>Nombre del Entorno*</label>
               <input
                 type="text"
-                value={newProject.name}
-                onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                placeholder="Nombre descriptivo"
+                value={newEnvironment.name}
+                onChange={(e) => setNewEnvironment({ ...newEnvironment, name: e.target.value })}
+                placeholder="Ej: Cliente Coexca"
                 required
               />
             </div>
 
             <div className="form-group">
+              <label>Color</label>
+              <div className="color-picker">
+                {['#10b981', '#3b82f6', '#f59e0b', '#6366f1', '#ec4899'].map(color => (
+                  <div
+                    key={color}
+                    className={`color-option ${newEnvironment.color === color ? 'selected' : ''}`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setNewEnvironment({ ...newEnvironment, color })}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group">
               <label>Descripción</label>
               <textarea
-                value={newProject.description}
-                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                placeholder="Descripción opcional del proyecto"
+                value={newEnvironment.description}
+                onChange={(e) => setNewEnvironment({ ...newEnvironment, description: e.target.value })}
+                placeholder="Descripción opcional"
                 rows="3"
               />
             </div>
 
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Creando...' : 'Crear mi primer proyecto'}
+              {saving ? 'Creando...' : 'Crear mi primer entorno'}
             </button>
           </form>
         </div>
@@ -320,8 +298,8 @@ function CreatePage() {
     );
   }
 
-  // Step 0: Choose creation type (only available if projects exist)
-  if (step === 0 && hasProjects) {
+  // Step 0: Choose creation type (Always available if environments exist)
+  if (step === 0) {
     return (
       <div className="create-page">
         <div className="page-header">
@@ -377,11 +355,12 @@ function CreatePage() {
               </div>
 
               <div className="form-group">
-                <label>Entorno</label>
+                <label>Entorno*</label>
                 <select
                   value={environmentId || newProject.environment_id || ''}
                   onChange={(e) => setNewProject({ ...newProject, environment_id: e.target.value })}
                   disabled={!!environmentId}
+                  required
                   className="form-select"
                   style={{
                     width: '100%',
@@ -393,7 +372,7 @@ function CreatePage() {
                     fontSize: '1rem'
                   }}
                 >
-                  <option value="">-- Sin Entorno (General) --</option>
+                  <option value="">-- Selecciona un Entorno --</option>
                   {environments.map(env => (
                     <option key={env.id} value={env.id}>
                       {env.name}
