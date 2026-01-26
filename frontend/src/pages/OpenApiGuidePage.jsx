@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import GuideSidebar from '../components/GuideSidebar';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import '../styles/OpenApiGuidePage.css';
+import '../styles/AppGuidePage.css'; // Shared styles for guides
+import '../styles/OpenApiGuidePage.css'; // Local overrides
 import '../styles/MarkdownRenderer.css';
 import '../styles/CodeBlockOverrides.css';
 
@@ -83,7 +84,7 @@ function OpenApiGuidePage() {
     }, []);
 
     return (
-        <div className="openapi-guide-page">
+        <div className="app-guide-page">
             <GuideSidebar activeSection={activeSection} onNavigate={handleNavigate} />
 
             <main className="guide-content">
@@ -94,64 +95,41 @@ function OpenApiGuidePage() {
                     className="guide-section"
                 >
                     <h1>¿Qué es OpenAPI?</h1>
-                    <p>
-                        OpenAPI (anteriormente conocido como Swagger) es una <strong>especificación estándar</strong> para
-                        describir APIs RESTful de manera legible tanto para humanos como para máquinas.
+                    <p className="lead-text">
+                        OpenAPI (anteriormente conocido como Swagger) es el estándar mundial para describir APIs RESTful.
+                        Es un contrato legible tanto para humanos como para máquinas que potencia todo tu ciclo de desarrollo.
                     </p>
 
-                    <div className="info-box">
-                        <h3>🎯 Características principales</h3>
-                        <ul>
-                            <li>📝 Documentación automática e interactiva</li>
-                            <li>🔄 Generación de código cliente y servidor</li>
-                            <li>✅ Validación de peticiones y respuestas</li>
-                            <li>🧪 Testing de APIs simplificado</li>
-                            <li>🤝 Contrato entre frontend y backend</li>
-                        </ul>
-                    </div>
-                </section>
-
-                <section
-                    id="why-use-openapi"
-                    ref={el => sectionRefs.current['why-use-openapi'] = el}
-                    className="guide-section"
-                >
-                    <h2>¿Por qué usar OpenAPI?</h2>
-
-                    <div className="benefits-grid">
-                        <div className="benefit-card">
-                            <div className="benefit-icon">📚</div>
-                            <h3>Documentación siempre actualizada</h3>
-                            <p>La documentación se genera automáticamente desde tu código</p>
+                    <div className="features-grid">
+                        <div className="feature-card">
+                            <div className="feature-icon">📝</div>
+                            <h3>Auto-Documentación</h3>
+                            <p>Convierte tu código en documentación interactiva y preciosa sin esfuerzo manual.</p>
                         </div>
-
-                        <div className="benefit-card">
-                            <div className="benefit-icon">⚡</div>
-                            <h3>Desarrollo más rápido</h3>
-                            <p>Genera código cliente automáticamente para cualquier lenguaje</p>
+                        <div className="feature-card">
+                            <div className="feature-icon">🔄</div>
+                            <h3>Generación de Código</h3>
+                            <p>Crea clientes SDK y servidores stub para más de 50 lenguajes automáticamente.</p>
                         </div>
-
-                        <div className="benefit-card">
-                            <div className="benefit-icon">🎯</div>
-                            <h3>Menos errores</h3>
-                            <p>Valida requests y responses contra la especificación</p>
+                        <div className="feature-card">
+                            <div className="feature-icon">🧪</div>
+                            <h3>Testing Simplificado</h3>
+                            <p>Valida tus requests y responses contra un contrato estricto para evitar bugs.</p>
                         </div>
-
-                        <div className="benefit-card">
-                            <div className="benefit-icon">🤝</div>
-                            <h3>Mejor colaboración</h3>
-                            <p>Frontend y backend trabajan con un contrato claro</p>
+                        <div className="feature-card">
+                            <div className="feature-icon">🤝</div>
+                            <h3>Contrato Universal</h3>
+                            <p>Un lenguaje común para equipos Frontend, Backend y DevOps.</p>
                         </div>
                     </div>
                 </section>
-
                 <section
                     id="openapi-structure"
                     ref={el => sectionRefs.current['openapi-structure'] = el}
                     className="guide-section"
                 >
                     <h2>Estructura básica</h2>
-                    <p>Un archivo OpenAPI típico contiene:</p>
+                    <p>Un archivo OpenAPI típico es simple pero potente. Aquí tienes la anatomía básica:</p>
 
                     <CodeBlock
                         language="json"
@@ -159,7 +137,7 @@ function OpenApiGuidePage() {
                         code={`{
   "openapi": "3.0.0",
   "info": {
-    "title": "Mi API",
+    "title": "Mi API Increíble",
     "version": "1.0.0"
   },
   "paths": {
@@ -168,7 +146,7 @@ function OpenApiGuidePage() {
         "summary": "Obtener usuarios",
         "responses": {
           "200": {
-            "description": "Lista de usuarios"
+            "description": "Lista de usuarios exitosa"
           }
         }
       }
@@ -178,57 +156,48 @@ function OpenApiGuidePage() {
                     />
                 </section>
 
-                {/* Node.js / Express */}
                 <section
                     id="nodejs-swagger-jsdoc"
                     ref={el => sectionRefs.current['nodejs-swagger-jsdoc'] = el}
                     className="guide-section"
                 >
                     <h1>🟢 Node.js / Express</h1>
-                    <h2>Usando swagger-jsdoc</h2>
-
-                    <p>
-                        <code>swagger-jsdoc</code> genera especificaciones OpenAPI desde comentarios JSDoc en tu código.
+                    <p className="lead-text">
+                        Integra OpenAPI en tu aplicación Express fácilmente usando comentarios JSDoc. Tu código *es* tu documentación.
                     </p>
 
-                    <h3>1. Instalación</h3>
-                    <CodeBlock
-                        language="bash"
-                        code={`npm install swagger-jsdoc swagger-ui-express`}
-                    />
+                    <h2>Paso a Paso</h2>
+                    <div className="steps-list">
+                        <div className="step-item">
+                            <div className="step-number">1</div>
+                            <div className="step-content">
+                                <h3>Instalación</h3>
+                                <p>Necesitas dos librerías clave: el generador (`swagger-jsdoc`) y la UI (`swagger-ui-express`).</p>
+                                <CodeBlock language="bash" code={`npm install swagger-jsdoc swagger-ui-express`} />
+                            </div>
+                        </div>
 
-                    <h3>2. Configuración del servidor</h3>
-                    <CodeBlock
-                        language="javascript"
-                        title="server.js"
-                        code={`const express = require('express');
-const swaggerJsdoc = require('swagger-jsdoc');
+                        <div className="step-item">
+                            <div className="step-number">2</div>
+                            <div className="step-content">
+                                <h3>Configuración del Server</h3>
+                                <p>Inicializa la configuración en tu `server.js` o archivo principal.</p>
+                                <CodeBlock language="javascript" title="server.js" code={`const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-
-const app = express();
 
 const options = {
   definition: {
     openapi: '3.0.0',
-    info: {
-      title: 'Mi API',
-      version: '1.0.0',
-    },
+    info: { title: 'Mi API', version: '1.0.0' },
   },
-  apis: ['./routes/*.js'], // Archivos con anotaciones
+  apis: ['./routes/*.js'], // ¡Importante! Dónde están tus rutas
 };
 
 const swaggerSpec = swaggerJsdoc(options);
-
-// Servir UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-// Endpoint para JSON
-app.get('/api-docs.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
-});`}
-                    />
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));`} />
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <section
@@ -236,7 +205,8 @@ app.get('/api-docs.json', (req, res) => {
                     ref={el => sectionRefs.current['nodejs-examples'] = el}
                     className="guide-section"
                 >
-                    <h2>Ejemplos de anotaciones</h2>
+                    <h2>Ejemplos de Anotaciones</h2>
+                    <p>Usa bloques de comentarios especiales encima de tus rutas:</p>
 
                     <CodeBlock
                         language="javascript"
@@ -249,7 +219,7 @@ app.get('/api-docs.json', (req, res) => {
  *     tags: [Users]
  *     responses:
  *       200:
- *         description: Lista de usuarios
+ *         description: Lista de usuarios recuperada
  *         content:
  *           application/json:
  *             schema:
@@ -257,45 +227,9 @@ app.get('/api-docs.json', (req, res) => {
  *               items:
  *                 $ref: '#/components/schemas/User'
  */
-router.get('/users', async (req, res) => {
-  // Lógica aquí
-});
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     User:
- *       type: object
- *       required:
- *         - name
- *         - email
- *       properties:
- *         id:
- *           type: integer
- *         name:
- *           type: string
- *         email:
- *           type: string
- *           format: email
- */`}
-                    />
-                </section>
-
-                <section
-                    id="nodejs-export"
-                    ref={el => sectionRefs.current['nodejs-export'] = el}
-                    className="guide-section"
-                >
-                    <h2>Exportar archivo JSON</h2>
-                    <p>Para obtener el archivo <code>openapi.json</code>:</p>
-
-                    <CodeBlock
-                        language="bash"
-                        code={`curl http://localhost:5000/api-docs.json > openapi.json`}
+router.get('/users', async (req, res) => { ... });`}
                     />
 
-                    <p>O visita <code>http://localhost:5000/api-docs</code> para ver la UI interactiva.</p>
                 </section>
 
                 {/* Python / FastAPI */}
@@ -305,23 +239,34 @@ router.get('/users', async (req, res) => {
                     className="guide-section"
                 >
                     <h1>🐍 Python / FastAPI</h1>
-                    <h2>Configuración inicial</h2>
+                    <p className="lead-text">
+                        FastAPI fue diseñado *para* OpenAPI. No tienes que hacer nada extra, la documentación se genera sola analizando tus tipos de Python.
+                    </p>
 
-                    <p>FastAPI genera OpenAPI <strong>automáticamente</strong>. No necesitas configuración extra.</p>
-
-                    <h3>Instalación</h3>
-                    <CodeBlock
-                        language="bash"
-                        code={`pip install fastapi uvicorn`}
-                    />
-                </section>
-
-                <section
-                    id="python-automatic"
-                    ref={el => sectionRefs.current['python-automatic'] = el}
-                    className="guide-section"
-                >
-                    <h2>Generación automática</h2>
+                    <h2>Como funciona</h2>
+                    <div className="steps-list">
+                        <div className="step-item">
+                            <div className="step-number">1</div>
+                            <div className="step-content">
+                                <h3>Define tus Modelos (Pydantic)</h3>
+                                <p>Crea clases que representen tus datos. Typing fuerte = Docs automáticos.</p>
+                            </div>
+                        </div>
+                        <div className="step-item">
+                            <div className="step-number">2</div>
+                            <div className="step-content">
+                                <h3>Escribe tus Rutas</h3>
+                                <p>Usa los modelos como tipos de retorno y parámetros.</p>
+                            </div>
+                        </div>
+                        <div className="step-item">
+                            <div className="step-number">3</div>
+                            <div className="step-content">
+                                <h3>¡Listo!</h3>
+                                <p>FastAPI lee esos tipos y genera el JSON de OpenAPI mágicamente.</p>
+                            </div>
+                        </div>
+                    </div>
 
                     <CodeBlock
                         language="python"
@@ -329,53 +274,21 @@ router.get('/users', async (req, res) => {
                         code={`from fastapi import FastAPI
 from pydantic import BaseModel
 
-app = FastAPI(
-    title="Mi API",
-    description="Descripción de la API",
-    version="1.0.0"
-)
+app = FastAPI()
 
 class User(BaseModel):
     id: int
     name: str
-    email: str
 
-@app.get("/users", response_model=list[User], tags=["Users"])
-async def get_users():
-    """Obtener todos los usuarios"""
-    return [
-        {"id": 1, "name": "Juan", "email": "juan@example.com"}
-    ]
-
-@app.post("/users", response_model=User, tags=["Users"])
+@app.post("/users", response_model=User)
 async def create_user(user: User):
-    """Crear un nuevo usuario"""
     return user`}
                     />
 
-                    <p>¡Eso es todo! FastAPI genera la especificación OpenAPI automáticamente.</p>
-                </section>
-
-                <section
-                    id="python-download"
-                    ref={el => sectionRefs.current['python-download'] = el}
-                    className="guide-section"
-                >
-                    <h2>Descargar especificación</h2>
-
-                    <div className="info-box">
-                        <h3>Rutas disponibles</h3>
-                        <ul>
-                            <li><code>/docs</code> - Documentación interactiva (Swagger UI)</li>
-                            <li><code>/openapi.json</code> - Archivo JSON de la especificación</li>
-                            <li><code>/redoc</code> - Documentación alternativa (ReDoc)</li>
-                        </ul>
+                    <div className="warning-box">
+                        <h3>Acceso Rápido</h3>
+                        <p>Tu documentación vive automáticamente en <code>/docs</code> (Swagger UI) y <code>/redoc</code> en tu servidor FastAPI.</p>
                     </div>
-
-                    <CodeBlock
-                        language="bash"
-                        code={`curl http://localhost:8000/openapi.json > openapi.json`}
-                    />
                 </section>
 
                 {/* Java / Spring Boot */}
@@ -385,221 +298,64 @@ async def create_user(user: User):
                     className="guide-section"
                 >
                     <h1>☕ Java / Spring Boot</h1>
-                    <h2>Springdoc OpenAPI</h2>
+                    <p>Usa la librería <code>springdoc-openapi</code> para integrar OpenAPI 3 en tus aplicaciones Spring Boot.</p>
 
-                    <h3>Añadir dependencia (Maven)</h3>
-                    <CodeBlock
-                        language="xml"
-                        title="pom.xml"
-                        code={`<dependency>
+                    <h2>Integración Rápida</h2>
+                    <div className="steps-list">
+                        <div className="step-item">
+                            <div className="step-number">1</div>
+                            <div className="step-content">
+                                <h3>Añadir Dependencia</h3>
+                                <CodeBlock language="xml" code={`<dependency>
     <groupId>org.springdoc</groupId>
     <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
     <version>2.3.0</version>
-</dependency>`}
-                    />
-                </section>
+</dependency>`} />
+                            </div>
+                        </div>
+                    </div>
 
-                <section
-                    id="java-annotations"
-                    ref={el => sectionRefs.current['java-annotations'] = el}
-                    className="guide-section"
-                >
-                    <h2>Usar anotaciones</h2>
-
+                    <h3>Anotaciones</h3>
                     <CodeBlock
                         language="java"
                         title="UserController.java"
-                        code={`@RestController
-@RequestMapping("/users")
-@Tag(name = "Users", description = "API de usuarios")
+                        code={`@Tag(name = "Users", description = "API de usuarios")
 public class UserController {
 
-    @GetMapping
     @Operation(summary = "Obtener usuarios")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", 
-                     description = "Lista obtenida",
-                     content = @Content(schema = @Schema(implementation = User.class)))
-    })
-    public List<User> getUsers() {
-        return userService.findAll();
-    }
+    @GetMapping("/users")
+    public List<User> getUsers() { ... }
 }`}
                     />
-                </section>
-
-                <section
-                    id="java-access"
-                    ref={el => sectionRefs.current['java-access'] = el}
-                    className="guide-section"
-                >
-                    <h2>Acceder a la documentación</h2>
-
-                    <div className="info-box">
-                        <h3>Rutas disponibles</h3>
-                        <ul>
-                            <li><code>http://localhost:8080/swagger-ui.html</code> - Swagger UI</li>
-                            <li><code>http://localhost:8080/v3/api-docs</code> - JSON</li>
-                        </ul>
-                    </div>
-                </section>
-
-                {/* .NET / ASP.NET Core */}
-                <section
-                    id="dotnet-swashbuckle"
-                    ref={el => sectionRefs.current['dotnet-swashbuckle'] = el}
-                    className="guide-section"
-                >
-                    <h1>🔷 .NET / ASP.NET Core</h1>
-                    <h2>Swashbuckle</h2>
-
-                    <h3>Instalar NuGet</h3>
-                    <CodeBlock
-                        language="bash"
-                        code={`dotnet add package Swashbuckle.AspNetCore`}
-                    />
-                </section>
-
-                <section
-                    id="dotnet-config"
-                    ref={el => sectionRefs.current['dotnet-config'] = el}
-                    className="guide-section"
-                >
-                    <h2>Configuración</h2>
-
-                    <CodeBlock
-                        language="csharp"
-                        title="Program.cs"
-                        code={`var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Mi API",
-        Version = "v1"
-    });
-});
-
-var app = builder.Build();
-
-app.UseSwagger();
-app.UseSwaggerUI();
-
-app.MapControllers();
-app.Run();`}
-                    />
-                </section>
-
-                <section
-                    id="dotnet-endpoints"
-                    ref={el => sectionRefs.current['dotnet-endpoints'] = el}
-                    className="guide-section"
-                >
-                    <h2>Documentar endpoints</h2>
-
-                    <CodeBlock
-                        language="csharp"
-                        title="UsersController.cs"
-                        code={`[ApiController]
-[Route("api/[controller]")]
-public class UsersController : ControllerBase
-{
-    /// <summary>
-    /// Obtener todos los usuarios
-    /// </summary>
-    [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<User>), StatusCodes.Status200OK)]
-    public ActionResult<IEnumerable<User>> GetUsers()
-    {
-        return Ok(users);
-    }
-}`}
-                    />
-
-                    <p>Accede a <code>https://localhost:5001/swagger</code></p>
                 </section>
 
                 {/* Herramientas */}
-                <section
-                    id="tools-editors"
-                    ref={el => sectionRefs.current['tools-editors'] = el}
-                    className="guide-section"
-                >
-                    <h1>🛠️ Herramientas útiles</h1>
-                    <h2>Editores online</h2>
-
-                    <div className="tools-grid">
-                        <div className="tool-card">
-                            <h3>Swagger Editor</h3>
-                            <p>Editor oficial de OpenAPI</p>
-                            <a href="https://editor.swagger.io" target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-small">
-                                Visitar →
-                            </a>
-                        </div>
-
-                        <div className="tool-card">
-                            <h3>Stoplight Studio</h3>
-                            <p>Editor visual avanzado</p>
-                            <a href="https://stoplight.io/studio" target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-small">
-                                Visitar →
-                            </a>
-                        </div>
-                    </div>
-                </section>
-
-                <section
-                    id="tools-validators"
-                    ref={el => sectionRefs.current['tools-validators'] = el}
-                    className="guide-section"
-                >
-                    <h2>Validadores</h2>
-
-                    <CodeBlock
-                        language="bash"
-                        code={`# Swagger Parser
-npm install -g @apidevtools/swagger-parser
-swagger-parser validate openapi.json
-
-# Spectral (Linter)
-npm install -g @stoplight/spectral-cli
-spectral lint openapi.json`}
-                    />
-                </section>
-
                 <section
                     id="tools-generators"
                     ref={el => sectionRefs.current['tools-generators'] = el}
                     className="guide-section"
                 >
-                    <h2>Generadores de código</h2>
+                    <h1>🛠️ Herramientas del Ecosistema</h1>
 
-                    <p>OpenAPI Generator puede crear código cliente en cualquier lenguaje:</p>
+                    <div className="features-grid">
+                        <div className="feature-card">
+                            <h3>Swagger Editor</h3>
+                            <p>Editor visual oficial. Ideal para diseñar specs desde cero.</p>
+                        </div>
+                        <div className="feature-card">
+                            <h3>Spectral</h3>
+                            <p>Linter para OpenAPI. Asegura que tus specs sigan las reglas de estilo y calidad.</p>
+                        </div>
+                        <div className="feature-card">
+                            <h3>OpenAPI Generator</h3>
+                            <p>La navaja suiza. Genera clientes y servidores para casi cualquier lenguaje.</p>
+                        </div>
+                    </div>
 
-                    <CodeBlock
-                        language="bash"
-                        code={`npm install -g @openapitools/openapi-generator-cli
-
-# Generar cliente JavaScript
-openapi-generator-cli generate \\
-  -i openapi.json \\
-  -g javascript \\
-  -o ./client
-
-# Lenguajes soportados: javascript, typescript-axios, 
-# python, java, csharp, go, php, ruby, y más...`}
-                    />
+                    <h2>Generación de Código CLI</h2>
+                    <CodeBlock language="bash" code={`# Generar cliente React/Axios
+openapi-generator-cli generate -i openapi.json -g typescript-axios -o ./api-client`} />
                 </section>
-
-                <div className="guide-footer">
-                    <h2>¿Necesitas más ayuda?</h2>
-                    <p>
-                        Consulta la <a href="https://swagger.io/specification/" target="_blank" rel="noopener noreferrer">especificación oficial de OpenAPI</a> o
-                        explora <a href="https://github.com/OAI/OpenAPI-Specification" target="_blank" rel="noopener noreferrer">ejemplos en GitHub</a>.
-                    </p>
-                </div>
             </main>
         </div>
     );

@@ -96,6 +96,7 @@ function ReposPage({ embedded = false, onStatsChange }) {
             setRepoUrl('');
             setBranch('main');
             setAuthToken('');
+            setSelectedProjectId('');
             // Notify parent to update stats
             if (onStatsChange) onStatsChange();
         } catch (err) {

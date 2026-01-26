@@ -508,3 +508,119 @@ div.warning-box ul,
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================================
+   New Guide Styles (Detailed View)
+   ========================================= */
+
+.lead-text {
+    font-size: 1.25rem;
+    line-height: 1.7;
+    color: #4b5563;
+    max-width: 800px;
+    margin-bottom: 2.5rem;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.feature-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, border-color 0.2s;
+    text-align: center;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    border-color: #8b5cf6;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+/* Comparison Table for Projects vs Environments */
+.comparison-table {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.comparison-col {
+    background: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.comparison-col h3 {
+    color: #7c3aed;
+    /* Violet-600 */
+    margin-top: 0;
+    font-size: 1.25rem;
+    border-bottom: 2px solid #ddd6fe;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Custom Lists */
+.functionality-list,
+.capability-list {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+}
+
+.functionality-list li,
+.capability-list li {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+    /* Space for bullet */
+    position: relative;
+    line-height: 1.6;
+    color: #374151;
+}
+
+.functionality-list li::before,
+.capability-list li::before {
+    content: "➢";
+    color: #8b5cf6;
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+    font-size: 0.9em;
+}
+
+.simple-list {
+    padding-left: 1.5rem;
+    margin: 1.5rem 0;
+    color: #374151;
+}
+
+.simple-list li {
+    margin-bottom: 0.5rem;
+    padding-left: 0.5rem;
+}
+
+/* Responsive adjustments for new elements */
+@media (max-width: 768px) {
+    .comparison-table {
+        grid-template-columns: 1fr;
+    }
+
+    .lead-text {
+        font-size: 1.1rem;
+    }
+}

@@ -5,6 +5,7 @@
 
 const BaseRepository = require('./base.repository');
 const crypto = require('crypto');
+const socket = require('../socket'); // Import socket module
 
 class ApiKeysRepository extends BaseRepository {
     constructor() {
@@ -81,12 +82,27 @@ class ApiKeysRepository extends BaseRepository {
      */
     async logUsage(id, endpoint = null, method = null, ipAddress = null) {
         // Update last used timestamp and increment counter
-        await this.query(`
+        const result = await this.query(`
             UPDATE api_keys 
             SET last_used_at = NOW(),
                 usage_count = COALESCE(usage_count, 0) + 1
             WHERE id = $1
+            RETURNING usage_count, last_used_at
         `, [id]);
+
+        // Emit socket event if update was successful
+        if (result.rows.length > 0) {
+            try {
+                const io = socket.getIo();
+                io.emit('api_key_usage_updated', {
+                    keyId: id,
+                    usageCount: result.rows[0].usage_count,
+                    lastUsedAt: result.rows[0].last_used_at
+                });
+            } catch (err) {
+                console.error('Socket emit failed:', err.message);
+            }
+        }
 
         // Log usage if details provided
         if (endpoint) {
@@ -114,11 +130,27 @@ class ApiKeysRepository extends BaseRepository {
      * @param {number} id - API key ID
      */
     async updateTimestamp(id) {
-        await this.query(`
+        const result = await this.query(`
             UPDATE api_keys 
             SET last_used_at = NOW()
             WHERE id = $1
+            RETURNING last_used_at
         `, [id]);
+
+        // Emit socket event
+        if (result.rows.length > 0) {
+            try {
+                const io = socket.getIo();
+                io.emit('api_key_usage_updated', {
+                    keyId: id,
+                    lastUsedAt: result.rows[0].last_used_at
+                    // usageCount not updated, so not sending or sending null?
+                    // Better to just send what changed, frontend should merge.
+                });
+            } catch (err) {
+                console.error('Socket emit failed:', err.message);
+            }
+        }
     }
 
     // Deprecated alias for backward compatibility until refactor is complete

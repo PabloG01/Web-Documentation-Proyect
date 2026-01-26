@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
+const http = require('http'); // Import http
 const { initializeDatabase } = require('./database');
 const { errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -14,11 +15,13 @@ const githubAuthRoutes = require('./routes/github-auth');
 const bitbucketAuthRoutes = require('./routes/bitbucket-auth');
 const apiKeysRoutes = require('./routes/api-keys');
 const statsRoutes = require('./routes/stats');
+const socket = require('./socket'); // Import socket module
 require('dotenv').config();
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
 const app = express();
+const server = http.createServer(app); // Create HTTP server
 const PORT = process.env.PORT || 5000;
 
 // Swagger configuration
@@ -86,8 +89,11 @@ const startServer = async () => {
         // Database init - wait for it to complete
         await initializeDatabase();
 
+        // Initialize Socket.IO
+        socket.init(server);
+
         // Start the server only after database is ready
-        app.listen(PORT, '0.0.0.0', () => {
+        server.listen(PORT, '0.0.0.0', () => { // Listen on server, not app
             console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
             console.log(`Accessible from LAN at http://<your-ip>:${PORT}`);
         });

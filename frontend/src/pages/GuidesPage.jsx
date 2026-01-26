@@ -61,13 +61,6 @@ function GuidesPage() {
                 </div>
 
                 <div className="guides-footer">
-                    <div className="info-box">
-                        <div className="info-icon">💡</div>
-                        <div className="info-content">
-                            <h3>¿Necesitas ayuda adicional?</h3>
-                            <p>Estas guías están diseñadas para ayudarte a aprovechar al máximo DocApp. Si tienes dudas específicas, consulta la documentación o contacta con soporte.</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

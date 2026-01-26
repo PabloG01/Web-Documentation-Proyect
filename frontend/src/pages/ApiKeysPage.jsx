@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiKeysAPI, projectsAPI } from '../services/api';
+import { io } from 'socket.io-client';
 import { Plus, Trash2, Copy, Check } from '../components/Icons';
 import '../styles/ProjectsPage.css';
 import '../styles/LoadingStates.css';
@@ -14,9 +15,61 @@ function ApiKeysPage() {
     const [copiedId, setCopiedId] = useState(null);
     const [usageModal, setUsageModal] = useState({ show: false, keyId: null, stats: null, loading: false });
 
+    // Ref for socket to keep connection persistent
+    const socketRef = useRef(null);
+    // Ref to track usage usageModal.keyId without triggering re-effects
+    const openModalIdRef = useRef(null);
+
+    // Update ref when modal changes
+    useEffect(() => {
+        openModalIdRef.current = usageModal.show ? usageModal.keyId : null;
+    }, [usageModal.show, usageModal.keyId]);
+
     useEffect(() => {
         loadKeys();
         loadProjects();
+
+        // Initialize Socket.IO connection
+        // Use the same hostname/protocol as the window, assuming backend is on port 5000 
+        // OR allow the browser to determine base if proxied. 
+        // Given current config: http://localhost:5000 is common for dev.
+        const socketUrl = `http://${window.location.hostname}:5000`;
+        socketRef.current = io(socketUrl);
+
+        socketRef.current.on('connect', () => {
+            console.log('🔌 Connected to WebSocket usage updates');
+        });
+
+        socketRef.current.on('api_key_usage_updated', (data) => {
+            // 1. Update the list directly
+            setKeys(prevKeys => prevKeys.map(key => {
+                if (key.id === data.keyId) {
+                    return {
+                        ...key,
+                        // Update usage count if provided, otherwise keep existing
+                        usage_count: data.usageCount !== undefined ? data.usageCount : key.usage_count,
+                        last_used_at: data.lastUsedAt
+                    };
+                }
+                return key;
+            }));
+
+            // 2. If the modal for this key is open, refresh the stats to show new logs
+            if (openModalIdRef.current === data.keyId) {
+                // Call API directly to refresh stats
+                apiKeysAPI.getUsageStats(data.keyId)
+                    .then(res => {
+                        setUsageModal(prev => ({ ...prev, stats: res.data }));
+                    })
+                    .catch(console.error);
+            }
+        });
+
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
+        };
     }, []);
 
     const loadKeys = async () => {
