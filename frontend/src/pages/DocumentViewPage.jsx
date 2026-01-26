@@ -10,6 +10,9 @@ import MarkdownEditor from '../components/MarkdownEditor';
 import MarkdownHelper from '../components/MarkdownHelper';
 import PdfDownloadButton from '../components/PdfDownloadButton';
 
+import Modal from '../components/Modal';
+import { ToastContainer } from '../components/Toast';
+
 function DocumentViewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -27,8 +30,22 @@ function DocumentViewPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // UI State
+  const [toasts, setToasts] = useState([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   // Ref para el contenido del documento (usado para exportar a PDF)
   const documentRef = useRef(null);
+
+  // Toast helper
+  const addToast = (message, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   const loadDocument = useCallback(async () => {
     try {
@@ -37,7 +54,7 @@ function DocumentViewPage() {
       setEditedContent(response.data);
     } catch (err) {
       console.error('Error loading document:', err);
-      alert('Documento no encontrado');
+      // Can't show toast here as we redirect immediately, maybe pass state
       navigate('/mis-documentos');
     } finally {
       setLoading(false);
@@ -64,22 +81,29 @@ function DocumentViewPage() {
       const response = await documentsAPI.update(id, editedContent);
       setDocument(response.data);
       setIsEditing(false);
-      alert('¡Documento actualizado exitosamente!');
+      addToast('¡Documento actualizado exitosamente!', 'success');
     } catch (err) {
-      alert('Error al actualizar: ' + (err.response?.data?.error || err.message));
+      addToast('Error al actualizar: ' + (err.response?.data?.error || err.message), 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este documento?')) {
-      try {
-        await documentsAPI.delete(id);
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      await documentsAPI.delete(id);
+      addToast('Documento eliminado exitosamente', 'success');
+      setShowDeleteModal(false);
+      setTimeout(() => {
         navigate('/mis-documentos');
-      } catch (err) {
-        alert('Error al eliminar: ' + (err.response?.data?.error || err.message));
-      }
+      }, 1000);
+    } catch (err) {
+      addToast('Error al eliminar: ' + (err.response?.data?.error || err.message), 'error');
+      setShowDeleteModal(false);
     }
   };
 
@@ -136,7 +160,7 @@ function DocumentViewPage() {
                   <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
                     ✏️ Editar
                   </button>
-                  <button className="btn btn-secondary" onClick={handleDelete}>
+                  <button className="btn btn-secondary" onClick={handleDeleteClick}>
                     🗑️ Eliminar
                   </button>
                 </>
@@ -258,7 +282,7 @@ function DocumentViewPage() {
                 </button>
                 <button
                   className="btn btn-danger"
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                   disabled={saving}
                 >
                   🗑️ Eliminar documento
@@ -276,8 +300,32 @@ function DocumentViewPage() {
         )}
       </div>
 
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Eliminar Documento"
+        size="small"
+        actions={
+          <>
+            <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+              Cancelar
+            </button>
+            <button className="btn btn-danger" onClick={handleConfirmDelete}>
+              Sí, eliminar
+            </button>
+          </>
+        }
+      >
+        <p style={{ textAlign: 'center', margin: '10px 0', fontSize: '1rem' }}>
+          ¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.
+        </p>
+      </Modal>
+
       {/* Ayuda flotante de Markdown - solo en modo edición */}
       {isEditing && <MarkdownHelper />}
+
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 }

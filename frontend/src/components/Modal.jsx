@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { X } from './Icons';
 import '../styles/Modal.css';
 
@@ -50,7 +51,7 @@ function Modal({
         }
     };
 
-    return (
+    const modalContent = (
         <div className="modal-overlay" onClick={handleOverlayClick}>
             <div className={`modal-container modal-${size} ${className}`}>
                 {(title || showCloseButton) && (
@@ -78,6 +79,8 @@ function Modal({
             </div>
         </div>
     );
+
+    return ReactDOM.createPortal(modalContent, document.body);
 }
 
 export default Modal;

@@ -16,56 +16,10 @@ class ProjectsRepository extends BaseRepository {
      * @param {number} options.userId - Filter by user ID (optional)
      * @param {number} options.page - Page number (default: 1)
      * @param {number} options.limit - Items per page (default: 10, max: 100)
+     * @param {number} options.environmentId - Filter by environment (optional)
      * @returns {Promise<{data: Array, pagination: Object}>}
      */
     async findAll({ userId = null, page = 1, limit = 10, environmentId = null } = {}) {
-        const pageNum = Math.max(1, parseInt(page) || 1);
-        const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
-        const offset = (pageNum - 1) * limitNum;
-
-        let countQuery = 'SELECT COUNT(*) FROM projects';
-        let dataQuery = `
-            SELECT projects.*, users.username,
-            (SELECT COUNT(*)::int FROM api_specs WHERE api_specs.project_id = projects.id) as api_count
-            FROM projects 
-            LEFT JOIN users ON projects.user_id = users.id
-        `;
-
-        const countParams = [];
-        const dataParams = [];
-        let paramIndex = 1;
-
-        const conditions = [];
-
-        if (userId) {
-            conditions.push(`user_id = $${paramIndex}`);
-            // Special handling for join query alias if needed, but simple WHERE works for both if unambiguous
-            // or we use specific alias. Let's act strictly.
-            // Simplified:
-        }
-
-        // Re-write query building for robust multi-filter
-        let whereClause = '';
-        if (userId) {
-            whereClause += ` WHERE projects.user_id = $${paramIndex}`;
-            countParams.push(userId);
-            dataParams.push(userId);
-            paramIndex++;
-        }
-
-        if (environmentId) {
-            const prefix = whereClause ? ' AND' : ' WHERE';
-            whereClause += `${prefix} projects.environment_id = $${paramIndex}`;
-            // If userId was pushed, paramIndex is 2. If not, it's 1.
-            countParams.push(environmentId);
-            dataParams.push(environmentId);
-            paramIndex++;
-        }
-
-        return this.findAllWithEnv({ userId, page, limit, environmentId });
-    }
-
-    async findAllWithEnv({ userId, page, limit, environmentId }) {
         const pageNum = Math.max(1, parseInt(page) || 1);
         const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
         const offset = (pageNum - 1) * limitNum;
@@ -79,10 +33,11 @@ class ProjectsRepository extends BaseRepository {
             params.push(userId);
         }
 
-        if (environmentId !== undefined) {
-            if (environmentId === 'null') {
+        // Robust environment filter
+        if (environmentId !== undefined && environmentId !== null) {
+            if (String(environmentId) === 'null') {
                 baseWhere += ` AND projects.environment_id IS NULL`;
-            } else if (environmentId) {
+            } else {
                 baseWhere += ` AND projects.environment_id = $${pIdx++}`;
                 params.push(environmentId);
             }
@@ -102,30 +57,30 @@ class ProjectsRepository extends BaseRepository {
 
         const dataParams = [...params, limitNum, offset];
 
-        const [countResult, dataResult] = await Promise.all([
-            this.query(countQuery, params),
-            this.query(dataQuery, dataParams)
-        ]);
+        try {
+            const [countResult, dataResult] = await Promise.all([
+                this.query(countQuery, params),
+                this.query(dataQuery, dataParams)
+            ]);
 
-        const totalItems = parseInt(countResult.rows[0].count);
-        const totalPages = Math.ceil(totalItems / limitNum);
+            const totalItems = parseInt(countResult.rows[0].count);
+            const totalPages = Math.ceil(totalItems / limitNum);
 
-        return {
-            data: dataResult.rows,
-            pagination: {
-                currentPage: pageNum,
-                totalPages,
-                totalItems,
-                itemsPerPage: limitNum,
-                hasNextPage: pageNum < totalPages,
-                hasPrevPage: pageNum > 1
-            }
-        };
-    }
-
-    // Override findAll to proxy to new method to avoid breaking changed file excessively
-    async findAll(args) {
-        return this.findAllWithEnv(args);
+            return {
+                data: dataResult.rows,
+                pagination: {
+                    currentPage: pageNum,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limitNum,
+                    hasNextPage: pageNum < totalPages,
+                    hasPrevPage: pageNum > 1
+                }
+            };
+        } catch (error) {
+            console.error('Error in ProjectsRepository.findAll:', error);
+            throw error;
+        }
     }
 
     async createProject({ userId, code, name, description = '', color = '#6366f1', environmentId = null }) {

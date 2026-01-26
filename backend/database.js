@@ -260,11 +260,24 @@ const initializeDatabase = async () => {
                 END $$;
             `);
 
+            // Create API Key Usage Logs Table
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS api_key_usage_logs (
+                    id SERIAL PRIMARY KEY,
+                    api_key_id INTEGER REFERENCES api_keys(id) ON DELETE CASCADE,
+                    endpoint VARCHAR(255),
+                    method VARCHAR(10),
+                    ip_address VARCHAR(45),
+                    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
             // Create indexes for API Keys
             await pool.query(`
               CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
               CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
               CREATE INDEX IF NOT EXISTS idx_api_keys_project_id ON api_keys(project_id);
+              CREATE INDEX IF NOT EXISTS idx_api_key_usage_logs_key_id ON api_key_usage_logs(api_key_id);
             `);
 
             console.log('✅ Database tables initialized successfully');

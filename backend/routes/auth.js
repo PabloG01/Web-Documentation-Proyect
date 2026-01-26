@@ -343,4 +343,35 @@ router.get('/me', verifyToken, asyncHandler(async (req, res, next) => {
     res.json(user); // Send what's left (id, username, email, etc)
 }));
 
+/**
+ * @swagger
+ * /auth/verify-api-key:
+ *   post:
+ *     summary: Verificar validez de API Key y registrar conexión
+ *     tags: [Auth]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     responses:
+ *       200:
+ *         description: API Key válida y registrada
+ *       401:
+ *         description: API Key inválida
+ */
+// Verify API Key (Explicit Connection)
+const { flexibleAuth } = require('../middleware/apiKeyAuth');
+const { apiKeysRepository } = require('../repositories');
+
+router.post('/verify-api-key', flexibleAuth, asyncHandler(async (req, res) => {
+    // Si llegamos aquí, flexibleAuth ya validó, pero flexibleAuth ya NO incrementa el contador.
+    // Debemos incrementarlo explícitamente aquí para marcar el inicio de una sesión.
+    if (req.user && req.user.authMethod === 'api_key' && req.apiKeyId) {
+        const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+        await apiKeysRepository.logUsage(req.apiKeyId, '/auth/verify-api-key', 'POST', ipAddress);
+        res.json({ success: true, message: 'API Key verificada y sesión registrada' });
+    } else {
+        // En caso de que se use cookie en vez de api key (raro para este endpoint pero posible)
+        res.json({ success: true, message: 'Autenticado vía Cookie' });
+    }
+}));
+
 module.exports = router;

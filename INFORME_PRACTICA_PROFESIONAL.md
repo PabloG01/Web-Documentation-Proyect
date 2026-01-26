@@ -6,7 +6,7 @@
 |-------|---------|
 | **Proyecto** | DocApp - Plataforma de Documentación Profesional |
 | **Inicio estimado** | Lunes 15 de diciembre de 2025 |
-| **Última actualización** | 19 de enero de 2026 |
+| **Última actualización** | 26 de enero de 2026 |
 | **Stack tecnológico** | React 19 + Express 5 + PostgreSQL 15 + Docker |
 
 ---
@@ -166,6 +166,72 @@
 
 ---
 
+### Semana 6 (19 - 25 de enero de 2026)
+
+#### 🎯 Objetivos
+- Mejorar la experiencia de usuario (UX) en la creación de proyectos y visualización de APIs
+- Implementar un sistema de guías de usuario más robusto
+- Resolver errores visuales y de flujo lógico
+
+#### ✅ Logros
+- **Mejora en API Tester**: Reorganización horizontal de filtros y diseño "premium" para selectores
+- **Flujo de Creación**: Vinculación obligatoria de proyectos a entornos y corrección de botones de creación
+- **Sistema de Guías**: Implementación de selector centralizado de guías y nueva documentación de uso de la app
+- **Correcciones UI**: Alineación vertical correcta en cajas de información y alertas
+
+#### ⚠️ Dificultades Encontradas
+
+1. **Flujo de Proyectos sin Entorno**
+   - *Problema*: Era posible crear proyectos sin vincularlos a un entorno, lo que rompía la lógica de organización.
+   - *Solución*: Modificación de `CreatePage.jsx` para exigir selección de entorno y redirección si no existen entornos creados.
+
+2. **Alineación de Contenido Markdown**
+   - *Problema*: Listas dentro de cajas de información (`info-box`) se renderizaban horizontalmente.
+   - *Solución*: Ajustes CSS específicos para forzar alineación vertical y limpieza de estilos heredados.
+
+#### 📝 Commits Relacionados
+- feat: Mejora de layout en API Tester (filtros horizontales)
+- feat: Vinculación de nuevos proyectos a entornos
+- feat: Nuevo sistema de navegación de guías
+- fix: Alineación CSS en componentes de documentación
+
+---
+
+### Semana 7 (26 de enero de 2026 - Presente)
+
+#### 🎯 Objetivos
+- Estabilizar la persistencia de filtros en la interfaz
+- Refactorización de componentes críticos de navegación
+- Limpieza de código y logs de producción
+
+#### ✅ Logros
+- **Persistencia de Filtros**: Solución definitiva al reseteo automático de filtros en `WorkspacePage`
+- **Gestión de API Keys**: 
+  - Implementación de fallback para copiado en portapapeles (compatible con conexiones HTTP/LAN)
+  - Corrección de base de datos (tabla `api_key_usage_logs` faltante)
+  - Optimización de middleware para reducir ruido en logs y evitar conteo de preflight requests (OPTIONS)
+- **Limpieza de Backend**: Eliminación de logs de depuración (GET logs) innecesarios
+
+#### ⚠️ Dificultades Encontradas
+
+1. **Reseteo Automático de Filtros**
+   - *Problema*: Al aplicar un filtro (ej. por entorno), la lista de proyectos se recargaba y perdía el filtro después de 3 segundos.
+   - *Causa*: Conflicto entre el estado local `activeSection` y los parámetros URL gestionados por un `useEffect` reactivo.
+   - *Solución*: Refactorización de la lógica de navegación para eliminar el `useEffect` conflictivo y gestionar la URL de manera explícita en los eventos de usuario.
+
+2. **Error en Logs de Uso de API Key**
+   - *Problema*: Error 500 al usar una API Key válida: `relation "api_key_usage_logs" does not exist`.
+   - *Solución*: Se agregó la definición de la tabla faltante en el script de inicialización de `database.js`.
+
+#### 📝 Commits Relacionados
+- fix: Refactorización de navegación en WorkspacePage para persistencia de filtros
+- chores: Limpieza de logs de debug en backend routes
+- fix: Fallback para portapapeles en ApiKeysPage
+- fix: Migración de base de datos para tabla api_key_usage_logs
+- perf: Optimización de logs de autenticación API Key
+
+---
+
 ## 📈 Métricas de Progreso
 
 ### Funcionalidades Completadas ✅
@@ -227,4 +293,4 @@
 
 ---
 
-**Documento generado automáticamente - Última actualización: 19 de enero de 2026**
+**Documento generado automáticamente - Última actualización: 26 de enero de 2026**

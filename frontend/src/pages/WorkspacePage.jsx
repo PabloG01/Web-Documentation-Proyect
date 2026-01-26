@@ -36,10 +36,7 @@ function WorkspacePage() {
         loadStats();
     }, []);
 
-    // Update URL when section changes
-    useEffect(() => {
-        setSearchParams({ section: activeSection });
-    }, [activeSection, setSearchParams]);
+
 
     const loadStats = async () => {
         try {
@@ -90,6 +87,15 @@ function WorkspacePage() {
 
     const handleSectionChange = (section) => {
         setActiveSection(section);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('section', section);
+        // Clean up environment_id when switching main sections unless it's relevant
+        // Fix: Force reset environment_id when clicking on Projects sidebar item to show all projects
+        if (section === 'projects') {
+            newParams.delete('environment_id');
+        }
+        setSearchParams(newParams);
+
         // Reload stats when changing sections to ensure fresh data
         loadStats();
     };

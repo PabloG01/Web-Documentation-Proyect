@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
 import api, { projectsAPI } from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 import '../styles/HomePage.css';
 import { ChevronRight, Settings, Globe, Zap, Package } from '../components/Icons';
 
 function HomePage() {
+  const { user } = useContext(AuthContext);
   const [specs, setSpecs] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,27 +26,35 @@ function HomePage() {
 
   // Initial Data Load
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [specsRes, projectsRes] = await Promise.all([
-          api.get('/api-specs'),
-          api.get('/projects') // Load all projects, not just user's
-        ]);
-        setSpecs(specsRes.data || []);
-        setProjects(projectsRes.data.data || projectsRes.data || []);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // Si hay error de autenticación, mostrar mensaje
-        if (error.response?.status === 401) {
-          alert('Error de autenticación. Verifica tu API Key.');
+    // Fetch if we have a connected API key OR logged in user
+    if (apiKeyConnected || user) {
+      const fetchData = async () => {
+        try {
+          setLoading(true);
+          const [specsRes, projectsRes] = await Promise.all([
+            api.get('/api-specs'),
+            api.get('/projects') // Load all projects
+          ]);
+          setSpecs(specsRes.data || []);
+          setProjects(projectsRes.data.data || projectsRes.data || []);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          if (error.response?.status === 401 && !user) {
+            // If auth fails and not user session, disconnect key locally
+            localStorage.removeItem('api_key');
+            setApiKeyConnected(false);
+            setSpecs([]);
+            setProjects([]);
+          }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+      };
+      fetchData();
+    } else {
+      setLoading(false); // Stop loading if not connected
+    }
+  }, [apiKeyConnected, user]);
 
   // Helper: Group Specs
   const getGroupedSpecs = () => {
@@ -140,28 +150,18 @@ function HomePage() {
       return;
     }
 
-    // Guardar en localStorage
+    // Guardar en caché y actualizar estado
     localStorage.setItem('api_key', apiKeyInput);
-    setApiKeyConnected(true);
 
-    // Recargar datos manualmente sin reload completo
+    // Verificar y registrar inicio de sesión (incrementa contador uso)
     try {
-      setLoading(true);
-      const [specsRes, projectsRes] = await Promise.all([
-        api.get('/api-specs'),
-        api.get('/projects')
-      ]);
-      setSpecs(specsRes.data || []);
-      setProjects(projectsRes.data.data || projectsRes.data || []);
+      await api.post('/auth/verify-api-key');
+      setApiKeyConnected(true);
       alert('✅ API Key conectada correctamente');
     } catch (error) {
-      console.error('Error loading data with API Key:', error);
-      alert('❌ Error: API Key inválida o sin acceso');
-      // Revertir si falla
+      console.error('Error verificando API Key:', error);
       localStorage.removeItem('api_key');
-      setApiKeyConnected(false);
-    } finally {
-      setLoading(false);
+      alert('❌ Error: API Key inválida');
     }
   };
 

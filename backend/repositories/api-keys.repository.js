@@ -72,13 +72,14 @@ class ApiKeysRepository extends BaseRepository {
     }
 
     /**
-     * Update last_used_at timestamp and log usage
+     * Update last_used_at timestamp and log usage (Full Increment)
+     * Used for initial connection or explicit verification
      * @param {number} id - API key ID
      * @param {string} endpoint - Request endpoint
      * @param {string} method - HTTP method
      * @param {string} ipAddress - Client IP address
      */
-    async updateLastUsed(id, endpoint = null, method = null, ipAddress = null) {
+    async logUsage(id, endpoint = null, method = null, ipAddress = null) {
         // Update last used timestamp and increment counter
         await this.query(`
             UPDATE api_keys 
@@ -105,6 +106,24 @@ class ApiKeysRepository extends BaseRepository {
                 )
             `, [id]);
         }
+    }
+
+    /**
+     * Update only the last_used_at timestamp (No Increment)
+     * Used for ongoing session activity
+     * @param {number} id - API key ID
+     */
+    async updateTimestamp(id) {
+        await this.query(`
+            UPDATE api_keys 
+            SET last_used_at = NOW()
+            WHERE id = $1
+        `, [id]);
+    }
+
+    // Deprecated alias for backward compatibility until refactor is complete
+    async updateLastUsed(id, endpoint, method, ip) {
+        return this.logUsage(id, endpoint, method, ip);
     }
 
     /**

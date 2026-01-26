@@ -111,10 +111,38 @@ function ApiKeysPage() {
         setUsageModal({ show: false, keyId: null, keyName: null, stats: null, loading: false });
     };
 
-    const copyToClipboard = (text, id) => {
-        navigator.clipboard.writeText(text);
-        setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 2000);
+    const copyToClipboard = async (text, id) => {
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                // Fallback for non-secure contexts (LAN http)
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback copy failed', err);
+                    alert("No se pudo copiar automáticamente. Por favor selecciónalo manualmente.");
+                    return;
+                } finally {
+                    document.body.removeChild(textArea);
+                }
+            }
+
+            setCopiedId(id);
+            setTimeout(() => setCopiedId(null), 2000);
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+            alert("Error al copiar al portapapeles");
+        }
     };
 
     const formatDate = (dateStr) => {
@@ -520,7 +548,14 @@ function ApiKeysPage() {
                                                 {usageModal.stats.recent_uses.map((use, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
                                                         <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em' }}>
-                                                            {new Date(use.used_at).toLocaleString('es-ES')}
+                                                            {(() => {
+                                                                // Asegurar que la fecha se interprete como UTC si viene sin zona
+                                                                let dateStr = use.used_at;
+                                                                if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+                                                                    dateStr += 'Z';
+                                                                }
+                                                                return new Date(dateStr).toLocaleString('es-ES');
+                                                            })()}
                                                         </td>
                                                         <td style={{ padding: '12px' }}>
                                                             <span style={{

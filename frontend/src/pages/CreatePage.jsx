@@ -6,6 +6,8 @@ import DocumentTypeSelector from '../components/DocumentTypeSelector';
 import DocumentForm from '../components/DocumentForm';
 import ProjectSelector from '../components/ProjectSelector';
 import MarkdownHelper from '../components/MarkdownHelper';
+import Modal from '../components/Modal';
+import { ToastContainer } from '../components/Toast';
 import '../styles/CreatePage.css';
 
 function CreatePage() {
@@ -20,6 +22,24 @@ function CreatePage() {
   const [hasProjects, setHasProjects] = useState(null); // null = loading, true/false = loaded
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
+
+  // Toasts State
+  const [toasts, setToasts] = useState([]);
+
+  // Modal State
+  const [showDocConfirmModal, setShowDocConfirmModal] = useState(false);
+  const [pendingProjectId, setPendingProjectId] = useState(null);
+
+  // Toast Helper
+  const addToast = (message, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
   const [newProject, setNewProject] = useState({
     code: '',
     name: '',
@@ -35,18 +55,22 @@ function CreatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const environmentId = searchParams.get('environment_id');
+  const typeParam = searchParams.get('type');
 
   // Check if projects exist on mount
   useEffect(() => {
     checkProjects();
 
-    // Auto-select project creation if environment_id is present
-    if (environmentId) {
+    // Auto-select based on URL params
+    if (typeParam === 'environment') {
+      setCreationType('environment');
+      setStep(1);
+    } else if (typeParam === 'project' || environmentId) {
       setCreationType('project');
       setShowProjectForm(true);
       setStep(1);
     }
-  }, [environmentId]);
+  }, [environmentId, typeParam]);
 
   const checkProjects = async () => {
     try {
@@ -70,7 +94,7 @@ function CreatePage() {
 
     // If type is document but no projects exist, redirect to project creation
     if (type === 'document' && !hasProjects) {
-      alert('⚠️ Antes de crear un documento, debes crear al menos un proyecto.');
+      addToast('⚠️ Antes de crear un documento, debes crear al menos un proyecto.', 'warning');
       setCreationType('project');
       setShowProjectForm(true);
       setStep(1);
@@ -109,16 +133,20 @@ function CreatePage() {
         ...newEnvironment
       };
       const response = await environmentsAPI.create(environmentData);
-      alert('✅ ¡Entorno creado exitosamente!');
+      addToast('✅ ¡Entorno creado exitosamente!', 'success');
 
       // Navigate to projects with new environment
       // Check if response.data has id (axios response)
       const envId = response.data?.id || response.data?.data?.id || response.data?.environment?.id;
-      navigate(`/projects?environment_id=${response.data.id}`);
+
+      // Delay navigation slightly to let toast be seen
+      setTimeout(() => {
+        navigate(`/projects?environment_id=${response.data.id}`);
+      }, 1000);
 
     } catch (err) {
       console.error('Error al crear entorno:', err);
-      alert('❌ Error al crear entorno: ' + (err.response?.data?.error || err.message));
+      addToast('❌ Error al crear entorno: ' + (err.response?.data?.error || err.message), 'error');
     } finally {
       setSaving(false);
       setNewEnvironment({ name: '', description: '', color: '#10b981' });
@@ -131,7 +159,7 @@ function CreatePage() {
     // Validate environment
     const envId = environmentId || newProject.environment_id;
     if (!envId) {
-      alert('❌ Error: Debes seleccionar un entorno para el proyecto.');
+      addToast('❌ Error: Debes seleccionar un entorno para el proyecto.', 'error');
       return;
     }
 
@@ -143,39 +171,52 @@ function CreatePage() {
         environment_id: envId
       };
       const response = await projectsAPI.create(projectData);
-      alert('✅ ¡Proyecto creado exitosamente!');
+      addToast('✅ ¡Proyecto creado exitosamente!', 'success');
 
       // Update hasProjects state
       setHasProjects(true);
+      setPendingProjectId(response.data.id);
 
-      // Ask if user wants to create a document for this project
-      const createDoc = window.confirm('¿Deseas crear un documento para este proyecto?');
-      if (createDoc) {
-        setSelectedProjectId(response.data.id);
-        setCreationType('document');
-        setStep(2);
-      } else {
-        // Only reset form and navigate if not creating document
-        setNewProject({ code: '', name: '', description: '', color: '#6366f1' });
-        navigate(environmentId ? `/projects?environment_id=${environmentId}` : '/proyectos');
-      }
+      // Show confirmation modal
+      setShowDocConfirmModal(true);
+
     } catch (err) {
       console.error('Error al crear proyecto:', err);
-      alert('❌ Error al crear proyecto: ' + (err.response?.data?.error || err.message));
-    } finally {
+      addToast('❌ Error al crear proyecto: ' + (err.response?.data?.error || err.message), 'error');
       setSaving(false);
     }
   };
 
+  // Handle modal responses
+  const handleDocConfirm = () => {
+    setShowDocConfirmModal(false);
+    setSaving(false);
+
+    if (pendingProjectId) {
+      setSelectedProjectId(pendingProjectId);
+      setCreationType('document');
+      setStep(2);
+    }
+  };
+
+  const handleDocCancel = () => {
+    setShowDocConfirmModal(false);
+    setSaving(false);
+
+    // Cleanup and navigate away
+    setNewProject({ code: '', name: '', description: '', color: '#6366f1' });
+    navigate(environmentId ? `/projects?environment_id=${environmentId}` : '/proyectos');
+  };
+
   const handleFormSubmit = async (documentData) => {
     if (!selectedProjectId) {
-      alert('❌ Error: No se ha seleccionado un proyecto.');
+      addToast('❌ Error: No se ha seleccionado un proyecto.', 'error');
       setStep(1);
       return;
     }
 
     if (!selectedType) {
-      alert('❌ Error: No se ha seleccionado un tipo de documento.');
+      addToast('❌ Error: No se ha seleccionado un tipo de documento.', 'error');
       setStep(2);
       return;
     }
@@ -189,12 +230,15 @@ function CreatePage() {
       };
 
       await documentsAPI.create(newDocument);
-      alert('✅ ¡Documentación creada exitosamente!');
-      navigate('/mis-documentos');
+      addToast('✅ ¡Documentación creada exitosamente!', 'success');
+
+      setTimeout(() => {
+        navigate('/mis-documentos');
+      }, 1000);
+
     } catch (err) {
       console.error('Error al crear documento:', err);
-      alert('❌ Error al crear documento: ' + (err.response?.data?.error || err.message));
-    } finally {
+      addToast('❌ Error al crear documento: ' + (err.response?.data?.error || err.message), 'error');
       setSaving(false);
     }
   };
@@ -294,7 +338,8 @@ function CreatePage() {
             </button>
           </form>
         </div>
-      </div>
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+      </div >
     );
   }
 
@@ -307,6 +352,7 @@ function CreatePage() {
           <p>¿Qué deseas crear?</p>
         </div>
         <CreationTypeSelector onSelect={handleCreationTypeSelect} />
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     );
   }
@@ -407,7 +453,30 @@ function CreatePage() {
               </button>
             </form>
           </div>
-        </div>
+
+          <Modal
+            isOpen={showDocConfirmModal}
+            onClose={handleDocCancel}
+            title="¿Crear documento ahora?"
+            size="small"
+            actions={
+              <>
+                <button className="btn btn-secondary" onClick={handleDocCancel}>
+                  No, ir a proyectos
+                </button>
+                <button className="btn btn-primary" onClick={handleDocConfirm}>
+                  Sí, crear documento
+                </button>
+              </>
+            }
+          >
+            <p style={{ textAlign: 'center', margin: '10px 0', fontSize: '1rem', color: 'var(--text-secondary)' }}>
+              Tu proyecto ha sido creado exitosamente. ¿Deseas empezar a crear un documento para este proyecto ahora mismo?
+            </p>
+          </Modal>
+
+          <ToastContainer toasts={toasts} removeToast={removeToast} />
+        </div >
       );
     }
 
@@ -466,7 +535,8 @@ function CreatePage() {
               </button>
             </form>
           </div>
-        </div>
+          <ToastContainer toasts={toasts} removeToast={removeToast} />
+        </div >
       );
     }
 
@@ -482,10 +552,10 @@ function CreatePage() {
             <p>Paso 1: Selecciona el proyecto</p>
           </div>
           <ProjectSelector
-            selectedProjectId={selectedProjectId}
             onSelect={handleProjectSelect}
             allowCreate={true}
           />
+          <ToastContainer toasts={toasts} removeToast={removeToast} />
         </div>
       );
     }
@@ -505,6 +575,7 @@ function CreatePage() {
           <p>Paso 2: Selecciona el tipo de documentación</p>
         </div>
         <DocumentTypeSelector onSelect={handleTypeSelect} />
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     );
   }
@@ -522,6 +593,7 @@ function CreatePage() {
           saving={saving}
         />
         <MarkdownHelper />
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     );
   }

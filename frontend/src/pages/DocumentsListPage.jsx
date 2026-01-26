@@ -8,6 +8,9 @@ import Pagination from '../components/Pagination';
 import '../styles/DocumentsListPage.css';
 import '../styles/LoadingStates.css';
 
+import Modal from '../components/Modal';
+import { ToastContainer } from '../components/Toast';
+
 function DocumentsListPage({ embedded = false, onStatsChange }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -29,6 +32,20 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [pagination, setPagination] = useState(null);
+
+  // UI State
+  const [toasts, setToasts] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ show: false, spec: null });
+
+  // Toast helper
+  const addToast = (message, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -56,6 +73,7 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
       }
     } catch (err) {
       console.error('Error al cargar documentos:', err);
+      // No toast on load for nicer UX
       setDocuments([]);
     } finally {
       setLoading(false);
@@ -144,15 +162,24 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
   };
 
   // Eliminar spec
-  const handleDeleteSpec = async (specId) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta especificación API?')) return;
+  const handleDeleteSpecClick = (spec) => {
+    setDeleteModal({ show: true, spec });
+  };
+
+  const handleConfirmDeleteSpec = async () => {
+    const { spec } = deleteModal;
+    if (!spec) return;
+
     try {
-      await apiSpecsAPI.delete(specId);
+      await apiSpecsAPI.delete(spec.id);
       loadApiSpecs();
+      addToast('API Spec eliminada exitosamente', 'success');
       // Notify parent to update stats
       if (onStatsChange) onStatsChange();
+      setDeleteModal({ show: false, spec: null });
     } catch (err) {
-      alert('Error al eliminar: ' + (err.response?.data?.error || err.message));
+      addToast('Error al eliminar: ' + (err.response?.data?.error || err.message), 'error');
+      setDeleteModal({ show: false, spec: null });
     }
   };
 
@@ -326,7 +353,7 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
                   {user?.id === spec.user_id && (
                     <button
                       className="btn btn-small btn-secondary"
-                      onClick={() => handleDeleteSpec(spec.id)}
+                      onClick={() => handleDeleteSpecClick(spec)}
                     >
                       <Trash2 size={14} /> Eliminar
                     </button>
@@ -337,6 +364,32 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
           </div>
         )
       )}
+
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ ...deleteModal, show: false })}
+        title="Eliminar API Spec"
+        size="small"
+        actions={
+          <>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setDeleteModal({ ...deleteModal, show: false })}
+            >
+              Cancelar
+            </button>
+            <button className="btn btn-danger" onClick={handleConfirmDeleteSpec}>
+              Sí, eliminar
+            </button>
+          </>
+        }
+      >
+        <p style={{ textAlign: 'center', margin: '10px 0', fontSize: '1rem' }}>
+          ¿Estás seguro de que deseas eliminar la especificación <strong>{deleteModal.spec?.name}</strong>?
+        </p>
+      </Modal>
+
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 }

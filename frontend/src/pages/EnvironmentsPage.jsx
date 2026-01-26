@@ -5,6 +5,9 @@ import { Plus, Layout, Pencil, Trash2, Check, X, Folder } from '../components/Ic
 import '../styles/ProjectsPage.css'; // Reusing styles for consistency
 import '../styles/LoadingStates.css';
 
+import Modal from '../components/Modal';
+import { ToastContainer } from '../components/Toast';
+
 function EnvironmentsPage({ embedded = false, onNavigate }) {
     const navigate = useNavigate();
     const [environments, setEnvironments] = useState([]);
@@ -14,6 +17,20 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
     const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({ name: '', description: '', color: '#10b981' });
+
+    // UI State
+    const [toasts, setToasts] = useState([]);
+    const [deleteModal, setDeleteModal] = useState({ show: false, env: null, projectCount: 0 });
+
+    // Toast helper
+    const addToast = (message, type = 'info') => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+    };
+
+    const removeToast = (id) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    };
 
     useEffect(() => {
         loadEnvironments();
@@ -32,9 +49,7 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
     };
 
     const handleCreate = () => {
-        setFormData({ name: '', description: '', color: '#10b981' });
-        setIsCreating(true);
-        setEditingId(null);
+        navigate('/crear?type=environment');
     };
 
     const handleEdit = (env) => {
@@ -49,28 +64,40 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
                 const res = await environmentsAPI.create(formData);
                 setEnvironments([...environments, res.data]);
                 setIsCreating(false);
+                addToast('Entorno creado exitosamente', 'success');
             } else {
                 const res = await environmentsAPI.update(editingId, formData);
                 setEnvironments(environments.map(e => e.id === editingId ? res.data : e));
                 setEditingId(null);
+                addToast('Entorno actualizado exitosamente', 'success');
             }
         } catch (err) {
-            alert('Error al guardar: ' + (err.response?.data?.error || err.message));
+            addToast('Error al guardar: ' + (err.response?.data?.error || err.message), 'error');
         }
     };
 
-    const handleDelete = async (id, projectCount) => {
+    const handleDeleteClick = (env) => {
+        setDeleteModal({ show: true, env, projectCount: env.project_count || 0 });
+    };
+
+    const handleConfirmDelete = async () => {
+        const { env, projectCount } = deleteModal;
+        if (!env) return;
+
         if (projectCount > 0) {
-            alert(`No se puede eliminar un entorno que tiene ${projectCount} proyectos. Elimina o mueve los proyectos primero.`);
+            addToast(`No se puede eliminar un entorno que tiene ${projectCount} proyectos. Elimina los proyectos primero.`, 'warning');
+            setDeleteModal({ show: false, env: null, projectCount: 0 });
             return;
         }
-        if (!window.confirm('¿Estás seguro de eliminar este entorno?')) return;
 
         try {
-            await environmentsAPI.delete(id);
-            setEnvironments(environments.filter(e => e.id !== id));
+            await environmentsAPI.delete(env.id);
+            setEnvironments(environments.filter(e => e.id !== env.id));
+            addToast('Entorno eliminado exitosamente', 'success');
+            setDeleteModal({ show: false, env: null, projectCount: 0 });
         } catch (err) {
-            alert('Error al eliminar: ' + err.message);
+            addToast('Error al eliminar: ' + err.message, 'error');
+            setDeleteModal({ show: false, env: null, projectCount: 0 });
         }
     };
 
@@ -191,7 +218,7 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
                                     <button className="btn btn-small btn-secondary" onClick={() => handleEdit(env)}>
                                         <Pencil size={14} /> Editar
                                     </button>
-                                    <button className="btn btn-small btn-secondary" onClick={() => handleDelete(env.id, env.project_count)}>
+                                    <button className="btn btn-small btn-secondary" onClick={() => handleDeleteClick(env)}>
                                         <Trash2 size={14} /> Eliminar
                                     </button>
                                 </div>
@@ -200,6 +227,38 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
                     ))}
                 </div>
             )}
+
+            <Modal
+                isOpen={deleteModal.show}
+                onClose={() => setDeleteModal({ ...deleteModal, show: false })}
+                title="Eliminar Entorno"
+                size="small"
+                actions={
+                    <>
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => setDeleteModal({ ...deleteModal, show: false })}
+                        >
+                            Cancelar
+                        </button>
+                        <button className="btn btn-danger" onClick={handleConfirmDelete}>
+                            Sí, eliminar
+                        </button>
+                    </>
+                }
+            >
+                <div style={{ textAlign: 'center' }}>
+                    <p>¿Estás seguro de eliminar el entorno <strong>{deleteModal.env?.name}</strong>?</p>
+                    {deleteModal.projectCount > 0 && (
+                        <p style={{ color: '#ef4444', marginTop: '10px', fontSize: '0.9rem' }}>
+                            ⚠️ Este entorno contiene <strong>{deleteModal.projectCount} proyecto(s)</strong>.
+                            Debes eliminar o mover los proyectos antes de poder eliminar el entorno.
+                        </p>
+                    )}
+                </div>
+            </Modal>
+
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
         </div>
     );
 }
