@@ -6,7 +6,7 @@ import EndpointPreview from '../components/EndpointPreview';
 import ScoreBreakdown from '../components/ScoreBreakdown';
 import OAuthSetupCard from '../components/OAuthSetupCard';
 import { GitBranch, Plus, X, Folder, FileText, RefreshCw, Trash2, Eye, Zap, Lock, AlertTriangle, CheckCircle, Package, Search, Pencil, Code } from '../components/Icons';
-// import GitHubConnect from '../components/GitHubConnect'; // Uncomment when GitHub OAuth is configured
+import GitHubConnect from '../components/GitHubConnect';
 import '../styles/ReposPage.css';
 import '../styles/ReposPageOAuth.css';
 
@@ -292,7 +292,7 @@ function ReposPage({ embedded = false, onStatsChange }) {
                 />
             )}
 
-            {/* GitHub Connect - Descomentar cuando se configuren GITHUB_CLIENT_ID y GITHUB_CLIENT_SECRET
+            {/* GitHub Connect Section */}
             <div className="github-section">
                 <GitHubConnect
                     projectId={selectedProjectId || projects[0]?.id}
@@ -302,7 +302,6 @@ function ReposPage({ embedded = false, onStatsChange }) {
                     }}
                 />
             </div>
-            */}
 
             {/* OAuth Configuration Button */}
             <div className="oauth-setup-trigger">

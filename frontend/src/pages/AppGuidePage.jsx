@@ -166,13 +166,13 @@ function AppGuidePage() {
                     <h2>Navegación Rápida</h2>
                     <ul className="functionality-list">
                         <li>
-                            <strong>🔍 Búsqueda Global</strong>: Usa la barra superior para encontrar cualquier proyecto o especificación API instantáneamente escribiendo su nombre.
-                        </li>
-                        <li>
-                            <strong>🏷️ Filtros de Contexto</strong>: Alterna entre tus entornos (ej. <em>Desarrollo</em> vs <em>Producción</em>) para ver solo los recursos relevantes a tu tarea actual.
+                            <strong>⚙️ Configuración de Entorno</strong>: Selecciona entre configuraciones predefinidas (Local, Producción, Personalizado) y configura la URL del servidor para probar tus APIs en diferentes ambientes.
                         </li>
                         <li>
                             <strong>📂 Vista Jerárquica</strong>: Tus proyectos se agrupan lógicamente. Expande un proyecto para ver sus documentos y APIs asociados de un vistazo.
+                        </li>
+                        <li>
+                            <strong>🔑 Acceso con API Key</strong>: Conecta una API Key para acceder a la documentación sin necesidad de iniciar sesión. Ideal para compartir acceso temporal con colaboradores externos.
                         </li>
                     </ul>
 

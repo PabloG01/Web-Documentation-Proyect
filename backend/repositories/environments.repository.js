@@ -16,16 +16,16 @@ class EnvironmentsRepository extends BaseRepository {
      * @param {Object} options - Query options
      * @param {number} options.userId - User ID
      */
-    async findAll({ userId }) {
+    async findAll({ userId, viewerId }) {
+        // Shared Visibility: Return ALL environments.
         const query = `
             SELECT environments.*, 
                    (SELECT COUNT(*) FROM projects WHERE projects.environment_id = environments.id) as project_count
             FROM environments 
-            WHERE user_id = $1 
             ORDER BY created_at ASC
         `;
 
-        const result = await this.query(query, [userId]);
+        const result = await this.query(query, []);
         return result.rows;
     }
 

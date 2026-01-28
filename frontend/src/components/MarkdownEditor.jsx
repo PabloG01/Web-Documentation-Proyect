@@ -13,12 +13,12 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
     if (!textarea) return;
 
     const scrollPos = textarea.scrollTop;
-    
+
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = value.substring(start, end);
     const textToInsert = selectedText || placeholder;
-    
+
     const newText = value.substring(0, start) + before + textToInsert + after + value.substring(end);
     onChange(newText);
 
@@ -53,7 +53,7 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
     const currentLine = lines[lineIndex];
     const newLine = currentLine ? `${prefix}${currentLine}` : `${prefix}${placeholder}`;
     lines[lineIndex] = newLine;
-    
+
     const newText = lines.join('\n');
     onChange(newText);
 
@@ -88,16 +88,16 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
     if (!alt || alt === '') return;
     const url = prompt('URL de la imagen:');
     if (!url) return;
-    
+
     const textarea = textareaRef.current;
     if (!textarea) return;
-    
+
     const scrollPos = textarea.scrollTop;
     const start = textarea.selectionStart;
     const imageMarkdown = `![${alt}](${url})`;
     const newText = value.substring(0, start) + imageMarkdown + value.substring(start);
     onChange(newText);
-    
+
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + imageMarkdown.length, start + imageMarkdown.length);
@@ -122,7 +122,7 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
       action: () => insertText('~~', '~~', 'texto tachado')
     },
     {
-      icon: '</>', 
+      icon: '</>',
       title: 'Código inline',
       action: () => insertText('`', '`', 'código')
     },
@@ -293,7 +293,7 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
         e.preventDefault();
         const spaces = romanMatch[1];
         const roman = romanMatch[2];
-        
+
         const romanToInt = (str) => {
           const map = { i: 1, v: 5, x: 10, l: 50, c: 100, d: 500, m: 1000 };
           let total = 0;
@@ -306,7 +306,7 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
           }
           return total;
         };
-        
+
         const intToRoman = (num) => {
           const romans = [
             ['m', 1000], ['cm', 900], ['d', 500], ['cd', 400],
@@ -360,33 +360,55 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
     const preview = previewRef.current;
     if (!textarea || !preview) return;
 
+    let syncTimeout = null;
+
     const syncScroll = (source, target) => {
+      if (syncingRef.current) return;
+
       syncingRef.current = true;
-      const sourceMax = source.scrollHeight - source.clientHeight;
-      const targetMax = target.scrollHeight - target.clientHeight;
-      const ratio = sourceMax > 0 ? source.scrollTop / sourceMax : 0;
-      target.scrollTop = ratio * targetMax;
-      syncingRef.current = false;
+
+      // Cancelar timeout anterior si existe
+      if (syncTimeout) clearTimeout(syncTimeout);
+
+      syncTimeout = setTimeout(() => {
+        const sourceMax = source.scrollHeight - source.clientHeight;
+        const targetMax = target.scrollHeight - target.clientHeight;
+
+        if (sourceMax <= 0 || targetMax <= 0) {
+          syncingRef.current = false;
+          return;
+        }
+
+        const ratio = source.scrollTop / sourceMax;
+        target.scrollTop = ratio * targetMax;
+
+        syncingRef.current = false;
+      }, 10); // Pequeño debounce para suavizar
     };
 
     const onTextScroll = () => {
       if (syncingRef.current) return;
       syncScroll(textarea, preview);
     };
+
     const onPreviewScroll = () => {
       if (syncingRef.current) return;
       syncScroll(preview, textarea);
     };
 
-    textarea.addEventListener('scroll', onTextScroll);
-    preview.addEventListener('scroll', onPreviewScroll);
+    textarea.addEventListener('scroll', onTextScroll, { passive: true });
+    preview.addEventListener('scroll', onPreviewScroll, { passive: true });
 
-    // Sincronizar inicialmente
-    syncScroll(textarea, preview);
+    // Sincronizar inicialmente después de que el contenido se renderice
+    const initialSync = setTimeout(() => {
+      syncScroll(textarea, preview);
+    }, 100);
 
     return () => {
       textarea.removeEventListener('scroll', onTextScroll);
       preview.removeEventListener('scroll', onPreviewScroll);
+      if (syncTimeout) clearTimeout(syncTimeout);
+      clearTimeout(initialSync);
     };
   }, [activeTab, value]);
 
@@ -411,7 +433,7 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
             );
           })}
         </div>
-        
+
         {showPreview && (
           <div className="toolbar-tabs">
             <button
@@ -445,7 +467,29 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
             <textarea
               ref={textareaRef}
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e) => {
+                onChange(e.target.value);
+
+                // Sincronizar vista previa con la posición del cursor mientras se escribe
+                if (activeTab === 'split') {
+                  const textarea = textareaRef.current;
+                  const preview = previewRef.current;
+                  if (textarea && preview) {
+                    // Calcular la línea actual basándose en la posición del cursor
+                    const cursorPosition = textarea.selectionStart;
+                    const textBeforeCursor = value.substring(0, cursorPosition);
+                    const currentLine = textBeforeCursor.split('\n').length;
+                    const totalLines = value.split('\n').length;
+
+                    // Calcular ratio basado en la línea actual
+                    const lineRatio = totalLines > 0 ? (currentLine / totalLines) : 0;
+
+                    // Aplicar scroll a la vista previa con un pequeño offset
+                    const previewMax = preview.scrollHeight - preview.clientHeight;
+                    preview.scrollTop = lineRatio * previewMax;
+                  }
+                }
+              }}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               className="editor-textarea"

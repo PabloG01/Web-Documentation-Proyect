@@ -32,11 +32,11 @@ function Header() {
         </Link>
         <nav className="nav">
           <Link to="/" className={isActive('/')}>Inicio</Link>
+          <Link to="/guides" className={isActive('/guides')}>Guías</Link>
           {user ? (
             <>
               <Link to="/workspace" className={isActive('/workspace')}>Workspace</Link>
               <Link to="/crear" className={isActive('/crear')}>Crear</Link>
-              <Link to="/guides" className={isActive('/guides')}>Guías</Link>
               <button onClick={handleLogout} className="btn btn-secondary" style={{ marginLeft: '1rem' }}>
                 Cerrar Sesión ({user.username})
               </button>

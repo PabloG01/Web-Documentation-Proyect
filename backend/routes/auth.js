@@ -118,7 +118,7 @@ const verifyToken = asyncHandler(async (req, res, next) => {
         next();
     } catch (err) {
         console.error('Token verification error:', err.message);
-        res.clearCookie('auth_token', { httpOnly: true, secure: false, sameSite: 'lax' });
+        res.clearCookie('auth_token', { httpOnly: true, secure: false, sameSite: 'none' });
 
         if (err.name === 'TokenExpiredError') {
             return next(new AppError('Sesión expirada', 401));
@@ -251,8 +251,9 @@ router.post('/login', authLimiter, validateLogin, asyncHandler(async (req, res, 
     );
 
     // Set cookie (CONFIGURACIÓN PARA LAN - HTTP)
-    // NOTA: sameSite 'lax' funciona con HTTP, pero el usuario debe acceder 
-    // al frontend y backend usando la MISMA IP (no mezclar localhost con IP)
+    // NOTA: sameSite 'lax' requiere que frontend y backend usen el MISMO hostname
+    // Asegúrate de acceder al frontend usando la IP (ej: http://172.16.3.254:3000)
+    // El backend automáticamente usará la misma IP (http://172.16.3.254:5000)
     res.cookie('auth_token', token, {
         httpOnly: true,
         secure: false,
@@ -365,7 +366,10 @@ router.post('/verify-api-key', flexibleAuth, asyncHandler(async (req, res) => {
     // Si llegamos aquí, flexibleAuth ya validó, pero flexibleAuth ya NO incrementa el contador.
     // Debemos incrementarlo explícitamente aquí para marcar el inicio de una sesión.
     if (req.user && req.user.authMethod === 'api_key' && req.apiKeyId) {
-        const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+        // Get real IP (handle multiple proxies)
+        const forwarded = req.headers['x-forwarded-for'];
+        const ipAddress = forwarded ? forwarded.split(',')[0].trim() : (req.ip || req.connection.remoteAddress || 'unknown');
+
         await apiKeysRepository.logUsage(req.apiKeyId, '/auth/verify-api-key', 'POST', ipAddress);
         res.json({ success: true, message: 'API Key verificada y sesión registrada' });
     } else {

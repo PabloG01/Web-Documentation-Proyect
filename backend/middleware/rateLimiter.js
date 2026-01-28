@@ -22,7 +22,8 @@ const authLimiter = rateLimit({
         res.status(429).json({
             error: 'Demasiados intentos de inicio de sesión. Por favor, inténtalo de nuevo en 15 minutos.'
         });
-    }
+    },
+    validate: { trustProxy: false } // Supress warning about global trust proxy
 });
 
 /**
@@ -45,7 +46,8 @@ const registerLimiter = rateLimit({
         res.status(429).json({
             error: 'Has alcanzado el límite de registros. Por favor, inténtalo de nuevo en 1 hora.'
         });
-    }
+    },
+    validate: { trustProxy: false }
 });
 
 /**
@@ -68,7 +70,8 @@ const apiLimiter = rateLimit({
         res.status(429).json({
             error: 'Demasiadas solicitudes. Por favor, inténtalo de nuevo en 15 minutos.'
         });
-    }
+    },
+    validate: { trustProxy: false }
 });
 
 /**
@@ -92,7 +95,8 @@ const createLimiter = rateLimit({
         res.status(429).json({
             error: 'Has alcanzado el límite de creación de recursos. Por favor, inténtalo de nuevo en 1 hora.'
         });
-    }
+    },
+    validate: { trustProxy: false }
 });
 
 module.exports = {

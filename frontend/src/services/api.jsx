@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-// URL dinámica basada en el hostname actual (igual que AuthContext)
+// URL dinámica basada en el hostname actual
+// Esto asegura que frontend y backend usen el MISMO hostname
+// Ejemplo: si accedes vía http://172.16.3.254:3000, el backend será http://172.16.3.254:5000
+// Esto permite usar sameSite: 'lax' (más seguro) en lugar de 'none'
 const API_URL = `http://${window.location.hostname}:5000`;
 
 // Create axios instance with baseURL
@@ -13,16 +16,8 @@ const api = axios.create({
 });
 
 // Request interceptor: Auto-inject API Key if present in localStorage
-api.interceptors.request.use(
-    (config) => {
-        const apiKey = localStorage.getItem('api_key');
-        if (apiKey) {
-            config.headers['x-api-key'] = apiKey;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+// REMOVED: API Key usage is now isolated to HomePage via 'homepage_api_key'
+// api.interceptors.request.use(...);
 
 // Interceptor para manejar errores 401 y disparar evento de sesión cerrada
 api.interceptors.response.use(
@@ -120,7 +115,8 @@ export const githubAPI = {
     // Per-user OAuth setup
     getSetup: () => api.get('/github/auth/github/setup'),
     saveSetup: (clientId, clientSecret, callbackUrl) =>
-        api.post('/github/auth/github/setup', { client_id: clientId, client_secret: clientSecret, callback_url: callbackUrl })
+        api.post('/github/auth/github/setup', { client_id: clientId, client_secret: clientSecret, callback_url: callbackUrl }),
+    deleteSetup: () => api.delete('/github/auth/github/setup')
 };
 
 // Bitbucket API

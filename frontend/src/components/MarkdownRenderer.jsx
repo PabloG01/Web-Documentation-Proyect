@@ -14,6 +14,13 @@ const sanitizeSchema = {
     code: [...(defaultSchema.attributes?.code || []), 'className'],
     span: [...(defaultSchema.attributes?.span || []), 'className', 'style'],
     pre: [...(defaultSchema.attributes?.pre || []), 'className'],
+    div: [...(defaultSchema.attributes?.div || []), 'className', 'style'],
+    h1: [...(defaultSchema.attributes?.h1 || []), 'id'],
+    h2: [...(defaultSchema.attributes?.h2 || []), 'id'],
+    h3: [...(defaultSchema.attributes?.h3 || []), 'id'],
+    h4: [...(defaultSchema.attributes?.h4 || []), 'id'],
+    h5: [...(defaultSchema.attributes?.h5 || []), 'id'],
+    h6: [...(defaultSchema.attributes?.h6 || []), 'id'],
   },
 };
 
@@ -123,6 +130,18 @@ function MarkdownRenderer({ content }) {
           h3({ children }) {
             const id = String(children).toLowerCase().replace(/\s+/g, '-');
             return <h3 id={id}>{children}</h3>;
+          },
+          h4({ children }) {
+            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            return <h4 id={id}>{children}</h4>;
+          },
+          h5({ children }) {
+            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            return <h5 id={id}>{children}</h5>;
+          },
+          h6({ children }) {
+            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            return <h6 id={id}>{children}</h6>;
           },
           // Mejorar links
           a({ href, children }) {

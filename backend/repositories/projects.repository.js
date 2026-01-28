@@ -10,6 +10,18 @@ class ProjectsRepository extends BaseRepository {
         super('projects');
     }
 
+    async findById(id) {
+        const query = `
+            SELECT projects.*, users.username,
+            (SELECT COUNT(*)::int FROM api_specs WHERE api_specs.project_id = projects.id) as api_count
+            FROM projects 
+            LEFT JOIN users ON projects.user_id = users.id
+            WHERE projects.id = $1
+        `;
+        const result = await this.query(query, [id]);
+        return result.rows[0] || null;
+    }
+
     /**
      * Find all projects with optional user filter and pagination
      * @param {Object} options - Query options

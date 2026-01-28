@@ -90,6 +90,16 @@
     margin-right: 8px;
 }
 
+.oauth-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.oauth-actions .btn {
+    flex: 1;
+}
+
 .oauth-form {
     padding: 16px 0;
 }

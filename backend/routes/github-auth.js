@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const { usersRepository, reposRepository } = require('../repositories');
 const { encryptToken, decryptToken } = require('../utils/encryption');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
@@ -61,21 +62,51 @@ router.post('/auth/github/setup', verifyToken, asyncHandler(async (req, res) => 
 
 /**
  * @swagger
+ * /auth/github/setup:
+ *   delete:
+ *     summary: Delete user's GitHub OAuth credentials and disconnect account
+ *     tags: [GitHub]
+ */
+router.delete('/auth/github/setup', verifyToken, asyncHandler(async (req, res) => {
+    // Remove OAuth credentials and disconnect GitHub account
+    await usersRepository.update(req.user.id, {
+        github_client_id: null,
+        github_client_secret: null,
+        github_callback_url: null,
+        // Also disconnect active GitHub connection
+        github_id: null,
+        github_username: null,
+        github_token: null,
+        github_connected_at: null
+    });
+
+    res.json({ success: true, message: 'Configuración OAuth eliminada correctamente' });
+}));
+
+/**
+ * @swagger
  * /auth/github:
  *   get:
  *     summary: Initiate GitHub OAuth flow (uses per-user credentials)
  *     tags: [GitHub]
  */
-// Initiate GitHub OAuth flow
+// Initiate GitHub OAuth flow - returns OAuth URL with temporary token
 router.get('/auth/github', verifyToken, asyncHandler(async (req, res) => {
     // Get user's OAuth credentials
     const user = await usersRepository.getGithubCredentials(req.user.id);
-
 
     if (!user?.github_client_id || !user?.github_callback_url) {
         throw new AppError('GitHub OAuth no configurado. Configura tus credenciales primero.', 400);
     }
 
+    // Generate a temporary single-use token valid for 5 minutes
+    const tempToken = jwt.sign(
+        { userId: req.user.id, purpose: 'github-oauth' },
+        process.env.JWT_SECRET,
+        { expiresIn: '5m' }
+    );
+
+    // Return the OAuth URL with temp token
     const state = Buffer.from(JSON.stringify({ userId: req.user.id })).toString('base64');
 
     const params = new URLSearchParams({
@@ -85,7 +116,14 @@ router.get('/auth/github', verifyToken, asyncHandler(async (req, res) => {
         state: state
     });
 
-    res.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
+    const oauthUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
+
+    // Return JSON with the OAuth URL instead of redirecting
+    res.json({
+        success: true,
+        oauthUrl: oauthUrl,
+        tempToken: tempToken
+    });
 }));
 
 /**

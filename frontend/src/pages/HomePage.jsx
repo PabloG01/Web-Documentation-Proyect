@@ -16,8 +16,8 @@ function HomePage() {
   // Config State
   const [serverUrl, setServerUrl] = useState('http://localhost:5000');
   const [environment, setEnvironment] = useState('local');
-  const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('api_key') || '');
-  const [apiKeyConnected, setApiKeyConnected] = useState(!!localStorage.getItem('api_key'));
+  const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('homepage_api_key') || '');
+  const [apiKeyConnected, setApiKeyConnected] = useState(!!localStorage.getItem('homepage_api_key'));
 
   // Accordion States
   const [expandedProjects, setExpandedProjects] = useState({});
@@ -31,9 +31,12 @@ function HomePage() {
       const fetchData = async () => {
         try {
           setLoading(true);
+          // Manually inject homepage-scoped API key if present
+          const config = apiKeyConnected ? { headers: { 'x-api-key': localStorage.getItem('homepage_api_key') } } : {};
+
           const [specsRes, projectsRes] = await Promise.all([
-            api.get('/api-specs'),
-            api.get('/projects') // Load all projects
+            api.get('/api-specs', config),
+            api.get('/projects', config) // Load all projects
           ]);
           setSpecs(specsRes.data || []);
           setProjects(projectsRes.data.data || projectsRes.data || []);
@@ -41,7 +44,7 @@ function HomePage() {
           console.error('Error fetching data:', error);
           if (error.response?.status === 401 && !user) {
             // If auth fails and not user session, disconnect key locally
-            localStorage.removeItem('api_key');
+            localStorage.removeItem('homepage_api_key');
             setApiKeyConnected(false);
             setSpecs([]);
             setProjects([]);
@@ -115,6 +118,15 @@ function HomePage() {
     return miniSpec;
   };
 
+  // Swagger Request Interceptor to inject key
+  const requestInterceptor = (req) => {
+    const key = localStorage.getItem('homepage_api_key');
+    if (key) {
+      req.headers['x-api-key'] = key;
+    }
+    return req;
+  };
+
   // Toggle Handlers
   const toggleProject = (id) => setExpandedProjects(prev => ({ ...prev, [id]: !prev[id] }));
   const toggleSpec = (id) => setExpandedSpecs(prev => ({ ...prev, [id]: !prev[id] }));
@@ -151,22 +163,24 @@ function HomePage() {
     }
 
     // Guardar en caché y actualizar estado
-    localStorage.setItem('api_key', apiKeyInput);
+    localStorage.setItem('homepage_api_key', apiKeyInput);
 
     // Verificar y registrar inicio de sesión (incrementa contador uso)
     try {
-      await api.post('/auth/verify-api-key');
+      await api.post('/auth/verify-api-key', {}, {
+        headers: { 'x-api-key': apiKeyInput }
+      });
       setApiKeyConnected(true);
       alert('✅ API Key conectada correctamente');
     } catch (error) {
       console.error('Error verificando API Key:', error);
-      localStorage.removeItem('api_key');
+      localStorage.removeItem('homepage_api_key');
       alert('❌ Error: API Key inválida');
     }
   };
 
   const handleDisconnectApiKey = () => {
-    localStorage.removeItem('api_key');
+    localStorage.removeItem('homepage_api_key');
     setApiKeyConnected(false);
     setApiKeyInput('');
     setSpecs([]);
@@ -324,6 +338,7 @@ function HomePage() {
                                   defaultModelsExpandDepth={-1}
                                   displayRequestDuration={true}
                                   tryItOutEnabled={true}
+                                  requestInterceptor={requestInterceptor}
                                 />
                               </div>
                             )}

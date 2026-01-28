@@ -100,6 +100,40 @@ function OAuthSetupCard({ provider, providerName, onSave }) {
         setFormData(prev => ({ ...prev, clientSecret: '' }));
     };
 
+    const handleDelete = async () => {
+        if (!window.confirm(`¿Eliminar configuración OAuth de ${providerName}? Esto también desconectará tu cuenta.`)) {
+            return;
+        }
+
+        setSaving(true);
+        setError('');
+
+        try {
+            const deleteMethod = provider === 'github'
+                ? githubAPI.deleteSetup
+                : bitbucketAPI.deleteSetup;
+
+            await deleteMethod();
+
+            setSuccess(`✅ Configuración de ${providerName} eliminada correctamente`);
+            setConfigured(false);
+            setFormData({
+                clientId: '',
+                clientSecret: '',
+                callbackUrl: window.location.origin + `/${provider}/auth/${provider}/callback`
+            });
+
+            if (onSave) onSave();
+
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+            console.error(`Error deleting ${providerName} setup:`, err);
+            setError(err.response?.data?.message || 'Error al eliminar configuración');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="oauth-setup-card">
@@ -157,12 +191,21 @@ function OAuthSetupCard({ provider, providerName, onSave }) {
                     <p className="oauth-info">
                         <strong>Callback URL:</strong> {formData.callbackUrl}
                     </p>
-                    <button
-                        className="btn btn-secondary"
-                        onClick={() => setEditing(true)}
-                    >
-                        Actualizar Credenciales
-                    </button>
+                    <div className="oauth-actions">
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => setEditing(true)}
+                        >
+                            ✏️ Actualizar Credenciales
+                        </button>
+                        <button
+                            className="btn btn-danger"
+                            onClick={handleDelete}
+                            disabled={saving}
+                        >
+                            {saving ? 'Eliminando...' : '🗑️ Eliminar Configuración'}
+                        </button>
+                    </div>
                 </div>
             )}
 

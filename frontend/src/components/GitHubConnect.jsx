@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/GitHubConnect.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Use dynamic hostname to ensure same-site behavior (frontend and backend must use same hostname)
+const API_URL = `http://${window.location.hostname}:5000`;
 
 /**
  * GitHub Connection Component
@@ -52,9 +53,29 @@ function GitHubConnect({ onRepoSelect, projectId }) {
         }
     };
 
-    const connectGitHub = () => {
-        // Redirect to GitHub OAuth
-        window.location.href = `${API_URL}/github/auth/github`;
+    const connectGitHub = async () => {
+        setError('');
+
+        try {
+            // Call backend to get OAuth URL (this sends httpOnly cookie automatically)
+            const response = await fetch(`${API_URL}/github/auth/github`, {
+                credentials: 'include' // This sends the httpOnly auth_token cookie
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Error al obtener URL de OAuth');
+            }
+
+            const data = await response.json();
+
+            // Redirect to GitHub OAuth
+            window.location.href = data.oauthUrl;
+
+        } catch (err) {
+            console.error('Error connecting to GitHub:', err);
+            setError(err.message || 'Error al conectar con GitHub');
+        }
     };
 
     const disconnectGitHub = async () => {

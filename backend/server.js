@@ -21,6 +21,9 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
 const app = express();
+// Trust proxy to get correct IP from X-Forwarded-For
+app.set('trust proxy', true);
+
 const server = http.createServer(app); // Create HTTP server
 const PORT = process.env.PORT || 5000;
 
@@ -49,7 +52,14 @@ app.get('/api-docs.json', (req, res) => {
 
 // Middleware
 app.use(cors({
-    origin: true, // Permite cualquier origen
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl, postman)
+        if (!origin) return callback(null, true);
+
+        // Allow any origin that matches the pattern (for development)
+        // In production, you should whitelist specific origins
+        callback(null, origin);
+    },
     credentials: true
 }));
 app.use(helmet());
