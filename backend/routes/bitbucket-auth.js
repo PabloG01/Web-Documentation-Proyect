@@ -46,6 +46,17 @@ router.post('/auth/bitbucket/setup', verifyToken, asyncHandler(async (req, res) 
     res.json({ success: true, message: 'Credenciales de Bitbucket guardadas' });
 }));
 
+// Check if OAuth is configured
+router.get('/auth/bitbucket/oauth-status', verifyToken, asyncHandler(async (req, res) => {
+    const user = await usersRepository.getBitbucketCredentials(req.user.id);
+    const isConfigured = !!(user?.bitbucket_client_id && user?.bitbucket_callback_url);
+
+    res.json({
+        configured: isConfigured,
+        message: isConfigured ? 'OAuth configurado' : 'OAuth no configurado'
+    });
+}));
+
 // Connect using App Password (Basic Auth)
 router.post('/auth/bitbucket/manual', verifyToken, asyncHandler(async (req, res) => {
     const { username, appPassword } = req.body;

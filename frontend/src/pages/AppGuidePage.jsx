@@ -275,6 +275,60 @@ function AppGuidePage() {
                             </div>
                         </div>
                     </div>
+
+                    <h2>Guía de Conexión</h2>
+                    <p>Para analizar tus repositorios, primero debes conectar tu cuenta. Sigue las instrucciones para tu plataforma:</p>
+
+                    <div className="platform-guide">
+                        <h3><span className="icon">GitHub</span> Conexión con GitHub</h3>
+
+                        <div className="method-option">
+                            <h4>Opción A: OAuth (Recomendado)</h4>
+                            <p>La forma más rápida. Simplemente haz click en <strong>"Conectar con OAuth"</strong> y autoriza a DocApp.</p>
+                            <div className="note-box">
+                                <strong>Nota:</strong> Si ves un error de "OAuth no configurado", contacta al administrador para que configure las <em>GitHub App Credentials</em> en el servidor.
+                            </div>
+                        </div>
+
+                        <div className="method-option">
+                            <h4>Opción B: Token Personal (Manual)</h4>
+                            <p>Si prefieres más control o OAuth no está disponible:</p>
+                            <ol>
+                                <li>Ve a GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic).</li>
+                                <li>Genera un nuevo token (repo scope para privados, public_repo para públicos).</li>
+                                <li>En DocApp, selecciona <strong>"Token Manual"</strong> e ingresa tu token (empieza con <code>ghp_</code>).</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div className="platform-guide">
+                        <h3><span className="icon">Bitbucket</span> Conexión con Bitbucket</h3>
+
+                        <div className="method-option">
+                            <h4>Opción A: OAuth</h4>
+                            <p>Haz click en <strong>"Conectar con OAuth"</strong>. Requiere configuración previa del servidor.</p>
+                        </div>
+
+                        <div className="method-option">
+                            <h4>Opción B: App Password (Manual)</h4>
+                            <p>Bitbucket requiere una contraseña de aplicación específica, <strong>no tu contraseña de usuario</strong>.</p>
+                            <ol>
+                                <li>Ve a Bitbucket → Personal settings → App passwords.</li>
+                                <li>Crea una nueva App Password.</li>
+                                <li>Permisos requeridos: <strong>Repositories: Read</strong>.</li>
+                                <li>Copia la contraseña generada e ingrésala en DocApp junto con tu username.</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div className="info-box">
+                        <h3>🔍 Análisis y Proyectos</h3>
+                        <p>
+                            Al hacer click en <strong>"Analizar"</strong> en un repositorio, se te pedirá que selecciones un <strong>Proyecto Destino</strong>.
+                            <br />
+                            El análisis generará documentos y especificaciones de API que se guardarán automáticamente dentro de ese proyecto para mantener todo organizado.
+                        </p>
+                    </div>
                 </section>
 
                 {/* APIs y Testing */}

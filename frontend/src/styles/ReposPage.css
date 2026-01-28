@@ -203,7 +203,8 @@
 .repos-list {
     background: var(--surface-color, #ffffff);
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 0.5rem;
+    max-height: 600px;
     border: 1px solid var(--border-color, #e2e8f0);
 }
 

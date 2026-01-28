@@ -83,6 +83,17 @@ router.delete('/auth/github/setup', verifyToken, asyncHandler(async (req, res) =
     res.json({ success: true, message: 'Configuración OAuth eliminada correctamente' });
 }));
 
+// Check if OAuth is configured
+router.get('/auth/github/oauth-status', verifyToken, asyncHandler(async (req, res) => {
+    const user = await usersRepository.getGithubCredentials(req.user.id);
+    const isConfigured = !!(user?.github_client_id && user?.github_callback_url);
+
+    res.json({
+        configured: isConfigured,
+        message: isConfigured ? 'OAuth configurado' : 'OAuth no configurado'
+    });
+}));
+
 /**
  * @swagger
  * /auth/github/manual:

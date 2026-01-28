@@ -1,0 +1,103 @@
+/* Git Providers Tabs System */
+.git-providers-section {
+    margin: 2rem 0;
+}
+
+/* Tabs Navigation */
+.tabs-navigation {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+    background: #f9fafb;
+    padding: 0.5rem;
+    border-radius: 8px 8px 0 0;
+}
+
+.tab-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.tab-button:hover {
+    background: rgba(255, 255, 255, 0.8);
+    color: #334155;
+}
+
+.tab-button.active {
+    background: white;
+    color: #0052cc;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 3px;
+    background: #0052cc;
+    border-radius: 3px 3px 0 0;
+}
+
+.tab-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tab-button svg {
+    transition: transform 0.2s ease;
+}
+
+.tab-button.active svg {
+    transform: scale(1.1);
+}
+
+/* Tab Content */
+.tab-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tabs-navigation {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .tab-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .tab-button.active::after {
+        display: none;
+    }
+}
