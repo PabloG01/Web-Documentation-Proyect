@@ -85,6 +85,70 @@ router.delete('/auth/github/setup', verifyToken, asyncHandler(async (req, res) =
 
 /**
  * @swagger
+ * /auth/github/manual:
+ *   post:
+ *     summary: Connect GitHub using Personal Access Token
+ *     tags: [GitHub]
+ */
+router.post('/auth/github/manual', verifyToken, asyncHandler(async (req, res) => {
+    const { token } = req.body;
+
+    if (!token || token.length < 20) {
+        throw new AppError('Token inválido. Proporciona un Personal Access Token válido.', 400);
+    }
+
+    try {
+        // Validate token against GitHub API
+        const userResponse = await axios.get('https://api.github.com/user', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/vnd.github.v3+json'
+            }
+        });
+
+        const githubUser = userResponse.data;
+
+        // Encrypt and save token
+        const encryptedToken = encryptToken(token);
+
+        await usersRepository.update(req.user.id, {
+            github_id: githubUser.id.toString(),
+            github_username: githubUser.login,
+            github_token: encryptedToken,
+            github_connected_at: new Date().toISOString(),
+            // Mark as manual connection
+            github_client_id: 'MANUAL',
+            github_client_secret: null,
+            github_callback_url: null
+        });
+
+        res.json({
+            success: true,
+            message: 'Conectado a GitHub exitosamente',
+            user: {
+                id: githubUser.id,
+                username: githubUser.login,
+                name: githubUser.name,
+                avatarUrl: githubUser.avatar_url
+            }
+        });
+
+    } catch (error) {
+        console.error('GitHub manual connection error:', error.response?.data || error.message);
+
+        if (error.response?.status === 401) {
+            throw new AppError('Token inválido o expirado. Verifica tu Personal Access Token.', 401);
+        }
+
+        throw new AppError(
+            error.response?.data?.message || 'Error al conectar con GitHub',
+            error.response?.status || 500
+        );
+    }
+}));
+
+/**
+ * @swagger
  * /auth/github:
  *   get:
  *     summary: Initiate GitHub OAuth flow (uses per-user credentials)
@@ -309,15 +373,15 @@ router.get('/repos', verifyToken, asyncHandler(async (req, res) => {
             },
             params: {
                 page,
-                per_page,
-                visibility,
+                per_page: 100, // Get more to filter locally
                 sort: 'updated',
-                direction: 'desc'
+                direction: 'desc',
+                affiliation: 'owner,collaborator'
             }
         });
 
         // Map to simpler format
-        const repos = response.data.map(repo => ({
+        let repos = response.data.map(repo => ({
             id: repo.id,
             name: repo.name,
             fullName: repo.full_name,
@@ -335,11 +399,24 @@ router.get('/repos', verifyToken, asyncHandler(async (req, res) => {
             }
         }));
 
+        // Apply visibility filter locally
+        if (visibility === 'public') {
+            repos = repos.filter(repo => !repo.private);
+        } else if (visibility === 'private') {
+            repos = repos.filter(repo => repo.private);
+        }
+        // 'all' doesn't filter
+
+        // Apply pagination after filtering  
+        const startIndex = (parseInt(page) - 1) * parseInt(per_page);
+        const paginatedRepos = repos.slice(startIndex, startIndex + parseInt(per_page));
+
         res.json({
-            repos,
+            repos: paginatedRepos,
+            total: repos.length,
             page: parseInt(page),
             perPage: parseInt(per_page),
-            hasMore: repos.length === parseInt(per_page)
+            hasMore: startIndex + parseInt(per_page) < repos.length
         });
 
     } catch (err) {

@@ -18,6 +18,12 @@ function GitHubConnect({ onRepoSelect, projectId }) {
     const [analyzing, setAnalyzing] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
 
+    // Manual connection states
+    const [connectionMode, setConnectionMode] = useState('oauth'); // 'oauth' or 'manual'
+    const [manualToken, setManualToken] = useState('');
+    const [connectingManual, setConnectingManual] = useState(false);
+    const [showInstructions, setShowInstructions] = useState(false);
+
     // Check connection status on mount
     useEffect(() => {
         checkStatus();
@@ -94,6 +100,47 @@ function GitHubConnect({ onRepoSelect, projectId }) {
             setRepos([]);
         } catch (err) {
             setError('Error al desconectar');
+        }
+    };
+
+    const connectManual = async (e) => {
+        e.preventDefault();
+        setError('');
+        setConnectingManual(true);
+
+        try {
+            const response = await fetch(`${API_URL}/github/auth/github/manual`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ token: manualToken })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || data.message || 'Error al conectar');
+            }
+
+            const data = await response.json();
+
+            setStatus({
+                loading: false,
+                connected: true,
+                username: data.user.username
+            });
+
+            setSuccessMessage(`✅ Conectado como @${data.user.username}`);
+            setTimeout(() => setSuccessMessage(''), 5000);
+
+            setManualToken('');
+            setConnectionMode('oauth'); // Reset to OAuth view
+            loadRepos();
+
+        } catch (err) {
+            console.error('Manual connection error:', err);
+            setError(err.message || 'Error al conectar con token');
+        } finally {
+            setConnectingManual(false);
         }
     };
 
@@ -210,12 +257,50 @@ function GitHubConnect({ onRepoSelect, projectId }) {
                         </button>
                     </div>
                 ) : (
-                    <button className="btn btn-github" onClick={connectGitHub}>
-                        <svg viewBox="0 0 24 24" width="18" height="18">
-                            <path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                        </svg>
-                        Conectar con GitHub
-                    </button>
+                    <div className="connection-controls">
+                        <div className="connection-mode-toggle">
+                            <button
+                                className={`mode-btn ${connectionMode === 'oauth' ? 'active' : ''}`}
+                                onClick={() => setConnectionMode('oauth')}
+                            >
+                                OAuth
+                            </button>
+                            <button
+                                className={`mode-btn ${connectionMode === 'manual' ? 'active' : ''}`}
+                                onClick={() => setConnectionMode('manual')}
+                            >
+                                Token Manual
+                            </button>
+                        </div>
+
+                        {connectionMode === 'oauth' ? (
+                            <button className="btn btn-github" onClick={connectGitHub}>
+                                <svg viewBox="0 0 24 24" width="18" height="18">
+                                    <path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                                </svg>
+                                Conectar con OAuth
+                            </button>
+                        ) : (
+                            <form onSubmit={connectManual} className="manual-connect-form">
+                                <input
+                                    type="password"
+                                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                                    value={manualToken}
+                                    onChange={(e) => setManualToken(e.target.value)}
+                                    className="token-input"
+                                    required
+                                    minLength={20}
+                                />
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={connectingManual}
+                                >
+                                    {connectingManual ? 'Conectando...' : 'Conectar'}
+                                </button>
+                            </form>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -296,7 +381,31 @@ function GitHubConnect({ onRepoSelect, projectId }) {
                 </div>
             )}
 
-            {!status.connected && (
+            {!status.connected && connectionMode === 'manual' && (
+                <div className="github-info">
+                    <div
+                        className="info-header"
+                        onClick={() => setShowInstructions(!showInstructions)}
+                        style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    >
+                        <h4 style={{ margin: 0 }}>🔑 Usa un Personal Access Token</h4>
+                        <span style={{ fontSize: '1.2rem' }}>{showInstructions ? '▼' : '▶'}</span>
+                    </div>
+                    {showInstructions && (
+                        <>
+                            <p>Para acceso granular a repositorios específicos:</p>
+                            <ol>
+                                <li>Ve a GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens</li>
+                                <li>Crea un nuevo token y selecciona <strong>solo los repositorios</strong> que necesites</li>
+                                <li>Dale permiso de <strong>Contents (read)</strong></li>
+                                <li>Copia el token y pégalo arriba</li>
+                            </ol>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {!status.connected && connectionMode === 'oauth' && (
                 <div className="github-info">
                     <p>Conecta tu cuenta de GitHub para:</p>
                     <ul>

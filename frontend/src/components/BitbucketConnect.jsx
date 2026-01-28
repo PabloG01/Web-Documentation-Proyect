@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { bitbucketAPI, projectsAPI } from '../services/api';
 import '../styles/BitbucketConnect.css';
 
+const API_URL = `http://${window.location.hostname}:5000`;
+
 function BitbucketConnect({ onRepoAnalyzed }) {
     const [status, setStatus] = useState({ connected: false, loading: true });
     const [repos, setRepos] = useState([]);
@@ -10,6 +12,13 @@ function BitbucketConnect({ onRepoAnalyzed }) {
     const [selectedProject, setSelectedProject] = useState('');
     const [analyzing, setAnalyzing] = useState(null);
     const [error, setError] = useState('');
+
+    // Manual connection states
+    const [connectionMode, setConnectionMode] = useState('oauth'); // 'oauth' or 'manual'
+    const [manualUsername, setManualUsername] = useState('');
+    const [manualAppPassword, setManualAppPassword] = useState('');
+    const [connectingManual, setConnectingManual] = useState(false);
+    const [showInstructions, setShowInstructions] = useState(false);
 
     useEffect(() => {
         checkStatus();
@@ -64,6 +73,45 @@ function BitbucketConnect({ onRepoAnalyzed }) {
         }
     };
 
+    const connectManual = async (e) => {
+        e.preventDefault();
+        setError('');
+        setConnectingManual(true);
+
+        try {
+            const response = await fetch(`${API_URL}/bitbucket/auth/bitbucket/manual`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ username: manualUsername, appPassword: manualAppPassword })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || data.message || 'Error al conectar');
+            }
+
+            const data = await response.json();
+
+            setStatus({
+                loading: false,
+                connected: true,
+                username: data.user.username
+            });
+
+            setManualUsername('');
+            setManualAppPassword('');
+            setConnectionMode('oauth');
+            loadRepos();
+
+        } catch (err) {
+            console.error('Manual connection error:', err);
+            setError(err.message || 'Error al conectar con App Password');
+        } finally {
+            setConnectingManual(false);
+        }
+    };
+
     const handleAnalyze = async (repo) => {
         if (!selectedProject) {
             setError('Selecciona un proyecto primero');
@@ -105,14 +153,61 @@ function BitbucketConnect({ onRepoAnalyzed }) {
                         )}
                     </div>
                 </div>
+
                 {status.connected ? (
                     <button className="btn btn-small btn-secondary" onClick={handleDisconnect}>
                         Desconectar
                     </button>
                 ) : (
-                    <button className="btn btn-small btn-primary" onClick={handleConnect}>
-                        Conectar Bitbucket
-                    </button>
+                    <div className="connection-controls">
+                        <div className="connection-mode-toggle">
+                            <button
+                                className={`mode-btn ${connectionMode === 'oauth' ? 'active' : ''}`}
+                                onClick={() => setConnectionMode('oauth')}
+                            >
+                                OAuth
+                            </button>
+                            <button
+                                className={`mode-btn ${connectionMode === 'manual' ? 'active' : ''}`}
+                                onClick={() => setConnectionMode('manual')}
+                            >
+                                App Password
+                            </button>
+                        </div>
+
+                        {connectionMode === 'oauth' ? (
+                            <button className="btn btn-small btn-primary" onClick={handleConnect}>
+                                Conectar con OAuth
+                            </button>
+                        ) : (
+                            <form onSubmit={connectManual} className="manual-connect-form">
+                                <input
+                                    type="text"
+                                    placeholder="Username"
+                                    value={manualUsername}
+                                    onChange={(e) => setManualUsername(e.target.value)}
+                                    className="username-input"
+                                    required
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="App Password"
+                                    value={manualAppPassword}
+                                    onChange={(e) => setManualAppPassword(e.target.value)}
+                                    className="password-input"
+                                    required
+                                    minLength={10}
+                                />
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={connectingManual}
+                                >
+                                    {connectingManual ? 'Conectando...' : 'Conectar'}
+                                </button>
+                            </form>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -158,6 +253,30 @@ function BitbucketConnect({ onRepoAnalyzed }) {
                         </div>
                     ) : (
                         <div className="no-repos">No se encontraron repositorios</div>
+                    )}
+                </div>
+            )}
+
+            {!status.connected && connectionMode === 'manual' && (
+                <div className="bitbucket-info">
+                    <div
+                        className="info-header"
+                        onClick={() => setShowInstructions(!showInstructions)}
+                        style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    >
+                        <h4 style={{ margin: 0 }}>🔑 Usa un App Password</h4>
+                        <span style={{ fontSize: '1.2rem' }}>{showInstructions ? '▼' : '▶'}</span>
+                    </div>
+                    {showInstructions && (
+                        <>
+                            <p>Para conectar con credenciales específicas:</p>
+                            <ol>
+                                <li>Ve a Bitbucket Settings → Personal Bitbucket settings → App passwords</li>
+                                <li>Click en <strong>"Create app password"</strong></li>
+                                <li>Dale permisos de <strong>Repositories (read)</strong></li>
+                                <li>Copia el password generado e ingrésalo arriba junto con tu username</li>
+                            </ol>
+                        </>
                     )}
                 </div>
             )}

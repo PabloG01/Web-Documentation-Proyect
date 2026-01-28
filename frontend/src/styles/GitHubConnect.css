@@ -234,3 +234,107 @@
         gap: 0.75rem;
     }
 }
+/* Connection controls */
+.connection-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.connection-mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.25rem;
+    border-radius: 6px;
+}
+
+.connection-mode-toggle .mode-btn {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.connection-mode-toggle .mode-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.connection-mode-toggle .mode-btn.active {
+    background: white;
+    color: #24292e;
+}
+
+.manual-connect-form {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.manual-connect-form .token-input {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.9rem;
+    font-family: ''Courier New'', monospace;
+}
+
+.manual-connect-form .token-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.manual-connect-form .token-input:focus {
+    outline: none;
+    border-color: #58a6ff;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.github-info h4 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: var(--text-color, #1e293b);
+}
+
+.github-info ol {
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+}
+
+.github-info ol li {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+/* Collapsible instructions */
+.github-info .info-header {
+    padding: 0.75rem 0;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.github-info .info-header:hover {
+    background: rgba(0, 0, 0, 0.02);
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.github-info .info-header h4 {
+    user-select: none;
+}
+
+.github-info .info-header span {
+    transition: transform 0.3s ease;
+    color: var(--text-secondary, #666);
+}

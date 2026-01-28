@@ -46,6 +46,69 @@ router.post('/auth/bitbucket/setup', verifyToken, asyncHandler(async (req, res) 
     res.json({ success: true, message: 'Credenciales de Bitbucket guardadas' });
 }));
 
+// Connect using App Password (Basic Auth)
+router.post('/auth/bitbucket/manual', verifyToken, asyncHandler(async (req, res) => {
+    const { username, appPassword } = req.body;
+
+    if (!username || !appPassword) {
+        throw new AppError('Username y App Password son requeridos', 400);
+    }
+
+    if (appPassword.length < 10) {
+        throw new AppError('App Password inválido', 400);
+    }
+
+    try {
+        // Create Basic Auth token
+        const basicAuth = Buffer.from(`${username}:${appPassword}`).toString('base64');
+
+        // Validate credentials against Bitbucket API
+        const userResponse = await axios.get('https://api.bitbucket.org/2.0/user', {
+            headers: {
+                Authorization: `Basic ${basicAuth}`
+            }
+        });
+
+        const bitbucketUser = userResponse.data;
+
+        // Encrypt and save with BASIC: prefix to identify auth type
+        const encryptedToken = encryptToken(`BASIC:${basicAuth}`);
+
+        await usersRepository.update(req.user.id, {
+            bitbucket_uuid: bitbucketUser.uuid,
+            bitbucket_username: bitbucketUser.username,
+            bitbucket_token: encryptedToken,
+            bitbucket_connected_at: new Date().toISOString(),
+            // Mark as manual connection
+            bitbucket_client_id: 'MANUAL',
+            bitbucket_client_secret: null,
+            bitbucket_callback_url: null
+        });
+
+        res.json({
+            success: true,
+            message: 'Conectado a Bitbucket exitosamente',
+            user: {
+                uuid: bitbucketUser.uuid,
+                username: bitbucketUser.username,
+                displayName: bitbucketUser.display_name
+            }
+        });
+
+    } catch (error) {
+        console.error('Bitbucket manual connection error:', error.response?.data || error.message);
+
+        if (error.response?.status === 401) {
+            throw new AppError('Credenciales inválidas. Verifica tu username y App Password.', 401);
+        }
+
+        throw new AppError(
+            error.response?.data?.error?.message || 'Error al conectar con Bitbucket',
+            error.response?.status || 500
+        );
+    }
+}));
+
 // Initiate OAuth flow (per-user credentials)
 router.get('/auth/bitbucket', verifyToken, asyncHandler(async (req, res) => {
     const user = await usersRepository.getBitbucketCredentials(req.user.id);
@@ -187,9 +250,15 @@ router.get('/repos', verifyToken, asyncHandler(async (req, res) => {
     }
 
     try {
+        // Detect auth type: Basic (App Password) or Bearer (OAuth)
+        const isBasicAuth = token.startsWith('BASIC:');
+        const authHeader = isBasicAuth
+            ? `Basic ${token.substring(6)}` // Remove 'BASIC:' prefix
+            : `Bearer ${token}`;
+
         const response = await axios.get('https://api.bitbucket.org/2.0/repositories', {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization: authHeader
             },
             params: {
                 role: role,
@@ -251,8 +320,19 @@ router.post('/repos/:workspace/:repo/analyze', verifyToken, asyncHandler(async (
         throw new AppError('Error de autenticación con Bitbucket', 401);
     }
 
-    // For now, use the HTTPS clone URL with token
-    const cloneUrl = `https://x-token-auth:${token}@bitbucket.org/${workspace}/${repo}.git`;
+    // Detect auth type and construct appropriate clone URL
+    const isBasicAuth = token.startsWith('BASIC:');
+    let cloneUrl;
+
+    if (isBasicAuth) {
+        // For Basic Auth (App Password), decode and use username:password
+        const basicToken = token.substring(6); // Remove 'BASIC:' prefix
+        const decoded = Buffer.from(basicToken, 'base64').toString('utf-8');
+        cloneUrl = `https://${decoded}@bitbucket.org/${workspace}/${repo}.git`;
+    } else {
+        // For OAuth Bearer token
+        cloneUrl = `https://x-token-auth:${token}@bitbucket.org/${workspace}/${repo}.git`;
+    }
 
     // Use existing repo analyzer
     const repoAnalyzer = require('../services/repo-analyzer');
