@@ -16,6 +16,7 @@ function GitHubConnect({ onRepoSelect, projectId }) {
     const [search, setSearch] = useState('');
     const [error, setError] = useState('');
     const [analyzing, setAnalyzing] = useState(null);
+    const [successMessage, setSuccessMessage] = useState('');
 
     // Check connection status on mount
     useEffect(() => {
@@ -25,6 +26,9 @@ function GitHubConnect({ onRepoSelect, projectId }) {
         const params = new URLSearchParams(window.location.search);
         if (params.get('github_connected') === 'true') {
             checkStatus();
+            setSuccessMessage('¡Cuenta de GitHub conectada exitosamente! 🎉');
+            // Clear success message after 5 seconds
+            setTimeout(() => setSuccessMessage(''), 5000);
             // Clean URL
             window.history.replaceState({}, '', window.location.pathname);
         } else if (params.get('github_error')) {
@@ -129,6 +133,7 @@ function GitHubConnect({ onRepoSelect, projectId }) {
         setError('');
 
         try {
+            console.log('Analyzing repo:', repo);
             const response = await fetch(
                 `${API_URL}/github/repos/${repo.owner.login}/${repo.name}/analyze`,
                 {
@@ -142,21 +147,31 @@ function GitHubConnect({ onRepoSelect, projectId }) {
                 }
             );
 
+            console.log('Response status:', response.status);
+
             if (!response.ok) {
                 const data = await response.json();
                 throw new Error(data.error || 'Error al analizar');
             }
 
             const data = await response.json();
+            console.log('Analysis response:', data);
+
+            // Validate response structure
+            if (!data || !data.analysis) {
+                throw new Error('Respuesta inválida del servidor');
+            }
 
             if (onRepoSelect) {
                 onRepoSelect(data);
             }
 
-            alert(`✅ Repositorio analizado: ${data.analysis.files.length} archivos detectados`);
+            const filesCount = data.analysis.files?.length || 0;
+            alert(`✅ Repositorio analizado: ${filesCount} archivos detectados`);
 
         } catch (err) {
-            setError(err.message);
+            console.error('Error analyzing repo:', err);
+            setError(err.message || 'Error desconocido al analizar');
         } finally {
             setAnalyzing(null);
         }
@@ -203,6 +218,12 @@ function GitHubConnect({ onRepoSelect, projectId }) {
                     </button>
                 )}
             </div>
+
+            {successMessage && (
+                <div className="github-success">
+                    ✅ {successMessage}
+                </div>
+            )}
 
             {error && (
                 <div className="github-error">

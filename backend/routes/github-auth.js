@@ -135,7 +135,7 @@ router.get('/auth/github', verifyToken, asyncHandler(async (req, res) => {
  */
 router.get('/auth/github/callback', asyncHandler(async (req, res) => {
     const { code, state, error } = req.query;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://172.16.3.254:3000';
 
     if (error) {
         return res.redirect(`${frontendUrl}/workspace?section=repos&github_error=${encodeURIComponent(error)}`);
@@ -219,7 +219,7 @@ router.get('/auth/github/callback', asyncHandler(async (req, res) => {
  *       200:
  *         description: GitHub connection status
  */
-router.get('/github/status', verifyToken, asyncHandler(async (req, res) => {
+router.get('/auth/github/status', verifyToken, asyncHandler(async (req, res) => {
     const user = await usersRepository.getGithubConnection(req.user.id);
 
     if (!user) {
@@ -245,7 +245,7 @@ router.get('/github/status', verifyToken, asyncHandler(async (req, res) => {
  *       200:
  *         description: GitHub account disconnected
  */
-router.post('/github/disconnect', verifyToken, asyncHandler(async (req, res) => {
+router.post('/auth/github/disconnect', verifyToken, asyncHandler(async (req, res) => {
     await usersRepository.update(req.user.id, {
         github_id: null,
         github_username: null,

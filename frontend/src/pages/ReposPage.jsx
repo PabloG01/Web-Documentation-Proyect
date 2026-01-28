@@ -444,25 +444,25 @@ function ReposPage({ embedded = false, onStatsChange }) {
                     </div>
                     <div className="result-stats">
                         <div className="stat">
-                            <span className="stat-value">{analysisResult.analysis.stats.totalFiles}</span>
+                            <span className="stat-value">{analysisResult.stats?.totalFiles || 0}</span>
                             <span className="stat-label">Archivos API</span>
                         </div>
                         <div className="stat">
-                            <span className="stat-value">{analysisResult.analysis.stats.filesWithSwagger}</span>
+                            <span className="stat-value">{analysisResult.stats?.filesWithSwagger || 0}</span>
                             <span className="stat-label">Con Swagger</span>
                         </div>
                         <div className="stat">
-                            <span className="stat-value">{analysisResult.analysis.stats.totalEndpoints}</span>
+                            <span className="stat-value">{analysisResult.stats?.totalEndpoints || 0}</span>
                             <span className="stat-label">Endpoints</span>
                         </div>
                         <div className="stat">
-                            {getQualityBadge(analysisResult.analysis.stats.averageQuality)}
+                            {getQualityBadge(analysisResult.stats?.averageQuality || 0)}
                             <span className="stat-label">Calidad Promedio</span>
                         </div>
                     </div>
-                    {analysisResult.analysis.framework?.primary && (
+                    {analysisResult.framework?.primary && (
                         <div className="detected-framework">
-                            Framework detectado: {getFrameworkBadge(analysisResult.analysis.framework.primary)}
+                            Framework detectado: {getFrameworkBadge(analysisResult.framework.primary)}
                         </div>
                     )}
                 </div>

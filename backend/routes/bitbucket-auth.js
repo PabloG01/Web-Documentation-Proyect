@@ -73,7 +73,7 @@ router.get('/auth/bitbucket', verifyToken, asyncHandler(async (req, res) => {
 // OAuth callback (per-user credentials)
 router.get('/auth/bitbucket/callback', asyncHandler(async (req, res) => {
     const { code, state, error } = req.query;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://172.16.3.254:3000';
 
     if (error) {
         return res.redirect(`${frontendUrl}/workspace?section=repos&bitbucket_error=${error}`);
