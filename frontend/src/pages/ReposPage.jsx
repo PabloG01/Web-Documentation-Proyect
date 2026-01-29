@@ -4,62 +4,54 @@ import { reposAPI, projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import EndpointPreview from '../components/EndpointPreview';
 import ScoreBreakdown from '../components/ScoreBreakdown';
-import OAuthSetupCard from '../components/OAuthSetupCard';
-import { GitBranch, Plus, X, Folder, FileText, RefreshCw, Trash2, Eye, Zap, Lock, AlertTriangle, CheckCircle, Package, Search, Pencil, Code } from '../components/Icons';
-import GitHubConnect from '../components/GitHubConnect';
-import BitbucketConnect from '../components/BitbucketConnect';
+import { GitBranch, Plus, X, Folder, FileText, RefreshCw, Trash2, Eye, Zap, Lock, AlertTriangle, CheckCircle, Package, Search, Pencil, Code, Key } from '../components/Icons';
 import '../styles/ReposPage.css';
-import '../styles/ReposPageOAuth.css';
-import '../styles/ReposTabs.css';
+import '../styles/ReposTabs.css'; // Mantenemos para estilos generales o eliminamos si no se usa
+import '../styles/ReposPageOAuth.css'; // Posiblemente ya no necesario, pero verificaremos estilos
 
 function ReposPage({ embedded = false, onStatsChange }) {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // State for repos list
+    // Stats
     const [repos, setRepos] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // State for analysis form
-    const [showAnalyzeForm, setShowAnalyzeForm] = useState(false);
+    // Modal / Form States
+    const [showAddModal, setShowAddModal] = useState(false);
     const [repoUrl, setRepoUrl] = useState('');
     const [selectedProjectId, setSelectedProjectId] = useState('');
+    const [filterProjectId, setFilterProjectId] = useState(''); // New filter state
     const [branch, setBranch] = useState('main');
+    const [isPrivate, setIsPrivate] = useState(false);
     const [authToken, setAuthToken] = useState('');
+    const [authUsername, setAuthUsername] = useState('');
     const [projects, setProjects] = useState([]);
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState(null);
     const [error, setError] = useState('');
 
-    // State for repo details
+    // Detail View States
     const [selectedRepo, setSelectedRepo] = useState(null);
     const [repoFiles, setRepoFiles] = useState([]);
     const [loadingFiles, setLoadingFiles] = useState(false);
-
-    // State for endpoint preview
-    const [previewFile, setPreviewFile] = useState(null);
-    const [previewEndpoints, setPreviewEndpoints] = useState([]);
-
-    // State for score breakdown
     const [expandedScoreFileId, setExpandedScoreFileId] = useState(null);
 
-    // State for OAuth Setup modal
-    const [showOAuthSetup, setShowOAuthSetup] = useState(false);
-
-    // State for tabs
-    const [activeTab, setActiveTab] = useState('github'); // 'github' | 'bitbucket'
+    // Endpoint Preview
+    const [previewFile, setPreviewFile] = useState(null);
+    const [previewEndpoints, setPreviewEndpoints] = useState([]);
 
     const loadRepos = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await reposAPI.getAll();
+            const response = await reposAPI.getAll(filterProjectId || null);
             setRepos(response.data || []);
         } catch (err) {
             console.error('Error loading repos:', err);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [filterProjectId]);
 
     const loadProjects = useCallback(async () => {
         try {
@@ -88,21 +80,36 @@ function ReposPage({ embedded = false, onStatsChange }) {
             setError('Selecciona un proyecto');
             return;
         }
+        if (isPrivate && !authToken) {
+            setError('El token es requerido para repositorios privados');
+            return;
+        }
 
         setAnalyzing(true);
         setError('');
         setAnalysisResult(null);
 
         try {
-            const response = await reposAPI.analyze(repoUrl, selectedProjectId, branch, authToken || null);
+            // Pass authUsername/authToken only if private
+            const tokenToSend = isPrivate ? authToken : null;
+            const userToSend = isPrivate ? authUsername : null;
+
+            const response = await reposAPI.analyze(repoUrl, selectedProjectId, branch, tokenToSend, userToSend);
             setAnalysisResult(response.data);
             loadRepos();
-            setShowAnalyzeForm(false);
+
+            // Close modal implies success in this flow? Or keep open to show result?
+            // Let's close form and show result
+            setShowAddModal(false);
+
+            // Reset form
             setRepoUrl('');
             setBranch('main');
             setAuthToken('');
+            setAuthUsername('');
+            setIsPrivate(false);
             setSelectedProjectId('');
-            // Notify parent to update stats
+
             if (onStatsChange) onStatsChange();
         } catch (err) {
             setError(err.response?.data?.error || 'Error al analizar el repositorio');
@@ -114,6 +121,7 @@ function ReposPage({ embedded = false, onStatsChange }) {
     const handleViewRepo = async (repo) => {
         setSelectedRepo(repo);
         setLoadingFiles(true);
+        setRepoFiles([]); // Clear previous
 
         try {
             const response = await reposAPI.getById(repo.id);
@@ -125,17 +133,39 @@ function ReposPage({ embedded = false, onStatsChange }) {
         }
     };
 
-    // Open preview modal for a file
+    const handleResync = async (repoId) => {
+        if (!window.confirm('¿Quieres re-sincronizar este repositorio?')) return;
+        try {
+            setLoading(true);
+            await reposAPI.resync(repoId);
+            alert('✅ Repositorio re-sincronizado');
+            loadRepos();
+            if (selectedRepo?.id === repoId) handleViewRepo(selectedRepo);
+        } catch (err) {
+            alert('Error: ' + (err.response?.data?.error || err.message));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (repoId) => {
+        if (!window.confirm('¿Seguro que quieres eliminar esta conexión?')) return;
+        try {
+            await reposAPI.delete(repoId);
+            loadRepos();
+            if (selectedRepo?.id === repoId) setSelectedRepo(null);
+            if (onStatsChange) onStatsChange();
+        } catch (err) {
+            alert('Error: ' + (err.response?.data?.error || err.message));
+        }
+    };
+
+    // Helper to extract endpoints for preview
     const handlePreviewEndpoints = (file) => {
-        // Parse endpoints from parsed_content if available
         let endpoints = [];
         if (file.parsed_content) {
             try {
-                const parsed = typeof file.parsed_content === 'string'
-                    ? JSON.parse(file.parsed_content)
-                    : file.parsed_content;
-
-                // Extract endpoints from OpenAPI paths
+                const parsed = typeof file.parsed_content === 'string' ? JSON.parse(file.parsed_content) : file.parsed_content;
                 if (parsed.paths) {
                     for (const [path, methods] of Object.entries(parsed.paths)) {
                         for (const [method, details] of Object.entries(methods)) {
@@ -153,17 +183,13 @@ function ReposPage({ embedded = false, onStatsChange }) {
                 console.error('Error parsing endpoints:', err);
             }
         }
-
         setPreviewFile(file);
         setPreviewEndpoints(endpoints);
     };
 
-    // Handle confirmed endpoints from preview
     const handleConfirmEndpoints = async (editedEndpoints) => {
         if (!previewFile || !selectedRepo) return;
-
         try {
-            // Generate spec with edited endpoints (let backend handle naming)
             await reposAPI.generateSpec(selectedRepo.id, previewFile.id, {
                 description: `Generado desde repositorio`,
                 editedEndpoints: editedEndpoints
@@ -172,385 +198,89 @@ function ReposPage({ embedded = false, onStatsChange }) {
             setPreviewFile(null);
             setPreviewEndpoints([]);
             handleViewRepo(selectedRepo);
-            // Notify parent to update stats
             if (onStatsChange) onStatsChange();
         } catch (err) {
             alert('Error: ' + (err.response?.data?.error || err.message));
         }
     };
 
-    const handleCancelPreview = () => {
-        setPreviewFile(null);
-        setPreviewEndpoints([]);
-    };
-
-    const handleGenerateSpec = async (repoId, fileId, filePath) => {
+    const handleGenerateSpec = async (repoId, fileId) => {
         try {
-            // Let backend generate the name using project code and repo info
-            await reposAPI.generateSpec(repoId, fileId, {
-                description: `Generado desde repositorio`
-            });
+            await reposAPI.generateSpec(repoId, fileId, { description: `Generado desde repositorio` });
             alert('✅ Especificación API generada correctamente');
             handleViewRepo(selectedRepo);
-            // Notify parent to update stats
             if (onStatsChange) onStatsChange();
         } catch (err) {
             alert('Error: ' + (err.response?.data?.error || err.message));
         }
-    };
-
-    const handleResync = async (repoId) => {
-        if (!window.confirm('¿Quieres re-sincronizar este repositorio?')) return;
-
-        try {
-            setLoading(true);
-            await reposAPI.resync(repoId);
-            alert('✅ Repositorio re-sincronizado');
-            loadRepos();
-            if (selectedRepo?.id === repoId) {
-                handleViewRepo(selectedRepo);
-            }
-        } catch (err) {
-            alert('Error: ' + (err.response?.data?.error || err.message));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDelete = async (repoId) => {
-        if (!window.confirm('¿Seguro que quieres eliminar esta conexión?')) return;
-
-        try {
-            await reposAPI.delete(repoId);
-            loadRepos();
-            if (selectedRepo?.id === repoId) {
-                setSelectedRepo(null);
-                setRepoFiles([]);
-            }
-            // Notify parent to update stats
-            if (onStatsChange) onStatsChange();
-        } catch (err) {
-            alert('Error: ' + (err.response?.data?.error || err.message));
-        }
-    };
-
-    const getQualityBadge = (score) => {
-        if (score >= 71) return <span className="quality-badge good">🟢 {score}%</span>;
-        if (score >= 41) return <span className="quality-badge partial">🟡 {score}%</span>;
-        return <span className="quality-badge basic">🔴 {score}%</span>;
     };
 
     const getFrameworkBadge = (framework) => {
-        const colors = {
-            express: '#000000',
-            nestjs: '#e0234e',
-            nextjs: '#000000',
-            laravel: '#ff2d20',
-            symfony: '#000000',
-            fastapi: '#009688',
-            flask: '#000000'
-        };
-        return (
-            <span
-                className="framework-badge"
-                style={{ backgroundColor: colors[framework] || '#6366f1' }}
-            >
-                {framework || 'Unknown'}
-            </span>
-        );
+        const colors = { express: '#000000', nestjs: '#e0234e', nextjs: '#000000', laravel: '#ff2d20', fastify: '#000000', flask: '#000000' };
+        return <span className="framework-badge" style={{ backgroundColor: colors[framework] || '#6366f1' }}>{framework || 'Unknown'}</span>;
     };
 
-    if (!user) {
-        return (
-            <div className="repos-page">
-                <div className="auth-required">
-                    <h2><Lock size={24} /> Inicia sesión</h2>
-                    <p>Necesitas iniciar sesión para conectar repositorios</p>
-                </div>
-            </div>
-        );
-    }
+    if (!user) return <div className="repos-page"><div className="auth-required"><h2><Lock size={24} /> Inicia sesión</h2></div></div>;
 
     return (
         <div className="repos-page">
             <div className="page-header">
                 <div>
-                    <h1><GitBranch size={24} /> Repositorios Git</h1>
-                    <p>Conecta repositorios para generar documentación automáticamente</p>
+                    <h1><GitBranch size={24} /> Mis Repositorios</h1>
+                    <p>Gestiona tus conexiones individuales a repositorios Git</p>
                 </div>
-                <button
-                    className="btn btn-primary"
-                    onClick={() => setShowAnalyzeForm(!showAnalyzeForm)}
-                >
-                    {showAnalyzeForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Conectar Repositorio</>}
-                </button>
-            </div>
-
-            {/* Endpoint Preview Modal */}
-            {previewFile && (
-                <EndpointPreview
-                    endpoints={previewEndpoints}
-                    onConfirm={handleConfirmEndpoints}
-                    onCancel={handleCancelPreview}
-                    repoName={selectedRepo?.repo_name}
-                    filePath={previewFile.file_path}
-                />
-            )}
-
-            {/* Git Providers Tabs */}
-            <div className="git-providers-section">
-                <div className="tabs-navigation">
-                    <button
-                        className={`tab-button ${activeTab === 'github' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('github')}
+                <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <select
+                        className="project-filter-select"
+                        value={filterProjectId}
+                        onChange={(e) => setFilterProjectId(e.target.value)}
+                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                     >
-                        <svg viewBox="0 0 24 24" width="18" height="18" className="tab-icon">
-                            <path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                        </svg>
-                        GitHub
-                    </button>
-                    <button
-                        className={`tab-button ${activeTab === 'bitbucket' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('bitbucket')}
-                    >
-                        <span className="tab-icon">🪣</span>
-                        Bitbucket
+                        <option value="">Todos los Proyectos</option>
+                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                    <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                        <Plus size={16} /> Conectar Repositorio
                     </button>
                 </div>
-
-                <div className="tab-content">
-                    {activeTab === 'github' && (
-                        <GitHubConnect
-                            projectId={selectedProjectId}
-                            projects={projects}
-                            onRepoSelect={(result) => {
-                                loadRepos();
-                                setAnalysisResult(result.analysis);
-                            }}
-                        />
-                    )}
-
-                    {activeTab === 'bitbucket' && (
-                        <BitbucketConnect
-                            projects={projects}
-                            onRepoAnalyzed={(result) => {
-                                loadRepos();
-                                setAnalysisResult(result.analysis);
-                            }}
-                        />
-                    )}
-                </div>
             </div>
 
-            {/* OAuth Configuration Button */}
-            <div className="oauth-setup-trigger">
-                <button
-                    className="btn btn-secondary"
-                    onClick={() => setShowOAuthSetup(true)}
-                >
-                    ⚙️ Configurar OAuth Apps
-                </button>
-            </div>
-
-            {/* OAuth Configuration Modal */}
-            {showOAuthSetup && (
-                <div className="oauth-modal-overlay" onClick={() => setShowOAuthSetup(false)}>
-                    <div className="oauth-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="oauth-modal-header">
-                            <h2>⚙️ Configurar Credenciales OAuth</h2>
-                            <button
-                                className="modal-close-btn"
-                                onClick={() => setShowOAuthSetup(false)}
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <div className="oauth-modal-content">
-                            <p className="oauth-description">
-                                Configura tus propias credenciales OAuth para acceder a repositorios privados de GitHub y Bitbucket.
-                            </p>
-                            <div className="oauth-cards-grid">
-                                <OAuthSetupCard
-                                    provider="github"
-                                    providerName="GitHub"
-                                    onSave={() => {
-                                        console.log('GitHub OAuth configured');
-                                        setTimeout(() => setShowOAuthSetup(false), 1500);
-                                    }}
-                                />
-                                <OAuthSetupCard
-                                    provider="bitbucket"
-                                    providerName="Bitbucket"
-                                    onSave={() => {
-                                        console.log('Bitbucket OAuth configured');
-                                        setTimeout(() => setShowOAuthSetup(false), 1500);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Analysis Form */}
-            {showAnalyzeForm && (
-                <div className="analyze-form-container">
-                    <form onSubmit={handleAnalyze} className="analyze-form">
-                        <h3>Analizar Repositorio</h3>
-
-                        <div className="form-group">
-                            <label>URL del Repositorio *</label>
-                            <input
-                                type="text"
-                                value={repoUrl}
-                                onChange={(e) => setRepoUrl(e.target.value)}
-                                placeholder="https://github.com/usuario/repositorio"
-                                disabled={analyzing}
-                            />
-                            <small>Soportamos GitHub, GitLab y Bitbucket</small>
-                        </div>
-
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Proyecto *</label>
-                                <select
-                                    value={selectedProjectId}
-                                    onChange={(e) => setSelectedProjectId(e.target.value)}
-                                    disabled={analyzing}
-                                >
-                                    <option value="">-- Selecciona proyecto --</option>
-                                    {projects.map(p => (
-                                        <option key={p.id} value={p.id}>
-                                            {p.code} - {p.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label>Branch</label>
-                                <input
-                                    type="text"
-                                    value={branch}
-                                    onChange={(e) => setBranch(e.target.value)}
-                                    placeholder="main"
-                                    disabled={analyzing}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="form-group">
-                            <label>🔑 Token de acceso (opcional)</label>
-                            <input
-                                type="password"
-                                value={authToken}
-                                onChange={(e) => setAuthToken(e.target.value)}
-                                placeholder="Requerido para repositorios privados"
-                                disabled={analyzing}
-                            />
-                            <small>Personal Access Token de GitHub/Bitbucket/GitLab para repos privados</small>
-                        </div>
-
-                        {error && <div className="error-message">⚠️ {error}</div>}
-
-                        <div className="form-actions">
-                            <button
-                                type="submit"
-                                className="btn btn-primary"
-                                disabled={analyzing}
-                            >
-                                {analyzing ? '⏳ Analizando...' : '🔍 Analizar'}
-                            </button>
-                        </div>
-
-                        {analyzing && (
-                            <div className="analyzing-status">
-                                <div className="spinner"></div>
-                                <p>Clonando y analizando repositorio...</p>
-                                <small>Esto puede tomar unos segundos</small>
-                            </div>
-                        )}
-                    </form>
-                </div>
-            )}
-
-            {/* Analysis Result Modal */}
-            {analysisResult && (
-                <div className="analysis-result">
-                    <div className="result-header">
-                        <h3>✅ Análisis Completado</h3>
-                        <button onClick={() => setAnalysisResult(null)}>✕</button>
-                    </div>
-                    <div className="result-stats">
-                        <div className="stat">
-                            <span className="stat-value">{analysisResult.stats?.totalFiles || 0}</span>
-                            <span className="stat-label">Archivos API</span>
-                        </div>
-                        <div className="stat">
-                            <span className="stat-value">{analysisResult.stats?.filesWithSwagger || 0}</span>
-                            <span className="stat-label">Con Swagger</span>
-                        </div>
-                        <div className="stat">
-                            <span className="stat-value">{analysisResult.stats?.totalEndpoints || 0}</span>
-                            <span className="stat-label">Endpoints</span>
-                        </div>
-                        <div className="stat">
-                            {getQualityBadge(analysisResult.stats?.averageQuality || 0)}
-                            <span className="stat-label">Calidad Promedio</span>
-                        </div>
-                    </div>
-                    {analysisResult.framework?.primary && (
-                        <div className="detected-framework">
-                            Framework detectado: {getFrameworkBadge(analysisResult.framework.primary)}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Main Content */}
-            <div className="repos-content">
-                {/* Repos List */}
+            {/* Content Wrapper for Split Layout */}
+            <div className={`repos-content-wrapper ${selectedRepo ? 'with-panel' : ''}`}>
+                {/* Repos List Grid */}
                 <div className="repos-list">
-                    <h3><Package size={18} /> Repositorios Conectados</h3>
-
                     {loading ? (
                         <div className="loading">Cargando...</div>
                     ) : repos.length === 0 ? (
                         <div className="empty-state">
-                            <p>No hay repositorios conectados</p>
-                            <small>Conecta un repositorio para comenzar</small>
+                            <div className="empty-icon"><Folder size={48} /></div>
+                            <h3>No hay repositorios conectados</h3>
+                            <p>Agrega una conexión individual para empezar a documentar.</p>
+                            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                                Conectar Ahora
+                            </button>
                         </div>
                     ) : (
                         <div className="repos-grid">
                             {repos.map(repo => (
-                                <div
-                                    key={repo.id}
-                                    className={`repo-card ${selectedRepo?.id === repo.id ? 'selected' : ''}`}
-                                    onClick={() => handleViewRepo(repo)}
-                                >
+                                <div key={repo.id} className={`repo-card ${selectedRepo?.id === repo.id ? 'selected' : ''}`} onClick={() => handleViewRepo(repo)}>
                                     <div className="repo-header">
                                         <span className="repo-icon"><Folder size={20} /></span>
                                         <div className="repo-info">
-                                            <h4>{repo.repo_name}</h4>
-                                            <span className="repo-project">{repo.project_code}</span>
+                                            <h4 title={repo.repo_name}>{repo.repo_name}</h4>
+                                            <span className="repo-branch"><GitBranch size={12} /> {repo.branch}</span>
                                         </div>
                                     </div>
                                     <div className="repo-meta">
                                         {repo.detected_framework && getFrameworkBadge(repo.detected_framework)}
-                                        <span className="files-count">{repo.files_count} archivo(s)</span>
+                                        <span className="files-count">{repo.files_count} archivos</span>
                                     </div>
                                     <div className="repo-actions">
-                                        <button
-                                            className="btn btn-small"
-                                            onClick={(e) => { e.stopPropagation(); handleResync(repo.id); }}
-                                        >
-                                            <RefreshCw size={16} />
+                                        <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); handleResync(repo.id); }} title="Re-sincronizar">
+                                            <RefreshCw size={14} />
                                         </button>
-                                        <button
-                                            className="btn btn-small btn-danger"
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(repo.id); }}
-                                        >
-                                            <Trash2 size={16} />
+                                        <button className="btn btn-small btn-danger" onClick={(e) => { e.stopPropagation(); handleDelete(repo.id); }} title="Eliminar">
+                                            <Trash2 size={14} />
                                         </button>
                                     </div>
                                 </div>
@@ -559,36 +289,25 @@ function ReposPage({ embedded = false, onStatsChange }) {
                     )}
                 </div>
 
-                {/* Files Panel */}
+                {/* Selected Repo Details (Files Panel) - Now inline */}
                 {selectedRepo && (
                     <div className="files-panel">
                         <div className="panel-header">
-                            <h3><FileText size={18} /> Archivos de {selectedRepo.repo_name}</h3>
+                            <h3><FileText size={18} /> {selectedRepo.repo_name}</h3>
                             <button onClick={() => setSelectedRepo(null)}><X size={18} /></button>
                         </div>
 
-                        {loadingFiles ? (
-                            <div className="loading">Cargando archivos...</div>
-                        ) : repoFiles.length === 0 ? (
-                            <div className="empty-state">
-                                <p>No se encontraron archivos API</p>
-                            </div>
+                        {loadingFiles ? <div className="loading">Cargando estructura...</div> : repoFiles.length === 0 ? (
+                            <div className="empty-state-panel">No se detectaron archivos documentables.</div>
                         ) : (
                             <div className="files-list">
                                 {repoFiles.map(file => (
                                     <div key={file.id} className="file-item">
                                         <div className="file-info">
-                                            <span className="file-path">{file.file_path}</span>
-                                            <div className="file-meta">
-                                                {file.has_swagger_comments && (
-                                                    <span className="swagger-badge"><Pencil size={12} /> Swagger</span>
-                                                )}
-                                                {file.file_type && file.file_type !== 'unknown' && (
-                                                    <span className={`analyzer-badge ${file.file_type.includes('+AI') ? 'ai-enhanced' : ''}`}>
-                                                        {file.file_type.includes('+AI') ? <Zap size={10} /> : <Code size={10} />} {file.file_type}
-                                                    </span>
-                                                )}
-                                                <span className="endpoints-count">{file.endpoints_count} endpoints</span>
+                                            <div className="file-path">{file.file_path}</div>
+                                            <div className="file-badges">
+                                                {file.has_swagger_comments && <span className="badge swagger">Swagger</span>}
+                                                <span className="badge count">{file.endpoints_count} eps</span>
                                                 <ScoreBreakdown
                                                     score={file.quality_score}
                                                     breakdown={file.quality_breakdown}
@@ -596,47 +315,23 @@ function ReposPage({ embedded = false, onStatsChange }) {
                                                     compact={true}
                                                     renderAsBadge={true}
                                                     isExpanded={expandedScoreFileId === file.id}
-                                                    onExpand={(expanded) => setExpandedScoreFileId(expanded ? file.id : null)}
+                                                    onExpand={(exp) => setExpandedScoreFileId(exp ? file.id : null)}
                                                 />
                                             </div>
                                             {expandedScoreFileId === file.id && (
                                                 <div className="file-score-detail">
-                                                    <ScoreBreakdown
-                                                        score={file.quality_score}
-                                                        breakdown={file.quality_breakdown}
-                                                        suggestions={file.quality_suggestions}
-                                                        compact={false}
-                                                    />
+                                                    <ScoreBreakdown score={file.quality_score} breakdown={file.quality_breakdown} suggestions={file.quality_suggestions} compact={false} />
                                                 </div>
                                             )}
                                         </div>
                                         <div className="file-actions">
                                             {file.has_spec ? (
-                                                <button
-                                                    className="btn btn-small btn-success"
-                                                    onClick={() => navigate('/api-test?spec=' + file.api_spec_id)}
-                                                >
-                                                    <Eye size={14} /> Ver Spec
-                                                </button>
-                                            ) : file.parsed_content ? (
-                                                <div className="action-buttons">
-                                                    <button
-                                                        className="btn btn-small"
-                                                        onClick={() => handlePreviewEndpoints(file)}
-                                                        title="Revisar endpoints antes de generar"
-                                                    >
-                                                        <Pencil size={14} /> Revisar
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-small btn-primary"
-                                                        onClick={() => handleGenerateSpec(selectedRepo.id, file.id, file.file_path)}
-                                                        title="Generar spec directamente"
-                                                    >
-                                                        <Zap size={14} /> Generar
-                                                    </button>
-                                                </div>
+                                                <button className="btn btn-small btn-success" onClick={() => navigate('/api-test?spec=' + file.api_spec_id)}><Eye size={12} /> Ver</button>
                                             ) : (
-                                                <span className="no-content">Sin contenido</span>
+                                                <>
+                                                    <button className="btn btn-small" onClick={() => handlePreviewEndpoints(file)}><Pencil size={12} /></button>
+                                                    <button className="btn btn-small btn-primary" onClick={() => handleGenerateSpec(selectedRepo.id, file.id)}><Zap size={12} /></button>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -646,9 +341,130 @@ function ReposPage({ embedded = false, onStatsChange }) {
                     </div>
                 )}
             </div>
+
+            {/* Main Add Modal */}
+            {showAddModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content add-repo-modal">
+                        <div className="modal-header">
+                            <h3><GitBranch size={20} /> Conectar Nuevo Repositorio</h3>
+                            <button className="close-btn" onClick={() => setShowAddModal(false)}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={handleAnalyze} className="add-repo-form">
+                            <div className="form-group">
+                                <label>URL del Repositorio (HTTPS)</label>
+                                <input
+                                    type="text"
+                                    value={repoUrl}
+                                    onChange={e => setRepoUrl(e.target.value)}
+                                    placeholder="https://github.com/usuario/repo.git"
+                                    required
+                                    disabled={analyzing}
+                                />
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Proyecto</label>
+                                    <select
+                                        value={selectedProjectId}
+                                        onChange={e => setSelectedProjectId(e.target.value)}
+                                        required
+                                        disabled={analyzing}
+                                    >
+                                        <option value="">Selecciona un proyecto...</option>
+                                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Rama (Branch)</label>
+                                    <input
+                                        type="text"
+                                        value={branch}
+                                        onChange={e => setBranch(e.target.value)}
+                                        placeholder="main"
+                                        disabled={analyzing}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-divider">
+                                <div className="toggle-container">
+                                    <label className="switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={isPrivate}
+                                            onChange={e => setIsPrivate(e.target.checked)}
+                                            disabled={analyzing}
+                                        />
+                                        <span className="slider round"></span>
+                                    </label>
+                                    <span className="toggle-label">Es un repositorio privado</span>
+                                </div>
+                            </div>
+
+                            {isPrivate && (
+                                <div className="auth-section">
+                                    <div className="form-group">
+                                        <label>Access Token / Password <span className="required">*</span></label>
+                                        <div className="input-with-icon">
+                                            <Key size={16} className="input-icon" />
+                                            <input
+                                                type="password"
+                                                value={authToken}
+                                                onChange={e => setAuthToken(e.target.value)}
+                                                placeholder="Pegar token aquí..."
+                                                required={isPrivate}
+                                                disabled={analyzing}
+                                            />
+                                        </div>
+                                        <small>GitHub Personal Access Token, Bitbucket Repository Token, etc.</small>
+                                    </div>
+                                </div>
+                            )}
+
+                            {error && <div className="error-message">⚠️ {error}</div>}
+
+                            <div className="modal-actions">
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} disabled={analyzing}>Cancelar</button>
+                                <button type="submit" className="btn btn-primary" disabled={analyzing}>
+                                    {analyzing ? 'Analizando...' : 'Conectar y Analizar'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Analysis Result Modal */}
+            {analysisResult && (
+                <div className="modal-overlay">
+                    <div className="modal-content result-modal">
+                        <h3>✅ Análisis Completado</h3>
+                        <div className="result-stats">
+                            <div className="stat"><strong>{analysisResult.stats?.totalFiles}</strong> Archivos</div>
+                            <div className="stat"><strong>{analysisResult.stats?.totalEndpoints}</strong> Endpoints</div>
+                        </div>
+                        <button className="btn btn-primary full-width" onClick={() => setAnalysisResult(null)}>Cerrar</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Endpoint Preview Modal */}
+            {previewFile && (
+                <EndpointPreview
+                    endpoints={previewEndpoints}
+                    onConfirm={handleConfirmEndpoints}
+                    onCancel={() => setPreviewFile(null)}
+                    repoName={selectedRepo?.repo_name}
+                    filePath={previewFile.file_path}
+                />
+            )}
+
+
         </div>
     );
 }
 
 export default ReposPage;
-

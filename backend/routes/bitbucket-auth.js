@@ -57,30 +57,48 @@ router.get('/auth/bitbucket/oauth-status', verifyToken, asyncHandler(async (req,
     });
 }));
 
-// Connect using App Password (Basic Auth)
+// Connect using Atlassian API Token (Basic Auth)
 router.post('/auth/bitbucket/manual', verifyToken, asyncHandler(async (req, res) => {
-    const { username, appPassword } = req.body;
+    const { email, apiToken } = req.body;
 
-    if (!username || !appPassword) {
-        throw new AppError('Username y App Password son requeridos', 400);
+    // Email is optional now (for Repository Access Tokens), but API Token is required
+    if (!apiToken) {
+        throw new AppError('API Token es requerido', 400);
     }
 
-    if (appPassword.length < 10) {
-        throw new AppError('App Password inválido', 400);
+    if (apiToken.length < 10) {
+        throw new AppError('API Token inválido', 400);
     }
 
     try {
-        // Create Basic Auth token
-        const basicAuth = Buffer.from(`${username}:${appPassword}`).toString('base64');
+        // If email provided -> User API Token (email:token)
+        // If NO email -> Repository Access Token (x-token-auth:token)
+        const username = email || 'x-token-auth';
+        const basicAuth = Buffer.from(`${username}:${apiToken}`).toString('base64');
+        let bitbucketUser = {};
 
         // Validate credentials against Bitbucket API
-        const userResponse = await axios.get('https://api.bitbucket.org/2.0/user', {
-            headers: {
-                Authorization: `Basic ${basicAuth}`
-            }
-        });
+        if (username === 'x-token-auth') {
+            // Repository Access Tokens cannot access /user, check /repositories instead
+            const reposResponse = await axios.get('https://api.bitbucket.org/2.0/repositories', {
+                headers: { Authorization: `Basic ${basicAuth}` },
+                params: { pagelen: 1 } // We just need to check if it works
+            });
 
-        const bitbucketUser = userResponse.data;
+            // For Repo Tokens, we don't have a user profile. We use placeholders.
+            const firstRepo = reposResponse.data.values?.[0];
+            bitbucketUser = {
+                uuid: `repo-token-${Date.now()}`,
+                username: firstRepo ? `Repo Token (${firstRepo.name})` : 'Repository Token',
+                display_name: 'Bitbucket Repository Token'
+            };
+        } else {
+            // Standard User Token -> Validate against /user
+            const userResponse = await axios.get('https://api.bitbucket.org/2.0/user', {
+                headers: { Authorization: `Basic ${basicAuth}` }
+            });
+            bitbucketUser = userResponse.data;
+        }
 
         // Encrypt and save with BASIC: prefix to identify auth type
         const encryptedToken = encryptToken(`BASIC:${basicAuth}`);
@@ -110,7 +128,7 @@ router.post('/auth/bitbucket/manual', verifyToken, asyncHandler(async (req, res)
         console.error('Bitbucket manual connection error:', error.response?.data || error.message);
 
         if (error.response?.status === 401) {
-            throw new AppError('Credenciales inválidas. Verifica tu username y App Password.', 401);
+            throw new AppError('Credenciales inválidas. Verifica tu email y API Token.', 401);
         }
 
         throw new AppError(

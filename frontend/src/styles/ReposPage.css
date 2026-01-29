@@ -4,508 +4,426 @@
     margin: 0 auto;
 }
 
-.repos-page .page-header {
+.page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
 }
 
-.repos-page .page-header h1 {
+.page-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     margin: 0;
-    color: var(--text-primary, #1e293b);
+    font-size: 1.875rem;
+    color: var(--text-primary);
 }
 
-.repos-page .page-header p {
+.page-header p {
     margin: 0.5rem 0 0;
-    color: var(--text-secondary, #64748b);
-}
-
-/* Analyze Form */
-.analyze-form-container {
-    background: var(--surface-color, #ffffff);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    border: 1px solid var(--border-color, #e2e8f0);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-/* GitHub Section */
-.github-section {
-    margin-bottom: 2rem;
-}
-
-.analyze-form h3 {
-    margin: 0 0 1.5rem;
-    color: var(--text-primary, #1e293b);
-}
-
-.analyze-form .form-group {
-    margin-bottom: 1rem;
-}
-
-.analyze-form .form-group label {
-    display: block;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-    color: var(--text-primary, #1e293b);
-}
-
-.analyze-form .form-group input,
-.analyze-form .form-group select {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 8px;
-    font-size: 1rem;
-    background: var(--background-color, #f8fafc);
-    color: var(--text-primary, #1e293b);
-}
-
-.analyze-form .form-group input:focus,
-.analyze-form .form-group select:focus {
-    outline: none;
-    border-color: var(--primary-color, #6366f1);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.analyze-form .form-group small {
-    display: block;
-    margin-top: 0.25rem;
-    color: var(--text-secondary, #64748b);
-    font-size: 0.875rem;
-}
-
-.analyze-form .form-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 1rem;
-}
-
-.analyze-form .form-actions {
-    margin-top: 1.5rem;
-}
-
-.analyze-form .error-message {
-    background: #fef2f2;
-    color: #dc2626;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-}
-
-.analyzing-status {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem;
-    text-align: center;
-}
-
-.analyzing-status .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border-color, #e2e8f0);
-    border-top-color: var(--primary-color, #6366f1);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.analyzing-status p {
-    margin: 1rem 0 0.25rem;
-    font-weight: 500;
-}
-
-.analyzing-status small {
-    color: var(--text-secondary, #64748b);
-}
-
-/* Analysis Result */
-.analysis-result {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    border: 1px solid #a7f3d0;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.analysis-result .result-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.analysis-result .result-header h3 {
-    margin: 0;
-    color: #065f46;
-}
-
-.analysis-result .result-header button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.25rem;
-}
-
-.analysis-result .result-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 1rem;
-}
-
-.analysis-result .stat {
-    text-align: center;
-    padding: 1rem;
-    background: white;
-    border-radius: 8px;
-}
-
-.analysis-result .stat-value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-primary, #1e293b);
-}
-
-.analysis-result .stat-label {
-    font-size: 0.875rem;
-    color: var(--text-secondary, #64748b);
-}
-
-.detected-framework {
-    margin-top: 1rem;
-    text-align: center;
-    color: #065f46;
-}
-
-/* Main Content Layout */
-.repos-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-}
-
-@media (max-width: 1024px) {
-    .repos-content {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Repos List */
-.repos-list {
-    background: var(--surface-color, #ffffff);
-    border-radius: 12px;
-    padding: 0.5rem;
-    max-height: 600px;
-    border: 1px solid var(--border-color, #e2e8f0);
-}
-
-.repos-list h3 {
-    margin: 0 0 1rem;
-    color: var(--text-primary, #1e293b);
-}
-
-.repos-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.repo-card {
-    padding: 1rem;
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: var(--background-color, #f8fafc);
-}
-
-.repo-card:hover {
-    border-color: var(--primary-color, #6366f1);
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
-}
-
-.repo-card.selected {
-    border-color: var(--primary-color, #6366f1);
-    background: rgba(99, 102, 241, 0.05);
-}
-
-.repo-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-}
-
-.repo-icon {
-    font-size: 1.5rem;
-}
-
-.repo-info h4 {
-    margin: 0;
-    font-size: 1rem;
-    color: var(--text-primary, #1e293b);
-}
-
-.repo-project {
-    font-size: 0.75rem;
-    color: var(--text-secondary, #64748b);
-}
-
-.repo-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-}
-
-.files-count {
-    font-size: 0.75rem;
-    color: var(--text-secondary, #64748b);
-}
-
-.repo-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-/* Framework Badge */
-.framework-badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: white;
-    text-transform: capitalize;
-}
-
-/* Quality Badge */
-.quality-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.quality-badge.good {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.quality-badge.partial {
-    background: #fef9c3;
-    color: #854d0e;
-}
-
-.quality-badge.basic {
-    background: #fee2e2;
-    color: #991b1b;
-}
-
-/* Files Panel */
-.files-panel {
-    background: var(--surface-color, #ffffff);
-    border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid var(--border-color, #e2e8f0);
-}
-
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.panel-header h3 {
-    margin: 0;
-    color: var(--text-primary, #1e293b);
-}
-
-.panel-header button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.25rem;
-    color: var(--text-secondary, #64748b);
-}
-
-.files-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.file-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 8px;
-    background: var(--background-color, #f8fafc);
-}
-
-.file-path {
-    font-family: monospace;
-    font-size: 0.875rem;
-    color: var(--text-primary, #1e293b);
-    word-break: break-all;
-}
-
-.file-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.swagger-badge {
-    background: #dbeafe;
-    color: #1e40af;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-}
-
-.analyzer-badge {
-    background: #f1f5f9;
-    color: #475569;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    border: 1px solid #e2e8f0;
-}
-
-.analyzer-badge.ai-enhanced {
-    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-    color: #5b21b6;
-    border-color: #ddd6fe;
-    font-weight: 500;
-}
-
-.analyzer-badge.ai-enhanced svg {
-    color: #7c3aed;
-}
-
-.endpoints-count {
-    font-size: 0.75rem;
-    color: var(--text-secondary, #64748b);
-}
-
-.file-actions {
-    flex-shrink: 0;
-    margin-left: 1rem;
-}
-
-.no-content {
-    color: var(--text-secondary, #64748b);
-    font-size: 0.875rem;
-    font-style: italic;
-}
-
-/* Score Detail Expanded */
-.file-score-detail {
-    margin-top: 0.75rem;
-    border-top: 1px dashed var(--border-color, #e2e8f0);
-    padding-top: 0.75rem;
-}
-
-.file-item {
-    flex-direction: column;
-    align-items: stretch;
-}
-
-.file-item>.file-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.file-item>.file-actions {
-    margin-top: 0.5rem;
-    margin-left: 0;
+    color: var(--text-secondary);
 }
 
 /* Empty State */
 .empty-state {
     text-align: center;
-    padding: 2rem;
-    color: var(--text-secondary, #64748b);
-}
-
-.empty-state p {
-    margin: 0;
-}
-
-.empty-state small {
-    display: block;
-    margin-top: 0.5rem;
-}
-
-/* Loading */
-.loading {
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-secondary, #64748b);
-}
-
-/* Auth Required */
-.auth-required {
-    text-align: center;
     padding: 4rem 2rem;
-}
-
-.auth-required h2 {
-    margin: 0;
-    color: var(--text-primary, #1e293b);
-}
-
-.auth-required p {
-    color: var(--text-secondary, #64748b);
-}
-
-/* Button Styles */
-.btn-danger {
-    background: #dc2626 !important;
-    color: white !important;
-}
-
-.btn-danger:hover {
-    background: #b91c1c !important;
-}
-
-.btn-success {
-    background: #16a34a !important;
-    color: white !important;
-}
-
-.btn-success:hover {
-    background: #15803d !important;
-}
-
-/* Action buttons group */
-.action-buttons {
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 2px dashed var(--border-color);
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.empty-icon {
+    color: var(--text-tertiary);
+    opacity: 0.5;
+    margin-bottom: 0.5rem;
+}
+
+/* Repos Grid */
+.repos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.repo-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.repo-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.repo-card.selected {
+    border-color: var(--primary-color);
+    background: var(--bg-primary-light);
+}
+
+.repo-header {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.repo-icon {
+    color: var(--text-secondary);
+}
+
+.repo-info h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.repo-branch {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.repo-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.repo-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.repo-card:hover .repo-actions {
+    opacity: 1;
+}
+
+/* Add Repo Modal */
+.add-repo-modal {
+    width: 100%;
+    max-width: 600px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.add-repo-modal .modal-header {
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.add-repo-modal .modal-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
 }
 
-.action-buttons .btn-small {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.8rem;
+.add-repo-form {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+}
+
+.form-heading {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.form-divider {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+/* Toggle Switch */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-tertiary);
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: var(--primary-color);
+}
+
+input:checked+.slider:before {
+    transform: translateX(24px);
+}
+
+.toggle-label {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Auth Section */
+.auth-section {
+    background: var(--bg-secondary);
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 16px;
+    /* Moved slightly more to the right */
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.input-with-icon input {
+    padding-left: 3.5rem !important;
+    /* Force padding to be large enough */
+    width: 100%;
+}
+
+/* Files Panel (Side Panel) */
+/* Main Content Wrapper */
+.repos-content-wrapper {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    /* Important for sticky behavior */
+    position: relative;
+}
+
+.repos-list {
+    flex: 1;
+    /* Takes remaining space */
+    min-width: 0;
+    /* Prevents flex overflow */
+}
+
+/* Repos Grid - Force 2 columns max generally, or fill */
+.repos-grid {
+    display: grid;
+    /* User requested "always columns of 2", so let's try to respect that or scale nicely */
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+/* When panel is open, ensure we try to keep 2 columns if space permits, 
+   but flex will shrink .repos-list. 
+   If user specifically wants 2 columns always: */
+.with-panel .repos-grid {
+    grid-template-columns: 1fr 1fr;
+}
+
+/* Files Panel (Side Panel) - Inline Split View */
+.files-panel {
+    background: var(--bg-card);
+    border-left: 1px solid var(--border-color);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    /* Full border since it's a card/panel now */
+
+    /* Make it stick to the top so it scrolls with viewport but stays visible */
+    position: sticky;
+    top: 2rem;
+    /* stick 2rem from top of viewport/container */
+
+    width: 450px;
+    /* Fixed width for panel */
+    flex-shrink: 0;
+    /* Don't shrink */
+
+    height: calc(100vh - 8rem);
+    /* Adjust height to fit in viewport approx */
+    overflow-y: hidden;
+    /* Header is fixed, list scrolls */
+
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    z-index: 100;
+    /* Just above standard content */
+}
+
+/* Adjust header z-index just in case */
+.page-header {
+    position: relative;
+    z-index: 10;
+}
+
+/* Ensure modal is on top of everything */
+.modal-overlay {
+    z-index: 2000;
+}
+
+.panel-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.files-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 1rem;
+}
+
+.file-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.file-path {
+    font-family: monospace;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    word-break: break-all;
+}
+
+.file-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background: var(--bg-tertiary);
+}
+
+.badge.swagger {
+    background: #85ea2d30;
+    color: #4f8a10;
+}
+
+.badge.count {
+    background: var(--bg-tertiary);
+}
+
+.file-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.loading,
+.empty-state-panel {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+/* Framework Badge */
+.framework-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }

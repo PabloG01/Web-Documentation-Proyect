@@ -92,8 +92,8 @@ export const apiSpecsAPI = {
 
 // Repos API
 export const reposAPI = {
-    analyze: (repoUrl, projectId, branch = 'main', authToken = null) =>
-        api.post('/repos/analyze', { repo_url: repoUrl, project_id: projectId, branch, auth_token: authToken }),
+    analyze: (repoUrl, projectId, branch = 'main', authToken = null, authUsername = null) =>
+        api.post('/repos/analyze', { repo_url: repoUrl, project_id: projectId, branch, auth_token: authToken, username: authUsername }),
     getAll: (projectId = null) =>
         api.get(`/repos${projectId ? `?project_id=${projectId}` : ''}`),
     getById: (id) => api.get(`/repos/${id}`),

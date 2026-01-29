@@ -161,13 +161,23 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
         // Detect platform and format accordingly
         if (repo_url.includes('github.com')) {
             // GitHub: https://TOKEN@github.com/owner/repo.git
-            cloneUrl = repo_url.replace('https://github.com', `https://${auth_token}@github.com`);
+            cloneUrl = repo_url.replace('https://github.com', `https://${encodeURIComponent(auth_token)}@github.com`);
         } else if (repo_url.includes('bitbucket.org')) {
-            // Bitbucket: https://x-token-auth:TOKEN@bitbucket.org/owner/repo.git
-            cloneUrl = repo_url.replace('https://bitbucket.org', `https://x-token-auth:${auth_token}@bitbucket.org`);
+            // Bitbucket:
+            // 1. Basic Auth (Email + API Token) -> https://email:token@bitbucket.org...
+            // 2. OAuth/Repo Token (Bearer) -> https://x-token-auth:token@bitbucket.org...
+            const { username } = req.body;
+            // IMPORTANT: If username is empty/null, use 'x-token-auth'. Clean any whitespace.
+            const cleanUser = username ? username.trim() : 'x-token-auth';
+            const cleanToken = auth_token.trim();
+
+            // Construct auth string: user:pass
+            const authString = `${encodeURIComponent(cleanUser)}:${encodeURIComponent(cleanToken)}`;
+
+            cloneUrl = repo_url.replace('https://bitbucket.org', `https://${authString}@bitbucket.org`);
         } else if (repo_url.includes('gitlab.com')) {
             // GitLab: https://oauth2:TOKEN@gitlab.com/owner/repo.git
-            cloneUrl = repo_url.replace('https://gitlab.com', `https://oauth2:${auth_token}@gitlab.com`);
+            cloneUrl = repo_url.replace('https://gitlab.com', `https://oauth2:${encodeURIComponent(auth_token)}@gitlab.com`);
         }
         if (!cloneUrl.endsWith('.git')) {
             cloneUrl += '.git';
@@ -203,7 +213,8 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
     res.json({
         success: true,
         repoConnection,
-        analysis: analysisResult
+        analysis: analysisResult,
+        stats: analysisResult.stats
     });
 }));
 
