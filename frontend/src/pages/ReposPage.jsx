@@ -6,8 +6,7 @@ import EndpointPreview from '../components/EndpointPreview';
 import ScoreBreakdown from '../components/ScoreBreakdown';
 import { GitBranch, Plus, X, Folder, FileText, RefreshCw, Trash2, Eye, Zap, Lock, AlertTriangle, CheckCircle, Package, Search, Pencil, Code, Key } from '../components/Icons';
 import '../styles/ReposPage.css';
-import '../styles/ReposTabs.css'; // Mantenemos para estilos generales o eliminamos si no se usa
-import '../styles/ReposPageOAuth.css'; // Posiblemente ya no necesario, pero verificaremos estilos
+
 
 function ReposPage({ embedded = false, onStatsChange }) {
     const { user } = useContext(AuthContext);

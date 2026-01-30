@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiSpecsAPI } from '../services/api';
 import '../styles/VersionHistory.css';
+import { History, X, RotateCcw } from 'lucide-react';
 
 function VersionHistory({ specId, onRestore, onClose }) {
     const [versions, setVersions] = useState([]);
@@ -70,8 +71,8 @@ function VersionHistory({ specId, onRestore, onClose }) {
         <div className="version-history-overlay">
             <div className="version-history-modal">
                 <div className="modal-header">
-                    <h2>📜 Historial de Versiones</h2>
-                    <button className="close-btn" onClick={onClose}>✕</button>
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><History size={24} /> Historial de Versiones</h2>
+                    <button className="close-btn" onClick={onClose}><X size={20} /></button>
                 </div>
 
                 <div className="modal-body">
@@ -105,7 +106,7 @@ function VersionHistory({ specId, onRestore, onClose }) {
                                             onClick={(e) => { e.stopPropagation(); handleRestore(version); }}
                                             disabled={restoring === version.id}
                                         >
-                                            {restoring === version.id ? '...' : '↩️ Restaurar'}
+                                            {restoring === version.id ? '...' : <><RotateCcw size={14} /> Restaurar</>}
                                         </button>
                                     </div>
                                 ))}

@@ -3,6 +3,7 @@ import TableOfContents from './TableOfContents';
 import MarkdownEditor from './MarkdownEditor';
 import '../styles/DocumentForm.css';
 import '../styles/LoadingStates.css';
+import { Loader2, Save } from 'lucide-react';
 
 function DocumentForm({ documentType, onSubmit, saving = false }) {
   const [formData, setFormData] = useState({
@@ -199,7 +200,7 @@ Bienvenido a nuestro sistema.
               className={`btn btn-primary ${saving ? 'btn-loading' : ''}`}
               disabled={saving}
             >
-              {saving ? '⏳ Guardando...' : '💾 Crear Documento'}
+              {saving ? <><Loader2 size={16} className="spin" /> Guardando...</> : <><Save size={16} /> Crear Documento</>}
             </button>
             <button
               type="button"

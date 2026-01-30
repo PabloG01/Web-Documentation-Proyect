@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MarkdownRenderer from './MarkdownRenderer';
 import '../styles/MarkdownEditor.css';
+import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Link, Image, Quote, Code2, Table, Minus, Edit3, Columns, Eye } from 'lucide-react';
 
 function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu contenido...', showPreview = true }) {
   const [activeTab, setActiveTab] = useState('edit'); // 'edit', 'preview', 'split'
@@ -107,85 +108,85 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
 
   const toolbarActions = [
     {
-      icon: '𝗕',
+      icon: <Bold size={18} />,
       title: 'Negrita',
       action: () => insertText('**', '**', 'texto en negrita')
     },
     {
-      icon: '𝐼',
+      icon: <Italic size={18} />,
       title: 'Cursiva',
       action: () => insertText('*', '*', 'texto en cursiva')
     },
     {
-      icon: '⚊',
+      icon: <Strikethrough size={18} />,
       title: 'Tachado',
       action: () => insertText('~~', '~~', 'texto tachado')
     },
     {
-      icon: '</>',
+      icon: <Code size={18} />,
       title: 'Código inline',
       action: () => insertText('`', '`', 'código')
     },
     { divider: true },
     {
-      icon: 'H1',
+      icon: <Heading1 size={18} />,
       title: 'Título 1',
       action: () => insertLine('# ', 'Título Principal')
     },
     {
-      icon: 'H2',
+      icon: <Heading2 size={18} />,
       title: 'Título 2',
       action: () => insertLine('## ', 'Subtítulo')
     },
     {
-      icon: 'H3',
+      icon: <Heading3 size={18} />,
       title: 'Título 3',
       action: () => insertLine('### ', 'Encabezado')
     },
     { divider: true },
     {
-      icon: '•',
+      icon: <List size={18} />,
       title: 'Lista con viñetas',
       action: () => insertLine('- ', 'Elemento de lista')
     },
     {
-      icon: '1.',
+      icon: <ListOrdered size={18} />,
       title: 'Lista numerada',
       action: () => insertLine('1. ', 'Elemento de lista')
     },
     {
-      icon: '☑',
+      icon: <CheckSquare size={18} />,
       title: 'Lista de tareas',
       action: () => insertLine('- [ ] ', 'Tarea pendiente')
     },
     { divider: true },
     {
-      icon: '🔗',
+      icon: <Link size={18} />,
       title: 'Link',
       action: () => insertText('[', '](https://url.com)', 'texto del enlace')
     },
     {
-      icon: '🖼️',
+      icon: <Image size={18} />,
       title: 'Imagen',
       action: () => insertImage()
     },
     {
-      icon: '""',
+      icon: <Quote size={18} />,
       title: 'Cita',
       action: () => insertLine('> ', 'Texto de la cita')
     },
     {
-      icon: '```',
+      icon: <Code2 size={18} />,
       title: 'Bloque de código',
       action: () => insertBlock('\n```javascript\n// Tu código aquí\n```\n')
     },
     {
-      icon: '⊞',
+      icon: <Table size={18} />,
       title: 'Tabla',
       action: () => insertBlock('\n| Columna 1 | Columna 2 |\n|---|---|\n| Valor 1 | Valor 2 |\n')
     },
     {
-      icon: '—',
+      icon: <Minus size={18} />,
       title: 'Línea horizontal',
       action: () => insertBlock('\n---\n')
     }
@@ -440,22 +441,25 @@ function MarkdownEditor({ value = '', onChange, placeholder = 'Escribe aquí tu 
               className={`toolbar-tab ${activeTab === 'edit' ? 'active' : ''}`}
               onClick={() => setActiveTab('edit')}
               type="button"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              ✏️ Editar
+              <Edit3 size={14} /> Editar
             </button>
             <button
               className={`toolbar-tab ${activeTab === 'split' ? 'active' : ''}`}
               onClick={() => setActiveTab('split')}
               type="button"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              ⟷ Dividido
+              <Columns size={14} /> Dividido
             </button>
             <button
               className={`toolbar-tab ${activeTab === 'preview' ? 'active' : ''}`}
               onClick={() => setActiveTab('preview')}
               type="button"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              👁️ Vista Previa
+              <Eye size={14} /> Vista Previa
             </button>
           </div>
         )}

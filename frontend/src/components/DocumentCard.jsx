@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { FileText, Settings, User, BarChart2, ClipboardList, CheckSquare, Calendar, Edit3, Server } from 'lucide-react';
 import '../styles/DocumentCard.css';
 
 function DocumentCard({ document, currentUserId, showAuthor = false }) {
@@ -11,12 +12,12 @@ function DocumentCard({ document, currentUserId, showAuthor = false }) {
   const isOwner = currentUserId && document.user_id === currentUserId;
 
   const icons = {
-    api: '🔌',
-    usuario: '👤',
-    tecnica: '⚙️',
-    procesos: '📊',
-    proyecto: '📋',
-    requisitos: '✅'
+    api: <Server size={24} />,
+    usuario: <User size={24} />,
+    tecnica: <Settings size={24} />,
+    procesos: <BarChart2 size={24} />,
+    proyecto: <ClipboardList size={24} />,
+    requisitos: <CheckSquare size={24} />
   };
 
   const formatDate = (dateString) => {
@@ -33,7 +34,7 @@ function DocumentCard({ document, currentUserId, showAuthor = false }) {
   return (
     <div className="document-card">
       <div className="card-header">
-        <span className="card-icon">{icons[document.type] || '📄'}</span>
+        <span className="card-icon">{icons[document.type] || <FileText size={24} />}</span>
         <div className="card-badges">
           {projectCode && (
             <span className="project-badge" style={{ backgroundColor: projectColor }}>
@@ -50,10 +51,10 @@ function DocumentCard({ document, currentUserId, showAuthor = false }) {
 
       <div className="card-meta">
         {showAuthor && document.username && (
-          <span className="meta-creator">✍️ {document.username}</span>
+          <span className="meta-creator"><Edit3 size={14} /> {document.username}</span>
         )}
-        <span className="meta-author">👤 {document.author}</span>
-        <span className="meta-date">📅 {formatDate(document.created_at)}</span>
+        <span className="meta-author"><User size={14} /> {document.author}</span>
+        <span className="meta-date"><Calendar size={14} /> {formatDate(document.created_at)}</span>
       </div>
 
       <div className="card-actions">

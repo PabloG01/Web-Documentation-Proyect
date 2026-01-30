@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { apiKeysAPI, projectsAPI } from '../services/api';
 import { io } from 'socket.io-client';
-import { Plus, Trash2, Copy, Check } from '../components/Icons';
+import { Plus, Trash2, Copy, Check, Notebook, Clock, Key, Globe, Target, Folder, Lock, Calendar, BarChart, AlertTriangle, XCircle, Hourglass, Infinity, X, Activity } from 'lucide-react';
 import '../styles/ProjectsPage.css';
 import '../styles/LoadingStates.css';
 
@@ -235,7 +235,9 @@ function ApiKeysPage() {
                     padding: '20px',
                     marginBottom: '20px'
                 }}>
-                    <h3 style={{ color: '#92400e', marginTop: 0 }}>⚠️ API Key Generada</h3>
+                    <h3 style={{ color: '#92400e', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AlertTriangle size={24} /> API Key Generada
+                    </h3>
                     <p style={{ color: '#78350f' }}>
                         <strong>Copia esta key ahora. No se volverá a mostrar.</strong>
                     </p>
@@ -331,7 +333,7 @@ function ApiKeysPage() {
                                     fontWeight: '600',
                                     color: '#1f2937'
                                 }}>
-                                    🎯 Ámbito de Acceso
+                                    <Target size={20} /> Ámbito de Acceso
                                 </label>
                                 <select
                                     value={formData.projectId}
@@ -360,13 +362,13 @@ function ApiKeysPage() {
                                     }}
                                 >
                                     <option value="">
-                                        🌐 Acceso Global - Todos los proyectos
+                                        <Globe size={20} /> Acceso Global - Todos los proyectos
                                     </option>
                                     {projects.length > 0 && (
                                         <optgroup label="───────── Proyectos Específicos ─────────">
                                             {projects.map(proj => (
                                                 <option key={proj.id} value={proj.id}>
-                                                    📁 {proj.code ? `[${proj.code}] ` : ''}{proj.name}
+                                                    <Folder size={20} /> {proj.code ? `[${proj.code}] ` : ''}{proj.name}
                                                 </option>
                                             ))}
                                         </optgroup>
@@ -384,11 +386,11 @@ function ApiKeysPage() {
                                 }}>
                                     {!formData.projectId ? (
                                         <>
-                                            <strong>🌐 Acceso Global:</strong> Esta API Key podrá acceder a todos tus proyectos, documentos y APIs.
+                                            <strong><Globe size={20} /> Acceso Global:</strong> Esta API Key podrá acceder a todos tus proyectos, documentos y APIs.
                                         </>
                                     ) : (
                                         <>
-                                            <strong>🔒 Acceso Restringido:</strong> Esta API Key solo podrá acceder a los recursos del proyecto seleccionado.
+                                            <strong><Lock size={20} /> Acceso Restringido:</strong> Esta API Key solo podrá acceder a los recursos del proyecto seleccionado.
                                         </>
                                     )}
                                 </small>
@@ -421,7 +423,7 @@ function ApiKeysPage() {
                 </div>
             ) : keys.length === 0 ? (
                 <div className="empty-state">
-                    <div className="empty-icon">🔑</div>
+                    <div className="empty-icon"><Key size={40} className="text-icon" /></div>
                     <h3>No tienes API Keys</h3>
                     <p>Genera una para acceder desde otras máquinas</p>
                 </div>
@@ -440,23 +442,23 @@ function ApiKeysPage() {
                                         </p>
                                         {key.project_name && (
                                             <p style={{ fontSize: '0.85em', color: '#6366f1', margin: '4px 0 0 0' }}>
-                                                📁 Proyecto: <strong>{key.project_name}</strong>
+                                                <Folder size={20} /> Proyecto: <strong>{key.project_name}</strong>
                                             </p>
                                         )}
                                         {!key.project_id && (
                                             <p style={{ fontSize: '0.85em', color: '#10b981', margin: '4px 0 0 0' }}>
-                                                🌐 Acceso global
+                                                <Globe size={20} /> Acceso global
                                             </p>
                                         )}
                                     </div>
                                 </div>
                                 <div className="project-stats" style={{ flexWrap: 'wrap', gap: '8px' }}>
                                     <span className="stat-badge">
-                                        📅 Creada: {formatDate(key.created_at)}
+                                        <Calendar size={20} /> Creada: {formatDate(key.created_at)}
                                     </span>
                                     {key.last_used_at && (
                                         <span className="stat-badge">
-                                            ⏱️ Última uso: {formatDate(key.last_used_at)}
+                                            <Clock size={20} /> Última uso: {formatDate(key.last_used_at)}
                                         </span>
                                     )}
                                     {key.usage_count !== undefined && (
@@ -468,7 +470,7 @@ function ApiKeysPage() {
                                             onClick={() => handleViewUsage(key.id, key.name)}
                                             title="Ver detalles de uso"
                                         >
-                                            📊 Usos: {key.usage_count || 0}
+                                            <BarChart size={20} /> Usos: {key.usage_count || 0}
                                         </span>
                                     )}
                                     <span className="stat-badge" style={{
@@ -477,13 +479,13 @@ function ApiKeysPage() {
                                         color: isExpired(key.expires_at) ? '#991b1b' :
                                             key.expires_at ? '#92400e' : '#065f46'
                                     }}>
-                                        {isExpired(key.expires_at) ? '❌ Expirada' :
-                                            key.expires_at ? `⏳ Expira: ${formatDate(key.expires_at)}` :
-                                                '♾️ Sin expiración'}
+                                        {isExpired(key.expires_at) ? <><XCircle size={16} /> Expirada</> :
+                                            key.expires_at ? <><Hourglass size={16} /> Expira: {formatDate(key.expires_at)}</> :
+                                                <><Infinity size={16} /> Sin expiración</>}
                                     </span>
                                     {!key.is_active && (
                                         <span className="stat-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
-                                            🚫 Revocada
+                                            <Lock size={20} /> Revocada
                                         </span>
                                     )}
                                 </div>
@@ -549,14 +551,16 @@ function ApiKeysPage() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0 }}>\ud83d\udcca estadísticas de Uso</h2>
+                            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Activity size={28} /> Estadísticas de Uso
+                            </h2>
                             <button onClick={closeUsageModal} style={{
                                 background: 'none',
                                 border: 'none',
                                 fontSize: '24px',
                                 cursor: 'pointer',
                                 color: '#6b7280'
-                            }}>\u00d7</button>
+                            }}><X size={24} /></button>
                         </div>
 
                         <h3 style={{ color: '#6366f1', marginBottom: '16px' }}>{usageModal.keyName}</h3>
@@ -581,7 +585,7 @@ function ApiKeysPage() {
                                     <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Total de usos</p>
                                 </div>
 
-                                <h4 style={{ marginBottom: '12px' }}>📝 Últimos 10 accesos</h4>
+                                <h4 style={{ marginBottom: '12px' }}><Notebook size={20} /> Últimos 10 accesos</h4>
                                 {usageModal.stats.recent_uses && usageModal.stats.recent_uses.length > 0 ? (
                                     <div style={{ overflowX: 'auto' }}>
                                         <table style={{

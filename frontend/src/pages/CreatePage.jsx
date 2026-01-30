@@ -94,7 +94,7 @@ function CreatePage() {
 
     // If type is document but no projects exist, redirect to project creation
     if (type === 'document' && !hasProjects) {
-      addToast('⚠️ Antes de crear un documento, debes crear al menos un proyecto.', 'warning');
+      addToast('Antes de crear un documento, debes crear al menos un proyecto.', 'warning');
       setCreationType('project');
       setShowProjectForm(true);
       setStep(1);
@@ -133,7 +133,7 @@ function CreatePage() {
         ...newEnvironment
       };
       const response = await environmentsAPI.create(environmentData);
-      addToast('✅ ¡Entorno creado exitosamente!', 'success');
+      addToast('¡Entorno creado exitosamente!', 'success');
 
       // Navigate to projects with new environment
       // Check if response.data has id (axios response)
@@ -146,7 +146,7 @@ function CreatePage() {
 
     } catch (err) {
       console.error('Error al crear entorno:', err);
-      addToast('❌ Error al crear entorno: ' + (err.response?.data?.error || err.message), 'error');
+      addToast('Error al crear entorno: ' + (err.response?.data?.error || err.message), 'error');
     } finally {
       setSaving(false);
       setNewEnvironment({ name: '', description: '', color: '#10b981' });
@@ -159,7 +159,7 @@ function CreatePage() {
     // Validate environment
     const envId = environmentId || newProject.environment_id;
     if (!envId) {
-      addToast('❌ Error: Debes seleccionar un entorno para el proyecto.', 'error');
+      addToast('Error: Debes seleccionar un entorno para el proyecto.', 'error');
       return;
     }
 
@@ -171,7 +171,7 @@ function CreatePage() {
         environment_id: envId
       };
       const response = await projectsAPI.create(projectData);
-      addToast('✅ ¡Proyecto creado exitosamente!', 'success');
+      addToast('¡Proyecto creado exitosamente!', 'success');
 
       // Update hasProjects state
       setHasProjects(true);
@@ -182,7 +182,7 @@ function CreatePage() {
 
     } catch (err) {
       console.error('Error al crear proyecto:', err);
-      addToast('❌ Error al crear proyecto: ' + (err.response?.data?.error || err.message), 'error');
+      addToast('Error al crear proyecto: ' + (err.response?.data?.error || err.message), 'error');
       setSaving(false);
     }
   };
@@ -210,13 +210,13 @@ function CreatePage() {
 
   const handleFormSubmit = async (documentData) => {
     if (!selectedProjectId) {
-      addToast('❌ Error: No se ha seleccionado un proyecto.', 'error');
+      addToast('Error: No se ha seleccionado un proyecto.', 'error');
       setStep(1);
       return;
     }
 
     if (!selectedType) {
-      addToast('❌ Error: No se ha seleccionado un tipo de documento.', 'error');
+      addToast('Error: No se ha seleccionado un tipo de documento.', 'error');
       setStep(2);
       return;
     }
@@ -230,7 +230,7 @@ function CreatePage() {
       };
 
       await documentsAPI.create(newDocument);
-      addToast('✅ ¡Documentación creada exitosamente!', 'success');
+      addToast('¡Documentación creada exitosamente!', 'success');
 
       setTimeout(() => {
         navigate('/mis-documentos');
@@ -238,7 +238,7 @@ function CreatePage() {
 
     } catch (err) {
       console.error('Error al crear documento:', err);
-      addToast('❌ Error al crear documento: ' + (err.response?.data?.error || err.message), 'error');
+      addToast('Error al crear documento: ' + (err.response?.data?.error || err.message), 'error');
       setSaving(false);
     }
   };

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Loader2, ClipboardList, RefreshCw } from 'lucide-react';
 
 function OpenApiViewer({ spec }) {
     const wrapperRef = useRef(null);
@@ -123,7 +124,9 @@ function OpenApiViewer({ spec }) {
     if (!spec) {
         return (
             <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+                <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+                    <ClipboardList size={48} />
+                </div>
                 <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>No se ha cargado ninguna especificación OpenAPI</p>
                 <p style={{ fontSize: '0.9rem', color: '#999' }}>Sube un archivo JSON desde arriba para visualizar la API</p>
             </div>
@@ -140,7 +143,7 @@ function OpenApiViewer({ spec }) {
                     onClick={() => window.location.reload()}
                     style={{ marginTop: '10px', padding: '8px 16px', cursor: 'pointer' }}
                 >
-                    🔄 Recargar Página
+                    <RefreshCw size={16} /> Recargar Página
                 </button>
             </div>
         );
@@ -150,7 +153,9 @@ function OpenApiViewer({ spec }) {
         <div className="openapi-viewer">
             {isLoading && (
                 <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+                    <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+                        <Loader2 size={32} className="spin" />
+                    </div>
                     <p>Cargando visor Swagger...</p>
                 </div>
             )}

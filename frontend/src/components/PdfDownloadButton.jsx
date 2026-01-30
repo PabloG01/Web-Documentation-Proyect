@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { pdf } from '@react-pdf/renderer';
 import PdfDocument from './MarkdownToPdf';
 import '../styles/PdfDownloadButton.css';
+import { Loader2, Download } from 'lucide-react';
 
 /**
  * Botón para descargar documentación como PDF con texto seleccionable
@@ -47,7 +48,15 @@ function PdfDownloadButton({ document }) {
             disabled={isGenerating}
             title="Descargar como PDF (texto seleccionable)"
         >
-            {isGenerating ? '⏳ Generando...' : '📥 Descargar PDF'}
+            {isGenerating ? (
+                <>
+                    <Loader2 size={16} className="spin" /> Generando...
+                </>
+            ) : (
+                <>
+                    <Download size={16} /> Descargar PDF
+                </>
+            )}
         </button>
     );
 }

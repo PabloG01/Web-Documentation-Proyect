@@ -1,25 +1,26 @@
 import React from 'react';
 import '../styles/CreationTypeSelector.css';
+import { Globe, Folder, FileText } from './Icons';
 
 function CreationTypeSelector({ onSelect }) {
     const options = [
         {
             type: 'environment',
-            icon: '🌐',
+            icon: <span style={{ fontSize: '18px' }}><Globe size={50} /></span>,
             title: 'Crear Entorno',
             description: 'Agrupa múltiples proyectos bajo un mismo cliente o área',
             color: '#ec4899'
         },
         {
             type: 'project',
-            icon: '📁',
+            icon: <span style={{ fontSize: '18px' }}><Folder size={50} /></span>,
             title: 'Crear Proyecto',
             description: 'Crea un nuevo proyecto para organizar tus documentos',
             color: '#6366f1'
         },
         {
             type: 'document',
-            icon: '📄',
+            icon: <span style={{ fontSize: '18px' }}><FileText size={50} /></span>,
             title: 'Crear Documento',
             description: 'Crea documentación para un proyecto existente',
             color: '#10b981'

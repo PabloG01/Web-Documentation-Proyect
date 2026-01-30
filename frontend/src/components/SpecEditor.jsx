@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/SpecEditor.css';
+import { FileText, Settings, Box, Upload, Code, Trash2, RefreshCw, Check, X, Lightbulb } from 'lucide-react';
 
 // Common suggestions data
 const COMMON_STATUS_CODES = [
@@ -312,7 +313,7 @@ function SpecEditor({
                         </span>
                         <span className="path">{editedEndpoint.path}</span>
                     </div>
-                    <button className="close-btn" onClick={onCancel}>✕</button>
+                    <button className="close-btn" onClick={onCancel}><X size={20} /></button>
                 </div>
 
                 <div className="editor-tabs">
@@ -320,25 +321,25 @@ function SpecEditor({
                         className={`tab ${activeTab === 'basic' ? 'active' : ''}`}
                         onClick={() => setActiveTab('basic')}
                     >
-                        📝 Básico
+                        <FileText size={16} style={{ marginRight: '6px' }} /> Básico
                     </button>
                     <button
                         className={`tab ${activeTab === 'parameters' ? 'active' : ''}`}
                         onClick={() => setActiveTab('parameters')}
                     >
-                        🔧 Parámetros
+                        <Settings size={16} style={{ marginRight: '6px' }} /> Parámetros
                     </button>
                     <button
                         className={`tab ${activeTab === 'body' ? 'active' : ''}`}
                         onClick={() => setActiveTab('body')}
                     >
-                        📦 Body
+                        <Box size={16} style={{ marginRight: '6px' }} /> Body
                     </button>
                     <button
                         className={`tab ${activeTab === 'responses' ? 'active' : ''}`}
                         onClick={() => setActiveTab('responses')}
                     >
-                        📤 Respuestas
+                        <Upload size={16} style={{ marginRight: '6px' }} /> Respuestas
                     </button>
                     <button
                         className={`tab ${activeTab === 'json' ? 'active' : ''}`}
@@ -348,7 +349,7 @@ function SpecEditor({
                             setJsonError('');
                         }}
                     >
-                        { } JSON
+                        <Code size={16} style={{ marginRight: '6px' }} /> JSON
                     </button>
                 </div>
 
@@ -498,7 +499,7 @@ function SpecEditor({
                                                 className="btn-icon danger"
                                                 onClick={() => removeParameter(index)}
                                             >
-                                                🗑️
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     ))}
@@ -641,7 +642,7 @@ function SpecEditor({
                                                     onClick={() => removeBodyField(fieldName)}
                                                     title="Eliminar campo"
                                                 >
-                                                    🗑️
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </div>
                                         ))}
@@ -688,7 +689,7 @@ function SpecEditor({
                                     {/* JSON Preview */}
                                     <div className="json-preview">
                                         <div className="preview-header">
-                                            <span>📋 Vista previa JSON</span>
+                                            <span><Code size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> Vista previa JSON</span>
                                         </div>
                                         <pre className="json-code">
                                             {JSON.stringify(
@@ -754,14 +755,14 @@ function SpecEditor({
                                             onClick={() => removeResponse(index)}
                                             disabled={editedEndpoint.responses.length === 1}
                                         >
-                                            🗑️
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="suggestions-hint">
-                                💡 Los códigos 2xx indican éxito, 4xx errores del cliente, 5xx errores del servidor
+                            <div className="suggestions-hint" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Lightbulb size={16} className="text-yellow-500" /> Los códigos 2xx indican éxito, 4xx errores del cliente, 5xx errores del servidor
                             </div>
                         </div>
                     )}
@@ -780,7 +781,7 @@ function SpecEditor({
                                                 setJsonError('');
                                             }}
                                         >
-                                            🔄 Resetear
+                                            <RefreshCw size={16} /> Resetear
                                         </button>
                                         <button
                                             className="btn btn-small btn-primary"
@@ -795,7 +796,7 @@ function SpecEditor({
                                                 }
                                             }}
                                         >
-                                            ✅ Aplicar Cambios
+                                            <Check size={16} /> Aplicar Cambios
                                         </button>
                                     </div>
                                 </div>

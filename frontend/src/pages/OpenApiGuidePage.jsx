@@ -6,6 +6,7 @@ import '../styles/AppGuidePage.css'; // Shared styles for guides
 import '../styles/OpenApiGuidePage.css'; // Local overrides
 import '../styles/MarkdownRenderer.css';
 import '../styles/CodeBlockOverrides.css';
+import { FileCode, Server, Wrench, Box, Coffee } from 'lucide-react';
 
 // Componente para bloques de código con estilo consistente
 function CodeBlock({ code, language = 'javascript', title }) {
@@ -84,7 +85,7 @@ function OpenApiGuidePage() {
     }, []);
 
     return (
-        <div className="app-guide-page">
+        <div className="app-guide-page openapi-guide-page">
             <GuideSidebar activeSection={activeSection} onNavigate={handleNavigate} />
 
             <main className="guide-content">
@@ -102,22 +103,22 @@ function OpenApiGuidePage() {
 
                     <div className="features-grid">
                         <div className="feature-card">
-                            <div className="feature-icon">📝</div>
+                            <div className="feature-icon"><FileCode size={30} className='text-icon' /></div>
                             <h3>Auto-Documentación</h3>
                             <p>Convierte tu código en documentación interactiva y preciosa sin esfuerzo manual.</p>
                         </div>
                         <div className="feature-card">
-                            <div className="feature-icon">🔄</div>
+                            <div className="feature-icon"><Server size={30} className='text-icon' /></div>
                             <h3>Generación de Código</h3>
                             <p>Crea clientes SDK y servidores stub para más de 50 lenguajes automáticamente.</p>
                         </div>
                         <div className="feature-card">
-                            <div className="feature-icon">🧪</div>
+                            <div className="feature-icon"><Wrench size={30} className='text-icon' /></div>
                             <h3>Testing Simplificado</h3>
                             <p>Valida tus requests y responses contra un contrato estricto para evitar bugs.</p>
                         </div>
                         <div className="feature-card">
-                            <div className="feature-icon">🤝</div>
+                            <div className="feature-icon"><Box size={30} className='text-icon' /></div>
                             <h3>Contrato Universal</h3>
                             <p>Un lenguaje común para equipos Frontend, Backend y DevOps.</p>
                         </div>
@@ -161,7 +162,7 @@ function OpenApiGuidePage() {
                     ref={el => sectionRefs.current['nodejs-swagger-jsdoc'] = el}
                     className="guide-section"
                 >
-                    <h1>🟢 Node.js / Express</h1>
+                    <h1><Server size={35} className='text-icon' /> Node.js / Express</h1>
                     <p className="lead-text">
                         Integra OpenAPI en tu aplicación Express fácilmente usando comentarios JSDoc. Tu código *es* tu documentación.
                     </p>
@@ -238,7 +239,7 @@ router.get('/users', async (req, res) => { ... });`}
                     ref={el => sectionRefs.current['python-setup'] = el}
                     className="guide-section"
                 >
-                    <h1>🐍 Python / FastAPI</h1>
+                    <h1><FileCode size={35} className='text-icon' /> Python / FastAPI</h1>
                     <p className="lead-text">
                         FastAPI fue diseñado *para* OpenAPI. No tienes que hacer nada extra, la documentación se genera sola analizando tus tipos de Python.
                     </p>
@@ -297,7 +298,7 @@ async def create_user(user: User):
                     ref={el => sectionRefs.current['java-springdoc'] = el}
                     className="guide-section"
                 >
-                    <h1>☕ Java / Spring Boot</h1>
+                    <h1><Coffee size={35} className='text-icon' /> Java / Spring Boot</h1>
                     <p>Usa la librería <code>springdoc-openapi</code> para integrar OpenAPI 3 en tus aplicaciones Spring Boot.</p>
 
                     <h2>Integración Rápida</h2>
@@ -335,18 +336,21 @@ public class UserController {
                     ref={el => sectionRefs.current['tools-generators'] = el}
                     className="guide-section"
                 >
-                    <h1>🛠️ Herramientas del Ecosistema</h1>
+                    <h1><Wrench size={35} className='text-icon' /> Herramientas del Ecosistema</h1>
 
                     <div className="features-grid">
                         <div className="feature-card">
+                            <div className="feature-icon"><Wrench size={30} className='text-icon' /></div>
                             <h3>Swagger Editor</h3>
                             <p>Editor visual oficial. Ideal para diseñar specs desde cero.</p>
                         </div>
                         <div className="feature-card">
+                            <div className="feature-icon"><Wrench size={30} className='text-icon' /></div>
                             <h3>Spectral</h3>
                             <p>Linter para OpenAPI. Asegura que tus specs sigan las reglas de estilo y calidad.</p>
                         </div>
                         <div className="feature-card">
+                            <div className="feature-icon"><Wrench size={30} className='text-icon' /></div>
                             <h3>OpenAPI Generator</h3>
                             <p>La navaja suiza. Genera clientes y servidores para casi cualquier lenguaje.</p>
                         </div>

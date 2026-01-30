@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/GuidesPage.css';
+import { Book, FileCode, BookOpen } from 'lucide-react';
 
 function GuidesPage() {
     const navigate = useNavigate();
@@ -9,7 +10,7 @@ function GuidesPage() {
         {
             id: 'app-guide',
             title: 'Guía de la Aplicación',
-            icon: '📖',
+            icon: <Book size={40} className='text-icon' />,
             description: 'Aprende a usar todas las funcionalidades de DocApp: ambientes, proyectos, documentos, APIs y más.',
             color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             path: '/guides/app'
@@ -17,7 +18,7 @@ function GuidesPage() {
         {
             id: 'openapi-guide',
             title: 'Guía OpenAPI',
-            icon: '📚',
+            icon: <FileCode size={40} className='text-icon' />,
             description: 'Descubre el estándar OpenAPI y cómo documentar tus APIs de forma profesional con ejemplos prácticos.',
             color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
             path: '/guides/openapi'
@@ -32,7 +33,7 @@ function GuidesPage() {
         <div className="guides-page">
             <div className="guides-container">
                 <div className="guides-header">
-                    <h1>📘 Centro de Guías</h1>
+                    <h1><BookOpen size={40} className='text-icon' /> Centro de Guías</h1>
                     <p>Selecciona una guía para comenzar a aprender</p>
                 </div>
 

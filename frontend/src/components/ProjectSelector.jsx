@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { projectsAPI } from '../services/api';
 import '../styles/ProjectSelector.css';
 import '../styles/LoadingStates.css';
+import { Plus, X } from 'lucide-react';
 
 function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
   const [projects, setProjects] = useState([]);
@@ -73,7 +74,15 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
             className="btn btn-small btn-primary"
             onClick={() => setShowCreateForm(!showCreateForm)}
           >
-            {showCreateForm ? '❌ Cancelar' : '➕ Nuevo Proyecto'}
+            {showCreateForm ? (
+              <>
+                <X size={16} /> Cancelar
+              </>
+            ) : (
+              <>
+                <Plus size={16} /> Nuevo Proyecto
+              </>
+            )}
           </button>
         )}
       </div>

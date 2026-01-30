@@ -14,3 +14,16 @@
 */
 
 /* Add specific overrides below if needed */
+.openapi-guide-page .guide-content {
+    margin-left: 0 !important;
+    max-width: 1000px;
+}
+
+/* Ensure sidebar sticks correctly */
+.openapi-guide-page .guide-sidebar {
+    height: calc(100vh - 70px);
+    position: sticky;
+    top: 70px;
+    background: var(--surface-color);
+    border-right: 1px solid var(--border-color);
+}

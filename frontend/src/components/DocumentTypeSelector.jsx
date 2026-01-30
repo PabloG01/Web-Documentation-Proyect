@@ -1,5 +1,6 @@
 import React from 'react';
 import '../styles/DocumentTypeSelector.css';
+import { Server, User, Settings, BarChart2, ClipboardList, CheckSquare } from 'lucide-react';
 
 function DocumentTypeSelector({ onSelect }) {
   const documentTypes = [
@@ -7,37 +8,37 @@ function DocumentTypeSelector({ onSelect }) {
       id: 'api',
       name: 'Documentación API',
       description: 'Documenta endpoints, parámetros y respuestas',
-      icon: '🔌'
+      icon: <Server size={32} />
     },
     {
       id: 'usuario',
       name: 'Manual de Usuario',
       description: 'Guía paso a paso para usuarios finales',
-      icon: '👤'
+      icon: <User size={32} />
     },
     {
       id: 'tecnica',
       name: 'Documentación Técnica',
       description: 'Arquitectura, componentes y flujos técnicos',
-      icon: '⚙️'
+      icon: <Settings size={32} />
     },
     {
       id: 'procesos',
       name: 'Procesos de Negocio',
       description: 'Flujos y procesos organizacionales',
-      icon: '📊'
+      icon: <BarChart2 size={32} />
     },
     {
       id: 'proyecto',
       name: 'Documentación de Proyecto',
       description: 'Resumen, objetivos y entregables',
-      icon: '📋'
+      icon: <ClipboardList size={32} />
     },
     {
       id: 'requisitos',
       name: 'Especificación de Requisitos',
       description: 'Requerimientos funcionales y técnicos',
-      icon: '✅'
+      icon: <CheckSquare size={32} />
     }
   ];
 

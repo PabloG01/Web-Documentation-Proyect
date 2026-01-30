@@ -129,7 +129,7 @@ function ApiTestPage({ embedded = false }) {
                 setProcessing('');
                 setError('');
 
-                alert(`✅ ${message}\n\n📋 Endpoints encontrados: ${preview.endpointsCount}\n📦 Schemas: ${preview.schemas.length}`);
+                alert(`${message}\n\nEndpoints encontrados: ${preview.endpointsCount}\nSchemas: ${preview.schemas.length}`);
             } catch (err) {
                 console.error('Error parsing Swagger:', err);
                 setError(err.response?.data?.error || err.message);

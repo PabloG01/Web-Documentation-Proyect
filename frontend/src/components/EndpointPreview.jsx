@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SpecEditor from './SpecEditor';
 import '../styles/EndpointPreview.css';
+import { FileText, Settings, Info, Check, X } from 'lucide-react';
 
 /**
  * Editable endpoint preview component
@@ -97,7 +98,9 @@ function EndpointPreview({
             <div className="endpoint-preview-modal">
                 <div className="preview-header">
                     <div>
-                        <h2>📝 Revisar Endpoints Detectados</h2>
+                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <FileText size={24} /> Revisar Endpoints Detectados
+                        </h2>
                         <p className="preview-subtitle">
                             {repoName && <span className="repo-name">{repoName}</span>}
                             {filePath && <span className="file-path">{filePath}</span>}
@@ -108,10 +111,10 @@ function EndpointPreview({
 
                 <div className="preview-actions">
                     <button className="btn btn-small" onClick={selectAll}>
-                        ✓ Seleccionar todos
+                        <Check size={16} /> Seleccionar todos
                     </button>
                     <button className="btn btn-small btn-secondary" onClick={deselectAll}>
-                        ✗ Deseleccionar todos
+                        <X size={16} /> Deseleccionar todos
                     </button>
                     <span className="selection-count">
                         {includedCount} de {editedEndpoints.length} seleccionados
@@ -182,7 +185,7 @@ function EndpointPreview({
                                             disabled={!ep.included}
                                             title="Editar detalles completos"
                                         >
-                                            ⚙️
+                                            <Settings size={14} />
                                         </button>
                                     </td>
                                 </tr>
@@ -199,8 +202,8 @@ function EndpointPreview({
 
                 <div className="preview-footer">
                     <div className="footer-info">
-                        <span className="info-badge">
-                            💡 Haz clic en ⚙️ para editar parámetros, body y respuestas
+                        <span className="info-badge" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Info size={16} /> Haz clic en <Settings size={14} /> para editar parámetros, body y respuestas
                         </span>
                     </div>
                     <div className="footer-actions">
@@ -212,7 +215,7 @@ function EndpointPreview({
                             onClick={handleConfirm}
                             disabled={includedCount === 0}
                         >
-                            ✓ Generar Spec ({includedCount} endpoints)
+                            <Check size={16} /> Generar Spec ({includedCount} endpoints)
                         </button>
                     </div>
                 </div>

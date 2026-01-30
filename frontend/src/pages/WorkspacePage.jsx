@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { projectsAPI, documentsAPI, apiSpecsAPI, reposAPI, environmentsAPI } from '../services/api';
-import { Folder, FileText, Globe, FolderOpen, User, ChevronLeft, ChevronRight, Layout } from '../components/Icons';
+import { Folder, FileText, Globe, FolderOpen, User, ChevronLeft, ChevronRight, Layout, Code, Key } from '../components/Icons';
 import '../styles/WorkspacePage.css';
 
 // Import existing page components to reuse
@@ -131,7 +131,7 @@ function WorkspacePage() {
         },
         {
             id: 'api-tester',
-            icon: <span style={{ fontSize: '18px' }}>🧪</span>,
+            icon: <span style={{ fontSize: '18px' }}><Code size={20} /></span>,
             label: 'API Tester',
             count: stats.apis,
             description: 'Prueba APIs en vivo'
@@ -145,7 +145,7 @@ function WorkspacePage() {
         },
         {
             id: 'api-keys',
-            icon: <span style={{ fontSize: '18px' }}>🔑</span>,
+            icon: <span style={{ fontSize: '18px' }}><Key size={20} /></span>,
             label: 'API Keys',
             count: null,
             description: 'Gestiona tus claves de acceso'

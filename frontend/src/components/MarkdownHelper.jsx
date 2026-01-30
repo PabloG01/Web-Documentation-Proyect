@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/MarkdownHelper.css';
+import { FileQuestion, X, Info, HelpCircle } from 'lucide-react';
 
 function MarkdownHelper() {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -75,13 +76,15 @@ function MarkdownHelper() {
                 {isExpanded && (
                     <div className="helper-content">
                         <div className="helper-header">
-                            <h3>📝 Guía de Sintaxis Markdown</h3>
+                            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <FileQuestion size={20} /> Guía de Sintaxis Markdown
+                            </h3>
                             <button
                                 className="helper-close"
                                 onClick={() => setIsExpanded(false)}
                                 title="Cerrar"
                             >
-                                ✕
+                                <X size={20} />
                             </button>
                         </div>
 
@@ -107,7 +110,9 @@ function MarkdownHelper() {
                         </div>
 
                         <div className="helper-footer">
-                            <small>💡 Haz clic en cualquier ejemplo para copiarlo</small>
+                            <small style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Info size={14} /> Haz clic en cualquier ejemplo para copiarlo
+                            </small>
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                                 <strong>Tip:</strong> Para listas anidadas, usa 3 espacios o 1 tabulación antes del subitem
                             </div>
@@ -120,7 +125,7 @@ function MarkdownHelper() {
                     onClick={() => setIsExpanded(!isExpanded)}
                     title={isExpanded ? 'Cerrar ayuda' : 'Ayuda Markdown'}
                 >
-                    {isExpanded ? '✕' : '?'}
+                    {isExpanded ? <X size={24} /> : <HelpCircle size={24} />}
                 </button>
             </div>
         </>

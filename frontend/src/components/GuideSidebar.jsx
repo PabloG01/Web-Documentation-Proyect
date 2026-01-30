@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/GuideSidebar.css';
+import { BookOpen, Server, FileCode, Coffee, Box, Wrench } from 'lucide-react';
 
 function GuideSidebar({ activeSection, onNavigate }) {
     const [expanded, setExpanded] = useState({
@@ -7,7 +8,6 @@ function GuideSidebar({ activeSection, onNavigate }) {
         nodejs: false,
         python: false,
         java: false,
-        dotnet: false,
         tools: false
     });
 
@@ -51,60 +51,43 @@ function GuideSidebar({ activeSection, onNavigate }) {
         {
             id: 'intro',
             title: 'Introducción',
-            icon: '📖',
+            icon: <BookOpen size={20} className='text-icon' />,
             subsections: [
                 { id: 'what-is-openapi', title: '¿Qué es OpenAPI?' },
-                { id: 'why-use-openapi', title: '¿Por qué usarlo?' },
                 { id: 'openapi-structure', title: 'Estructura básica' }
             ]
         },
         {
             id: 'nodejs',
             title: 'Node.js / Express',
-            icon: '🟢',
+            icon: <Server size={20} className='text-icon' />,
             subsections: [
                 { id: 'nodejs-swagger-jsdoc', title: 'swagger-jsdoc' },
-                { id: 'nodejs-examples', title: 'Ejemplos de código' },
-                { id: 'nodejs-export', title: 'Exportar JSON' }
+                { id: 'nodejs-examples', title: 'Ejemplos de código' }
             ]
         },
         {
             id: 'python',
             title: 'Python / FastAPI',
-            icon: '🐍',
+            icon: <FileCode size={20} className='text-icon' />,
             subsections: [
-                { id: 'python-setup', title: 'Configuración' },
-                { id: 'python-automatic', title: 'Generación automática' },
-                { id: 'python-download', title: 'Descargar especificación' }
+                { id: 'python-setup', title: 'Configuración' }
             ]
         },
         {
             id: 'java',
             title: 'Java / Spring Boot',
-            icon: '☕',
+            icon: <Coffee size={20} className='text-icon' />,
             subsections: [
-                { id: 'java-springdoc', title: 'Springdoc OpenAPI' },
-                { id: 'java-annotations', title: 'Anotaciones' },
-                { id: 'java-access', title: 'Acceder a la UI' }
+                { id: 'java-springdoc', title: 'Springdoc OpenAPI' }
             ]
         },
-        {
-            id: 'dotnet',
-            title: '.NET / ASP.NET Core',
-            icon: '🔷',
-            subsections: [
-                { id: 'dotnet-swashbuckle', title: 'Swashbuckle' },
-                { id: 'dotnet-config', title: 'Configuración' },
-                { id: 'dotnet-endpoints', title: 'Endpoints' }
-            ]
-        },
+
         {
             id: 'tools',
             title: 'Herramientas',
-            icon: '🛠️',
+            icon: <Wrench size={20} className='text-icon' />,
             subsections: [
-                { id: 'tools-editors', title: 'Editores online' },
-                { id: 'tools-validators', title: 'Validadores' },
                 { id: 'tools-generators', title: 'Generadores de código' }
             ]
         }
@@ -113,7 +96,7 @@ function GuideSidebar({ activeSection, onNavigate }) {
     return (
         <nav className="guide-sidebar">
             <div className="sidebar-header">
-                <h2>📚 Guía OpenAPI</h2>
+                <h2><BookOpen size={20} className='text-icon' /> Guía OpenAPI</h2>
             </div>
 
             <div className="sidebar-content">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FlaskConical, Folder, Search, ChevronDown, ChevronUp, Globe, PenTool, Link, Zap, Loader2, CheckCircle, XCircle, AlertTriangle, Info, Sparkles, Layout, Home, Wrench, Rocket } from 'lucide-react';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
 import api from '../services/api';
@@ -55,13 +56,17 @@ function ApiTesterPage({ embedded = false }) {
 
     // Searchable Select State
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isEnvDropdownOpen, setIsEnvDropdownOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (isDropdownOpen && !event.target.closest('.custom-select-container')) {
+            if (isDropdownOpen && !event.target.closest('.spec-select-container')) {
                 setIsDropdownOpen(false);
+            }
+            if (isEnvDropdownOpen && !event.target.closest('.env-select-container')) {
+                setIsEnvDropdownOpen(false);
             }
         };
 
@@ -69,7 +74,7 @@ function ApiTesterPage({ embedded = false }) {
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isDropdownOpen]);
+    }, [isDropdownOpen, isEnvDropdownOpen]);
 
     // Filtered specs based on search
     const filteredSpecs = specs.filter(spec =>
@@ -150,13 +155,13 @@ function ApiTesterPage({ embedded = false }) {
             // Detect CORS error
             if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
                 setConnectionStatus('cors-error');
-                setError('⚠️ Error de CORS: El servidor no permite peticiones desde este origen. Configura CORS en tu API.');
+                setError('Error de CORS: El servidor no permite peticiones desde este origen. Configura CORS en tu API.');
             } else if (err.name === 'AbortError') {
                 setConnectionStatus('network-error');
-                setError('⚠️ Timeout: No se pudo conectar al servidor. Verifica que la URL sea correcta y el servidor esté activo.');
+                setError('Timeout: No se pudo conectar al servidor. Verifica que la URL sea correcta y el servidor esté activo.');
             } else {
                 setConnectionStatus('network-error');
-                setError(`⚠️ Error de conexión: ${err.message}`);
+                setError(`Error de conexión: ${err.message}`);
             }
             return false;
         }
@@ -327,7 +332,7 @@ function ApiTesterPage({ embedded = false }) {
 
     const handleTestConnection = async () => {
         if (!serverUrl) {
-            setError('⚠️ Ingresa una URL de servidor primero');
+            setError('Ingresa una URL de servidor primero');
             return;
         }
         await testConnection(serverUrl);
@@ -337,23 +342,25 @@ function ApiTesterPage({ embedded = false }) {
         <div className="api-tester-page">
             {!embedded && (
                 <div className="api-tester-header">
-                    <h1>🧪 API Tester</h1>
+                    <h1><FlaskConical size={32} className="text-icon" /> API Tester</h1>
                     <p>Prueba tus APIs en tiempo real con especificaciones OpenAPI</p>
                 </div>
             )}
 
             {error && (
                 <div className="error-message">
-                    {error}
+                    <div className="error-message">
+                        <AlertTriangle size={20} /> {error}
+                    </div>
                 </div>
             )}
 
             <div className="api-tester-config">
                 <div className="config-section">
                     <label htmlFor="spec-selector">
-                        📁 Especificación:
+                        <Folder size={18} /> Especificación:
                     </label>
-                    <div className="custom-select-container">
+                    <div className="custom-select-container spec-select-container">
                         <div
                             className={`custom-select-trigger ${isDropdownOpen ? 'open' : ''}`}
                             onClick={() => !loading && setIsDropdownOpen(!isDropdownOpen)}
@@ -363,7 +370,7 @@ function ApiTesterPage({ embedded = false }) {
                                     ? specs.find(s => s.id === parseInt(selectedSpecId))?.name || 'Especificación no encontrada'
                                     : 'Selecciona una especificación...'}
                             </span>
-                            <span className="arrow">{isDropdownOpen ? '▲' : '▼'}</span>
+                            <span className="arrow">{isDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
                         </div>
 
                         {isDropdownOpen && (
@@ -371,7 +378,7 @@ function ApiTesterPage({ embedded = false }) {
                                 <div className="dropdown-search">
                                     <input
                                         type="text"
-                                        placeholder="🔍 Buscar API..."
+                                        placeholder="Buscar API..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         autoFocus
@@ -402,24 +409,55 @@ function ApiTesterPage({ embedded = false }) {
 
                 <div className="config-section">
                     <label htmlFor="environment-selector">
-                        🌍 Entorno:
+                        <Globe size={18} /> Entorno:
                     </label>
-                    <select
-                        id="environment-selector"
-                        value={environment}
-                        onChange={(e) => handleEnvironmentChange(e.target.value)}
-                    >
-                        <option value="local">🏠 Local (localhost:5000)</option>
-                        <option value="same-network">🌐 Mismo servidor ({currentHostname}:5000)</option>
-                        <option value="custom">✏️ Personalizado</option>
-                        <option value="staging">🔧 Staging</option>
-                        <option value="production">🚀 Production</option>
-                    </select>
+                    <div className="custom-select-container env-select-container">
+                        <div
+                            className={`custom-select-trigger ${isEnvDropdownOpen ? 'open' : ''}`}
+                            onClick={() => setIsEnvDropdownOpen(!isEnvDropdownOpen)}
+                        >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {environment === 'local' && <><Home size={16} /> Local (localhost:5000)</>}
+                                {environment === 'same-network' && <><Globe size={20} /> Mismo servidor ({currentHostname}:5000)</>}
+                                {environment === 'custom' && <><PenTool size={16} /> Personalizado</>}
+                                {environment === 'staging' && <><Wrench size={16} /> Staging</>}
+                                {environment === 'production' && <><Rocket size={16} /> Production</>}
+                            </span>
+                            <span className="arrow">{isEnvDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
+                        </div>
+
+                        {isEnvDropdownOpen && (
+                            <div className="custom-dropdown">
+                                <ul className="spec-list">
+                                    <li className={`spec-item ${environment === 'local' ? 'selected' : ''}`}
+                                        onClick={() => { handleEnvironmentChange('local'); setIsEnvDropdownOpen(false); }}>
+                                        <Home size={16} /> Local (localhost:5000)
+                                    </li>
+                                    <li className={`spec-item ${environment === 'same-network' ? 'selected' : ''}`}
+                                        onClick={() => { handleEnvironmentChange('same-network'); setIsEnvDropdownOpen(false); }}>
+                                        <Globe size={16} /> Mismo servidor ({currentHostname}:5000)
+                                    </li>
+                                    <li className={`spec-item ${environment === 'custom' ? 'selected' : ''}`}
+                                        onClick={() => { handleEnvironmentChange('custom'); setIsEnvDropdownOpen(false); }}>
+                                        <PenTool size={16} /> Personalizado
+                                    </li>
+                                    <li className={`spec-item ${environment === 'staging' ? 'selected' : ''}`}
+                                        onClick={() => { handleEnvironmentChange('staging'); setIsEnvDropdownOpen(false); }}>
+                                        <Wrench size={16} /> Staging
+                                    </li>
+                                    <li className={`spec-item ${environment === 'production' ? 'selected' : ''}`}
+                                        onClick={() => { handleEnvironmentChange('production'); setIsEnvDropdownOpen(false); }}>
+                                        <Rocket size={16} /> Production
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="config-section">
                     <label htmlFor="server-url">
-                        🌐 URL del Servidor:
+                        <Link size={18} /> URL del Servidor:
                     </label>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <input
@@ -436,18 +474,24 @@ function ApiTesterPage({ embedded = false }) {
                             disabled={!serverUrl || connectionStatus === 'testing'}
                             title="Probar conexión"
                         >
-                            {connectionStatus === 'testing' ? '⏳' : '🔍'}
+                            {connectionStatus === 'testing' ? <Loader2 size={20} className="spin" /> : <Zap size={20} />}
                         </button>
                     </div>
                     <div className="connection-status-msg">
                         {connectionStatus === 'success' && (
-                            <span style={{ color: '#10b981' }}>✅ Conexión exitosa</span>
+                            <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <CheckCircle size={16} /> Conexión exitosa
+                            </span>
                         )}
                         {connectionStatus === 'cors-error' && (
-                            <span style={{ color: '#ef4444' }}>❌ Error de CORS</span>
+                            <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <XCircle size={16} /> Error de CORS
+                            </span>
                         )}
                         {connectionStatus === 'network-error' && (
-                            <span style={{ color: '#f59e0b' }}>⚠️ Error de conexión</span>
+                            <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <AlertTriangle size={16} /> Error de conexión
+                            </span>
                         )}
                     </div>
                 </div>
@@ -461,7 +505,7 @@ function ApiTesterPage({ embedded = false }) {
 
             {!loading && !selectedSpec && !error && (
                 <div className="empty-state">
-                    <div className="empty-state-icon">🔍</div>
+                    <div className="empty-state-icon"><Layout size={48} className="text-icon" /></div>
                     <h3>Selecciona una especificación para comenzar</h3>
                     <p>Elige una especificación OpenAPI del selector de arriba para probar sus endpoints.</p>
                 </div>
@@ -471,8 +515,8 @@ function ApiTesterPage({ embedded = false }) {
                 <div className="swagger-container">
                     <div className="swagger-info">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <p style={{ margin: 0 }}>
-                                💡 <strong>Tip:</strong> Haz clic en "Try it out" en cualquier endpoint para probarlo en vivo.
+                            <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Info size={16} className="text-icon" /> <strong>Tip:</strong> Haz clic en "Try it out" en cualquier endpoint para probarlo en vivo.
                             </p>
                             <button
                                 className="btn btn-secondary btn-small"
@@ -480,7 +524,7 @@ function ApiTesterPage({ embedded = false }) {
                                 disabled={enhancing}
                                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}
                             >
-                                {enhancing ? '✨ Mejorando...' : '✨ Mejorar con IA'}
+                                {enhancing ? <><Loader2 size={14} className="spin" /> Mejorando...</> : <><Sparkles size={14} /> Mejorar con IA</>}
                             </button>
                         </div>
                     </div>

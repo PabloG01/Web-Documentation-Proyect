@@ -12,6 +12,7 @@ import PdfDownloadButton from '../components/PdfDownloadButton';
 
 import Modal from '../components/Modal';
 import { ToastContainer } from '../components/Toast';
+import { FileText, Edit, Trash2, Info, Loader2, Check, X, Code, User, Settings, BarChart2, ClipboardList, CheckSquare } from 'lucide-react';
 
 function DocumentViewPage() {
   const { id } = useParams();
@@ -115,7 +116,7 @@ function DocumentViewPage() {
     return (
       <div className="document-view-page">
         <div className="empty-state">
-          <div className="empty-icon">📭</div>
+          <div className="empty-icon"><FileText size={64} /></div>
           <h2>Documento no encontrado</h2>
           <button className="btn btn-primary" onClick={() => navigate('/mis-documentos')}>
             Volver a mis documentos
@@ -126,12 +127,12 @@ function DocumentViewPage() {
   }
 
   const icons = {
-    api: '🔌',
-    usuario: '👤',
-    tecnica: '⚙️',
-    procesos: '📊',
-    proyecto: '📋',
-    requisitos: '✅'
+    api: <Code size={24} />,
+    usuario: <User size={24} />,
+    tecnica: <Settings size={24} />,
+    procesos: <BarChart2 size={24} />,
+    proyecto: <ClipboardList size={24} />,
+    requisitos: <CheckSquare size={24} />
   };
 
   const formatDate = (dateString) => {
@@ -158,10 +159,10 @@ function DocumentViewPage() {
               {isOwner && (
                 <>
                   <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
-                    ✏️ Editar
+                    <Edit size={16} /> Editar
                   </button>
                   <button className="btn btn-secondary" onClick={handleDeleteClick}>
-                    🗑️ Eliminar
+                    <Trash2 size={16} /> Eliminar
                   </button>
                 </>
               )}
@@ -172,8 +173,8 @@ function DocumentViewPage() {
 
       {/* Mostrar aviso si no es propietario */}
       {!isOwner && (
-        <div className="owner-notice">
-          ℹ️ Este documento fue creado por <strong>{document.username || 'otro usuario'}</strong>. Solo puedes visualizarlo.
+        <div className="owner-notice" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Info size={16} /> Este documento fue creado por <strong>{document.username || 'otro usuario'}</strong>. Solo puedes visualizarlo.
         </div>
       )}
 
@@ -184,7 +185,7 @@ function DocumentViewPage() {
             <div className="document-view" ref={documentRef}>
               <div className="view-info">
                 <div className="info-header">
-                  <span className="doc-icon">{icons[document.type] || '📄'}</span>
+                  <span className="doc-icon">{icons[document.type] || <FileText size={24} />}</span>
                   <div className="info-title">
                     <h1>{document.title}</h1>
                     <p className="doc-type">{document.typeName}</p>
@@ -278,21 +279,21 @@ function DocumentViewPage() {
                   onClick={handleSave}
                   disabled={saving}
                 >
-                  {saving ? '⏳ Guardando...' : '✅ Guardar cambios'}
+                  {saving ? <><Loader2 size={16} className="spin" /> Guardando...</> : <><Check size={16} /> Guardar cambios</>}
                 </button>
                 <button
                   className="btn btn-danger"
                   onClick={handleDeleteClick}
                   disabled={saving}
                 >
-                  🗑️ Eliminar documento
+                  <Trash2 size={16} /> Eliminar documento
                 </button>
                 <button
                   className="btn btn-secondary"
                   onClick={() => setIsEditing(false)}
                   disabled={saving}
                 >
-                  ❌ Cancelar
+                  <X size={16} /> Cancelar
                 </button>
               </div>
             </div>

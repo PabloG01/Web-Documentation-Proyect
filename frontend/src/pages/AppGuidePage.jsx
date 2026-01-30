@@ -165,7 +165,7 @@ function AppGuidePage() {
                     ref={el => sectionRefs.current['primeros-pasos'] = el}
                     className="guide-section"
                 >
-                    <h1><House size={30} className="text-icon" /> Tu Tablero de Control</h1>
+                    <h1><House size={40} className="text-icon" /> Tu Tablero de Control</h1>
                     <p>
                         La página de inicio es tu punto de partida. Diseñada para darte acceso rápido a lo que necesitas trabajar ahora mismo.
                     </p>
@@ -198,7 +198,7 @@ function AppGuidePage() {
                     ref={el => sectionRefs.current['entornos'] = el}
                     className="guide-section"
                 >
-                    <h1><Globe size={30} className="text-icon" /> Organización del Trabajo</h1>
+                    <h1><Globe size={40} className="text-icon" /> Organización del Trabajo</h1>
                     <p>DocApp estructura tu información en dos niveles para mantener el orden incluso en equipos grandes.</p>
 
                     <div className="comparison-table">
@@ -231,7 +231,7 @@ function AppGuidePage() {
                     ref={el => sectionRefs.current['documentos'] = el}
                     className="guide-section"
                 >
-                    <h1><FileText size={30} className="text-icon" />Centro de Documentación</h1>
+                    <h1><FileText size={40} className="text-icon" />Centro de Documentación</h1>
                     <p>
                         El editor de DocApp te permite escribir documentación técnica rica y estructurada sin distracciones.
                         Ideal para wikis, guías de onboarding, RFCs o manuales de usuario.
@@ -257,7 +257,7 @@ function AppGuidePage() {
                     ref={el => sectionRefs.current['repositorios'] = el}
                     className="guide-section"
                 >
-                    <h1><Link size={30} className="text-icon" /> Integración de Código</h1>
+                    <h1><Link size={40} className="text-icon" /> Integración de Código</h1>
                     <p>
                         Conecta tus repositorios de <strong>GitHub</strong> o <strong>Bitbucket</strong> para mantener tu documentación sincronizada con tu código fuente.
                     </p>
@@ -325,7 +325,7 @@ function AppGuidePage() {
                     ref={el => sectionRefs.current['apis'] = el}
                     className="guide-section"
                 >
-                    <h1><Zap size={30} className="text-icon" />  Gestión de APIs</h1>
+                    <h1><Zap size={40} className="text-icon" />  Gestión de APIs</h1>
                     <p>El corazón de DocApp. Centraliza, visualiza y prueba tus contratos de API (OpenAPI/Swagger).</p>
 
                     <h2>3 Formas de añadir APIs</h2>
@@ -364,7 +364,7 @@ function AppGuidePage() {
                     ref={el => sectionRefs.current['api-keys'] = el}
                     className="guide-section"
                 >
-                    <h1><Key size={30} className="text-icon" /> Seguridad M2M y Accesos</h1>
+                    <h1><Key size={40} className="text-icon" /> Seguridad M2M y Accesos</h1>
                     <p>
                         Gestiona cómo otras aplicaciones (o desarrolladores externos) interactúan con tus recursos a través de <strong>API Keys</strong>.
                     </p>

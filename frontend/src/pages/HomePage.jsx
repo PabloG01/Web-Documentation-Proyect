@@ -4,7 +4,7 @@ import 'swagger-ui-react/swagger-ui.css';
 import api, { projectsAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/HomePage.css';
-import { ChevronRight, Settings, Globe, Zap, Package } from '../components/Icons';
+import { ChevronRight, Settings, Globe, Zap, Package, Key, Unlock, CheckCircle, XCircle } from 'lucide-react'; // Using lucide-react directly for new icons
 
 function HomePage() {
   const { user } = useContext(AuthContext);
@@ -236,8 +236,8 @@ function HomePage() {
         borderLeft: apiKeyConnected ? '4px solid #10b981' : '4px solid #64748b'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontWeight: 600, color: apiKeyConnected ? '#065f46' : '#475569' }}>
-            {apiKeyConnected ? '🔑 API Key Conectada' : '🔓 Usar con API Key (Testing)'}
+          <span style={{ fontWeight: 600, color: apiKeyConnected ? '#065f46' : '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {apiKeyConnected ? <><Key size={16} /> API Key Conectada</> : <><Unlock size={16} /> Usar con API Key (Testing)</>}
           </span>
         </div>
 
@@ -288,8 +288,8 @@ function HomePage() {
         )}
       </div>
 
-      {connectionStatus === 'success' && <div style={{ color: '#10b981', marginBottom: '1rem' }}>✅ Conexión establecida correctamente</div>}
-      {connectionStatus === 'error' && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>❌ No se pudo conectar al host</div>}
+      {connectionStatus === 'success' && <div style={{ color: '#10b981', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={16} /> Conexión establecida correctamente</div>}
+      {connectionStatus === 'error' && <div style={{ color: '#ef4444', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}><XCircle size={16} /> No se pudo conectar al host</div>}
 
       <div className="api-sections">
         {loading ? (
