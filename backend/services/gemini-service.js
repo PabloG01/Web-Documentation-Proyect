@@ -23,18 +23,9 @@ REGLAS DE ORO:
  * Initialize Gemini client with API key
  */
 function initializeGemini() {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (apiKey) {
-        try {
-            geminiClient = new GoogleGenerativeAI(apiKey);
-            console.log('✅ Gemini AI initialized successfully');
-            return true;
-        } catch (error) {
-            console.error('❌ Failed to initialize Gemini:', error.message);
-            return false;
-        }
-    }
-    console.log('ℹ️ GEMINI_API_KEY not configured - AI features disabled');
+    // FORCE STANDBY MODE
+    console.log('ℹ️ AI STANDBY MODE ENABLED: Gemini features are manually disabled.');
+    geminiClient = null;
     return false;
 }
 

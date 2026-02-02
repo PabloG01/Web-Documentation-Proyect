@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FlaskConical, Folder, Search, ChevronDown, ChevronUp, Globe, PenTool, Link, Zap, Loader2, CheckCircle, XCircle, AlertTriangle, Info, Sparkles, Layout, Home, Wrench, Rocket } from 'lucide-react';
+import { FlaskConical, Folder, ChevronDown, ChevronUp, Globe, PenTool, Link, Zap, Loader2, CheckCircle, XCircle, AlertTriangle, Info, Sparkles, Layout, Home, Wrench, Rocket, Edit } from 'lucide-react';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
 import api from '../services/api';
+import EndpointEditor from '../components/EndpointEditor';
 
 // VITE_CACHE_BUST_2
 import '../styles/ApiTesterPage.css';
@@ -42,6 +43,7 @@ const CaseInsensitiveFilterPlugin = () => {
     };
 };
 
+
 function ApiTesterPage({ embedded = false }) {
     const [specs, setSpecs] = useState([]);
     const [selectedSpecId, setSelectedSpecId] = useState('');
@@ -53,6 +55,70 @@ function ApiTesterPage({ embedded = false }) {
     const [connectionStatus, setConnectionStatus] = useState(null); // null | 'testing' | 'success' | 'cors-error' | 'network-error'
     const [basePath, setBasePath] = useState(''); // Store detected base path
     const [enhancing, setEnhancing] = useState(false); // State for AI enhancement
+    const [showEditor, setShowEditor] = useState(false); // Toggle for full editor
+
+    // Better approach: Wrap the handler in useCallback and use it in useEffect with dependencies.
+    const handleSpecFieldUpdate = async (specPath, value) => {
+        if (!selectedSpec) return;
+        if (!Array.isArray(specPath)) {
+            console.error('Ruta de especificación inválida recibida:', specPath);
+            setError('No se pudo identificar el campo a actualizar.');
+            return;
+        }
+
+        try {
+            const updatedSpecContent = JSON.parse(JSON.stringify(selectedSpec));
+
+            // Traverse and update
+            let current = updatedSpecContent;
+            for (let i = 0; i < specPath.length - 1; i++) {
+                if (!current || typeof current !== 'object') {
+                    throw new Error('Ruta del esquema no válida');
+                }
+                current = current[specPath[i]];
+            }
+
+            const fieldKey = specPath[specPath.length - 1];
+            const isResponseDescription = specPath.includes('responses');
+
+            // Ensure separator logic (reused from EndpointEditor idea)
+            const ensureSeparator = (text) => {
+                if (!text || typeof text !== 'string' || !text.trim()) return text;
+                const trimmed = text.trim();
+                if (trimmed.endsWith('---')) return text;
+                const lines = trimmed.split('\n');
+                if (lines.length > 0 && lines[lines.length - 1].trim() === '---') return text;
+                return `${text}\n\n---`;
+            };
+
+            if (fieldKey === 'description' && !isResponseDescription) {
+                current[fieldKey] = ensureSeparator(value);
+            } else {
+                current[fieldKey] = value;
+            }
+
+            // Save to backend
+            await handleManualSave(updatedSpecContent);
+
+        } catch (err) {
+            console.error('Error upgrading field:', err);
+            setError('Error al guardar campo: ' + err.message);
+        }
+    };
+
+    // Use ref to hold the handler so the static listener can call it
+    const handlerRef = React.useRef(handleSpecFieldUpdate);
+    useEffect(() => {
+        handlerRef.current = handleSpecFieldUpdate;
+    }, [handleSpecFieldUpdate]); // This depends on selectedSpec due to closure? Yes.
+
+    useEffect(() => {
+        const listener = (e) => {
+            handlerRef.current(e.detail.specPath, e.detail.value);
+        };
+        document.addEventListener('save-spec-field', listener);
+        return () => document.removeEventListener('save-spec-field', listener);
+    }, []);
 
     // Searchable Select State
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -338,6 +404,38 @@ function ApiTesterPage({ embedded = false }) {
         await testConnection(serverUrl);
     };
 
+    const handleManualSave = async (updatedSpecContent) => {
+        try {
+            // Need to get the full spec metadata first to not lose name/project_id
+            const response = await api.get(`/api-specs/${selectedSpecId}`);
+            const fullSpecMetadata = response.data;
+
+            // Update backend
+            await api.put(`/api-specs/${selectedSpecId}`, {
+                ...fullSpecMetadata, // Keep project_id, name, etc.
+                spec_content: updatedSpecContent
+            });
+
+            // Update local state
+            setSelectedSpec(prev => ({
+                ...updatedSpecContent,
+                servers: prev.servers // Preserve servers config
+            }));
+
+            // Close editor is handled by the editor component usually, or we can close it here if we want 
+            // but the editor component calls onClose itself? 
+            // Actually EndpointEditor calls onSave then shows success message. 
+            // It doesn't auto close. We can leave it open or close it.
+            // Let's reload the spec from backend to be safe and 100% synced?
+            // "Updated local state" above is faster.
+
+        } catch (err) {
+            console.error('Error saving spec manually:', err);
+            setError('Error al guardar los cambios manuales: ' + err.message);
+            throw err; // Propagate to Editor component
+        }
+    };
+
     return (
         <div className="api-tester-page">
             {!embedded && (
@@ -518,14 +616,24 @@ function ApiTesterPage({ embedded = false }) {
                             <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Info size={16} className="text-icon" /> <strong>Tip:</strong> Haz clic en "Try it out" en cualquier endpoint para probarlo en vivo.
                             </p>
-                            <button
-                                className="btn btn-secondary btn-small"
-                                onClick={handleEnhance}
-                                disabled={enhancing}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}
-                            >
-                                {enhancing ? <><Loader2 size={14} className="spin" /> Mejorando...</> : <><Sparkles size={14} /> Mejorar con IA</>}
-                            </button>
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                    className="btn btn-primary btn-small"
+                                    onClick={() => setShowEditor(true)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.95rem', padding: '0.45rem 0.9rem' }}
+                                >
+                                    <Edit size={14} /> Editar documentación
+                                </button>
+                                {/* <button
+                                    className="btn btn-secondary btn-small"
+                                    onClick={handleEnhance}
+                                    disabled={enhancing}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}
+                                >
+                                    {enhancing ? <><Loader2 size={14} className="spin" /> Mejorando...</> : <><Sparkles size={14} /> Mejorar con IA</>}
+                                </button> */}
+                            </div>
                         </div>
                     </div>
                     <SwaggerUI
@@ -541,6 +649,16 @@ function ApiTesterPage({ embedded = false }) {
                     />
                 </div>
             )}
+
+            {showEditor && selectedSpec && (
+                <EndpointEditor
+                    spec={selectedSpec}
+                    specId={selectedSpecId}
+                    onClose={() => setShowEditor(false)}
+                    onSave={handleManualSave}
+                />
+            )}
+
         </div>
     );
 }

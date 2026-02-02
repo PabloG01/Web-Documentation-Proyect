@@ -207,6 +207,8 @@ router.post('/analyze', verifyToken, createLimiter, asyncHandler(async (req, res
         isPrivate
     });
 
+
+
     // Save detected files
     await reposRepository.addFiles(repoConnection.id, analysisResult.files);
 

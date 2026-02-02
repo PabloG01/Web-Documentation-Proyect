@@ -102,10 +102,10 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
     };
 
     const colors = [
-        '#10b981', '#059669', '#34d399', // Greens
-        '#3b82f6', '#2563eb', '#60a5fa', // Blues
-        '#f59e0b', '#d97706', '#fbbf24', // Ambers
-        '#6366f1', '#8b5cf6', '#ec4899'  // Purples/Pinks
+        '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16',
+        '#22C55E', '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9',
+        '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#D946EF',
+        '#EC4899', '#F43F5E', '#71717A', '#64748B', '#000000'
     ];
 
     const renderForm = () => (

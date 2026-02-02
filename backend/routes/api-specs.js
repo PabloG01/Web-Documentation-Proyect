@@ -572,6 +572,7 @@ router.post('/:id/enhance', verifyToken, asyncHandler(async (req, res) => {
     // Ideally we would have stored the ParseResult. 
     // However, enhanceSpecWithAI iterates over spec.paths, so it should work even with empty parseResult provided it has paths.
 
+    /* AI STANDBY START - Disabled to save resources
     const enhancedContent = await geminiService.enhanceSpecWithAI(
         spec.spec_content,
         parseResult,
@@ -583,6 +584,11 @@ router.post('/:id/enhance', verifyToken, asyncHandler(async (req, res) => {
         spec_content: enhancedContent,
         updated_at: new Date()
     });
+    */
+
+    // Standby behavior: return original spec
+    const updatedSpec = spec;
+    /* AI STANDBY END */
 
     res.json({
         message: 'Especificación mejorada con IA',

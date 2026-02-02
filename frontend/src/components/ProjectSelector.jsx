@@ -61,8 +61,10 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
   };
 
   const colors = [
-    '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
-    '#f59e0b', '#10b981', '#06b6d4', '#3b82f6'
+    '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16',
+    '#22C55E', '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9',
+    '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#D946EF',
+    '#EC4899', '#F43F5E', '#71717A', '#64748B', '#000000'
   ];
 
   return (

@@ -49,7 +49,14 @@ function parseSwaggerComments(code, fileName = 'uploaded-file.js') {
         const schemasCount = Object.keys(spec.components.schemas).length;
 
         if (pathsCount === 0 && schemasCount === 0) {
-            throw new Error('No se encontraron comentarios Swagger válidos en el archivo. Asegúrate de usar la sintaxis /** @swagger */');
+            // Instead of throwing, return empty so the caller can try other parsers (regex/AST)
+            // throw new Error('No se encontraron comentarios Swagger válidos en el archivo. Asegúrate de usar la sintaxis /** @swagger */');
+            return {
+                spec,
+                pathsCount: 0,
+                schemasCount: 0,
+                isEmpty: true
+            };
         }
 
         return {
@@ -58,7 +65,9 @@ function parseSwaggerComments(code, fileName = 'uploaded-file.js') {
             schemasCount
         };
     } catch (error) {
-        throw new Error(`Error al parsear comentarios Swagger: ${error.message}`);
+        // Log warning but don't crash
+        console.warn(`[SwaggerParser] Warning: ${error.message}`);
+        return { spec: null, pathsCount: 0, schemasCount: 0, error: error.message };
     }
 }
 

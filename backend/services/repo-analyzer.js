@@ -1084,7 +1084,12 @@ async function analyzeRepository(repoUrl, branch = 'main') {
         // Parse each file
         const parsedFiles = [];
         for (const file of apiFiles) {
+            console.log(`[Analyzer] Parsing file: ${file.path}...`);
             const parseResult = await parseFile(file.fullPath, frameworkInfo.primary, repoPath, globalContext);
+
+            // Log parse result summary
+            console.log(`[Analyzer] Parsed ${file.path}: Success=${parseResult.success}, Endpoints=${parseResult.endpoints?.length || 0}`);
+
             parsedFiles.push({
                 ...file,
                 parseResult
@@ -1111,6 +1116,8 @@ async function analyzeRepository(repoUrl, branch = 'main') {
             }
             return { ...f, actualEndpointsCount: actualEndpoints };
         });
+
+
 
         const stats = {
             totalFiles: apiFiles.length,

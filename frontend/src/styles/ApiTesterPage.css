@@ -303,6 +303,23 @@
     color: #c00;
 }
 
+.btn-inline-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid #61affe;
+    background: rgba(97, 175, 254, 0.12);
+    color: #0b4a6f;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.btn-inline-edit:hover {
+    background: rgba(97, 175, 254, 0.2);
+}
+
 .success-message {
     margin-top: 1rem;
     padding: 1rem;
