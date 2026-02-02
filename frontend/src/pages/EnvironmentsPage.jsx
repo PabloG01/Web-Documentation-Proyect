@@ -206,6 +206,10 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
                                     <button
                                         className="btn btn-small"
                                         onClick={() => {
+                                            if (Number(env.project_count || 0) === 0) {
+                                                navigate(`/crear?type=project&environment_id=${env.id}`);
+                                                return;
+                                            }
                                             if (embedded && onNavigate) {
                                                 onNavigate('projects', env.id);
                                             } else {
@@ -226,7 +230,8 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
                         )
                     ))}
                 </div>
-            )}
+            )
+            }
 
             <Modal
                 isOpen={deleteModal.show}
@@ -259,7 +264,7 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
             </Modal>
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
-        </div>
+        </div >
     );
 }
 

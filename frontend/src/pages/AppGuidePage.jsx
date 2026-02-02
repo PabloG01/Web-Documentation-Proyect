@@ -9,7 +9,7 @@ import {
     Hand, Rocket, Globe, Folder, FileText, GitBranch, FlaskConical, Zap, Key,
     Book, ShieldCheck, Settings, FolderTree, Pin, Target, Palette, Fingerprint,
     Sparkles, Code, Eye, Ruler, Lightbulb, Link, Github, GitMerge, BarChart3,
-    Lock, Layout, Box, Info, Search, House
+    Lock, Layout, Box, Info, Search, House, User, Share2, Layers, Server, Database, Smartphone, ListOrdered
 } from 'lucide-react';
 
 // Componente para bloques de código
@@ -61,30 +61,28 @@ function CodeBlock({ code, language = 'javascript', title }) {
 function AppGuideSidebar({ activeSection, onNavigate }) {
     const sections = [
         { id: 'introduccion', title: 'Introducción', icon: <Hand size={18} /> },
-        { id: 'primeros-pasos', title: 'Primeros Pasos', icon: <Rocket size={18} /> },
-        { id: 'entornos', title: 'Entornos', icon: <Globe size={18} /> },
-        { id: 'proyectos', title: 'Proyectos', icon: <Folder size={18} /> },
         { id: 'documentos', title: 'Documentos', icon: <FileText size={18} /> },
         { id: 'repositorios', title: 'Repositorios', icon: <GitBranch size={18} /> },
         { id: 'apis', title: 'APIs', icon: <FlaskConical size={18} /> },
-        { id: 'api-tester', title: 'API Tester', icon: <Zap size={18} /> },
         { id: 'api-keys', title: 'API Keys', icon: <Key size={18} /> },
+        { id: 'primeros-pasos', title: 'Control de Acceso', icon: <Rocket size={18} /> },
+        { id: 'flujo-trabajo', title: 'Flujo de Trabajo', icon: <ListOrdered size={18} /> },
     ];
 
     return (
         <aside className="app-guide-sidebar">
-            <div className="sidebar-header">
+            <div className="app-sidebar-header">
                 <h2><Book size={20} className="text-icon" /> Guía de la Aplicación</h2>
             </div>
-            <nav className="sidebar-nav">
+            <nav className="app-sidebar-nav">
                 {sections.map((section) => (
                     <button
                         key={section.id}
-                        className={`sidebar-item ${activeSection === section.id ? 'active' : ''}`}
+                        className={`app-sidebar-item ${activeSection === section.id ? 'active' : ''}`}
                         onClick={() => onNavigate(section.id)}
                     >
-                        <span className="sidebar-icon">{section.icon}</span>
-                        <span className="sidebar-title">{section.title}</span>
+                        <span className="app-sidebar-icon">{section.icon}</span>
+                        <span className="app-sidebar-title">{section.title}</span>
                     </button>
                 ))}
             </nav>
@@ -136,8 +134,9 @@ function AppGuidePage() {
                 >
                     <h1>Bienvenido a DocApp</h1>
                     <p className="lead-text">
-                        Tu centro de comando unificado para documentación técnica. DocApp elimina la dispersión de información
-                        centralizando tus documentos, especificaciones de API y repositorios de código en una sola plataforma intuitiva.
+                        DocApp es una plataforma integral diseñada para centralizar, gestionar y compartir documentación técnica.
+                        Su objetivo es eliminar la dispersión de información, permitiendo que equipos de desarrollo y stakeholders
+                        accedan a manuales, especificaciones de API y repositorios de código desde un único lugar.
                     </p>
 
                     <div className="features-grid">
@@ -157,73 +156,54 @@ function AppGuidePage() {
                             <p>Gestiona accesos granulares con Roles de Entorno y API Keys.</p>
                         </div>
                     </div>
-                </section>
 
-                {/* Dashboard (Home) */}
-                <section
-                    id="primeros-pasos"
-                    ref={el => sectionRefs.current['primeros-pasos'] = el}
-                    className="guide-section"
-                >
-                    <h1><House size={40} className="text-icon" /> Tu Tablero de Control</h1>
+                    <h2>Conceptos Clave: La Jerarquía</h2>
                     <p>
-                        La página de inicio es tu punto de partida. Diseñada para darte acceso rápido a lo que necesitas trabajar ahora mismo.
+                        DocApp organiza la información siguiendo una estructura jerárquica lógica que facilita la navegación y el mantenimiento.
                     </p>
 
-                    <h2>Navegación Rápida</h2>
-                    <ul className="functionality-list">
-                        <li>
-                            <strong><Settings size={16} className="text-icon" /> Configuración de Entorno</strong>: Selecciona entre configuraciones predefinidas (Local, Producción, Personalizado) y configura la URL del servidor para probar tus APIs en diferentes ambientes.
-                        </li>
-                        <li>
-                            <strong><FolderTree size={16} className="text-icon" /> Vista Jerárquica</strong>: Tus proyectos se agrupan lógicamente. Expande un proyecto para ver sus documentos y APIs asociados de un vistazo.
-                        </li>
-                        <li>
-                            <strong><Key size={16} className="text-icon" /> Acceso con API Key</strong>: Conecta una API Key para acceder a la documentación sin necesidad de iniciar sesión. Ideal para compartir acceso temporal con colaboradores externos.
-                        </li>
-                    </ul>
-
-                    <div className="info-box">
-                        <h3><Zap size={30} className="text-icon" /> Acceso Rápido para Invitados</h3>
-                        <p>
-                            ¿Necesitas compartir documentación con alguien externo? Puedes usar el botón <strong>"Conectar API Key"</strong> en la home
-                            para desbloquear el acceso a documentos protegidos sin necesidad de crear una cuenta completa de usuario.
-                        </p>
-                    </div>
-                </section>
-
-                {/* Entornos y Proyectos */}
-                <section
-                    id="entornos"
-                    ref={el => sectionRefs.current['entornos'] = el}
-                    className="guide-section"
-                >
-                    <h1><Globe size={40} className="text-icon" /> Organización del Trabajo</h1>
-                    <p>DocApp estructura tu información en dos niveles para mantener el orden incluso en equipos grandes.</p>
-
-                    <div className="comparison-table">
-                        <div className="comparison-col">
-                            <h3>1. Entornos (Contexto)</h3>
-                            <p>Definen "dónde" vive un proyecto.</p>
-                            <ul>
-                                <li><Pin size={14} className="text-icon" /> Ejemplos: <em>Dev, Staging, Prod</em></li>
-                                <li><Target size={14} className="text-icon" /> <strong>Uso</strong>: Separar versiones estables de las de prueba.</li>
-                                <li><Palette size={14} className="text-icon" /> <strong>Visual</strong>: Se codifican por colores para evitar errores (ej. Rojo para Prod).</li>
-                            </ul>
-                            <p><em>Ve a <strong>Workspace → Entornos</strong> para configurarlos.</em></p>
+                    <div className="hierarchy-diagram" style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', border: '1px solid #334155' }}>
+                        <div className="hierarchy-level" style={{ marginBottom: '15px' }}>
+                            <h3 style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Globe size={24} /> 1. Entorno (Contexto)
+                            </h3>
+                            <p style={{ marginLeft: '34px', color: '#94a3b8' }}>
+                                Representa el ambiente de despliegue (ej. Desarrollo, Producción).
+                                <br />
+                                <span style={{ fontSize: '0.9em', color: '#64748b' }}><Palette size={12} style={{ display: 'inline' }} /> Se codifican por colores para identificación visual rápida.</span>
+                            </p>
                         </div>
-                        <div className="comparison-col">
-                            <h3>2. Proyectos (Contenedores)</h3>
-                            <p>Agrupan los recursos relacionados.</p>
-                            <ul>
-                                <li><Pin size={14} className="text-icon" /> Ejemplos: <em>API Pagos, App Móvil, Web Cliente</em></li>
-                                <li><Target size={14} className="text-icon" /> <strong>Uso</strong>: Contener Docs, Specs y Repos juntos.</li>
-                                <li><Fingerprint size={14} className="text-icon" /> <strong>Código</strong>: Tienen un prefijo único (ej. "PAY") para identificar sus recursos.</li>
-                            </ul>
-                            <p><em>Ve a <strong>Workspace → Proyectos</strong> para gestionarlos.</em></p>
+
+                        <div className="hierarchy-level" style={{ marginBottom: '15px', marginLeft: '20px', borderLeft: '2px solid #334155', paddingLeft: '15px' }}>
+                            <h3 style={{ color: '#a78bfa', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Folder size={24} /> 2. Proyecto (Contenedor)
+                            </h3>
+                            <p style={{ marginLeft: '34px', color: '#94a3b8' }}>
+                                Agrupa los recursos relacionados con un servicio o aplicación específica dentro de ese entorno (ej. API de Pagos, App Móvil).
+                            </p>
+                        </div>
+
+                        <div className="hierarchy-level" style={{ marginLeft: '40px', borderLeft: '2px solid #334155', paddingLeft: '15px' }}>
+                            <h3 style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Layers size={24} /> 3. Recursos (Contenido)
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                                <div style={{ background: '#0f172a', padding: '10px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffffff' }}>
+                                    <FileText size={16} color="#fbbf24" /> Documentos
+                                </div>
+                                <div style={{ background: '#0f172a', padding: '10px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffffff' }}>
+                                    <Zap size={16} color="#f472b6" /> APIs (Specs)
+                                </div>
+                                <div style={{ background: '#0f172a', padding: '10px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffffff' }}>
+                                    <GitBranch size={16} color="#60a5fa" /> Repositorios
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
+
+
+
 
                 {/* Documentos */}
                 <section
@@ -234,7 +214,7 @@ function AppGuidePage() {
                     <h1><FileText size={40} className="text-icon" />Centro de Documentación</h1>
                     <p>
                         El editor de DocApp te permite escribir documentación técnica rica y estructurada sin distracciones.
-                        Ideal para wikis, guías de onboarding, RFCs o manuales de usuario.
+                        Ideal para wikis, guías de onboarding o manuales de usuario.
                     </p>
 
                     <h2>Capacidades del Editor</h2>
@@ -244,11 +224,6 @@ function AppGuidePage() {
                         <li><Eye size={16} className="text-icon" /> <strong>Vista Previa en Vivo</strong>: Ve exactamente cómo quedará tu documento mientras escribes.</li>
                         <li><Ruler size={16} className="text-icon" /> <strong>Estructura Clara</strong>: Asigna metadatos como Versión, Autor y Tipo de documento.</li>
                     </ul>
-
-                    <div className="warning-box">
-                        <h3><Lightbulb size={20} className="text-icon" /> Tip de Organización</h3>
-                        <p>Asigna siempre tus documentos a un <strong>Proyecto</strong>. Esto permite que, al entrar al workspace de ese proyecto, todo tu equipo encuentre la documentación junto con el código y las APIs correspondientes.</p>
-                    </div>
                 </section>
 
                 {/* Repositorios e Integraciones */}
@@ -257,9 +232,9 @@ function AppGuidePage() {
                     ref={el => sectionRefs.current['repositorios'] = el}
                     className="guide-section"
                 >
-                    <h1><Link size={40} className="text-icon" /> Integración de Código</h1>
+                    <h1><Link size={40} className="text-icon" /> Análisis de Código y APIs</h1>
                     <p>
-                        Conecta tus repositorios de <strong>GitHub</strong> o <strong>Bitbucket</strong> para mantener tu documentación sincronizada con tu código fuente.
+                        Conecta tus repositorios de <strong>GitHub</strong> o <strong>Bitbucket</strong> para analizar tu código fuente y extraer automáticamente especificaciones de API y documentación técnica.
                     </p>
 
                     <h2>¿Qué puedes hacer?</h2>
@@ -268,15 +243,15 @@ function AppGuidePage() {
                             <div className="step-number">1</div>
                             <div className="step-content">
                                 <h3>Importar Repositorios</h3>
-                                <p>Vincula repos públicos o privados. DocApp mantendrá un enlace directo al código fuente para referencia rápida.</p>
+                                <p>Vincula repos públicos o privados para que DocApp pueda leerlos y buscar definiciones de API.</p>
                             </div>
                         </div>
                         <div className="step-item">
                             <div className="step-number">2</div>
                             <div className="step-content">
-                                <h3>Análisis Automático (IA)</h3>
+                                <h3>Análisis Automático</h3>
                                 <p>
-                                    Nuestra IA puede leer tu código en busca de rutas de API, modelos de datos y comentarios.
+                                    DocApp puede leer tu código en busca de rutas de API, modelos de datos y comentarios.
                                     Úsalo para generar borradores de documentación técnica sin escribir una sola línea.
                                 </p>
                             </div>
@@ -328,11 +303,10 @@ function AppGuidePage() {
                     <h1><Zap size={40} className="text-icon" />  Gestión de APIs</h1>
                     <p>El corazón de DocApp. Centraliza, visualiza y prueba tus contratos de API (OpenAPI/Swagger).</p>
 
-                    <h2>3 Formas de añadir APIs</h2>
+                    <h2>2 Formas de añadir APIs</h2>
                     <ol className="simple-list">
                         <li><strong>Subida Manual</strong>: Carga tus archivos `.json` o `.yaml` existentes.</li>
                         <li><strong>Desde Repositorio</strong>: Selecciona un archivo de spec directamente desde GitHub/Bitbucket.</li>
-                        <li><strong>Generación IA</strong>: Sube un archivo de código (ej. rutas de Express) y deja que la IA redacte la especificación por ti.</li>
                     </ol>
 
                     <h2>Visualización y Pruebas</h2>
@@ -364,9 +338,10 @@ function AppGuidePage() {
                     ref={el => sectionRefs.current['api-keys'] = el}
                     className="guide-section"
                 >
-                    <h1><Key size={40} className="text-icon" /> Seguridad M2M y Accesos</h1>
+                    <h1><Key size={40} className="text-icon" /> Gestión de Accesos Externos (API Keys)</h1>
                     <p>
-                        Gestiona cómo otras aplicaciones (o desarrolladores externos) interactúan con tus recursos a través de <strong>API Keys</strong>.
+                        Las API Keys son el mecanismo principal para permitir que sistemas externos, scripts automatizados o usuarios invitados
+                        accedan a la documentación y APIs de tus proyectos sin necesidad de crear una cuenta de usuario completa.
                     </p>
 
                     <h2>Control Total</h2>
@@ -390,6 +365,106 @@ function AppGuidePage() {
                             Vigilamos cada vez que se usa una key y te mostramos gráficas de uso, IPs de origen y endpoints accedidos.
                             <strong> Los contadores se actualizan instantáneamente</strong> en tu pantalla para que siempre tengas la foto real del tráfico.
                         </p>
+                    </div>
+                </section>
+
+                {/* Dashboard (Home) */}
+                <section
+                    id="primeros-pasos"
+                    ref={el => sectionRefs.current['primeros-pasos'] = el}
+                    className="guide-section"
+                >
+                    <h1><House size={40} className="text-icon" /> Control de acceso</h1>
+                    <p>
+                        La página de inicio está diseñada para probar directamente las APIs almacenadas asi como para dar acceso rápido
+                        y controlado a usuarios no registrados.
+                    </p>
+
+                    <h2>Navegación Rápida</h2>
+                    <ul className="functionality-list">
+                        <li>
+                            <strong><Settings size={16} className="text-icon" /> Configuración de Entorno</strong>: Selecciona entre configuraciones predefinidas (Local, Producción, Personalizado) y configura la URL del servidor para probar tus APIs en diferentes ambientes.
+                        </li>
+                        <li>
+                            <strong><FolderTree size={16} className="text-icon" /> Vista Jerárquica</strong>: Tus proyectos se agrupan lógicamente. Expande un proyecto para ver sus documentos y APIs asociados de un vistazo.
+                        </li>
+                        <li>
+                            <strong><Key size={16} className="text-icon" /> Acceso con API Key</strong>: Conecta una API Key para acceder a la documentación sin necesidad de iniciar sesión. Ideal para compartir acceso temporal con colaboradores externos.
+                        </li>
+                    </ul>
+
+                    <div className="info-box">
+                        <h3><Zap size={30} className="text-icon" /> Acceso Rápido para Invitados</h3>
+                        <p>
+                            ¿Necesitas compartir documentación con alguien externo? Puedes usar el botón <strong>"Conectar API Key"</strong> en la home
+                            para desbloquear el acceso a documentos protegidos sin necesidad de crear una cuenta completa de usuario.
+                        </p>
+                    </div>
+                </section>
+
+                {/* Flujo de Trabajo */}
+                <section
+                    id="flujo-trabajo"
+                    ref={el => sectionRefs.current['flujo-trabajo'] = el}
+                    className="guide-section"
+                >
+                    <h1><ListOrdered size={40} className="text-icon" /> Flujo de Trabajo Recomendado</h1>
+                    <p>
+                        Sigue estos pasos para comenzar a documentar tu arquitectura de software de manera efectiva.
+                    </p>
+
+                    <div className="steps-list">
+                        <div className="step-item">
+                            <div className="step-number" style={{ background: '#3b82f6' }}>1</div>
+                            <div className="step-content">
+                                <h3>Definir el Entorno</h3>
+                                <p>Crea un entorno que represente la etapa de tus proyectos (ej. <strong>Producción</strong>).</p>
+                                <div className="step-meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8', fontSize: '0.9rem' }}>
+                                    <Globe size={14} /> Workspace → Nuevo Entorno
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="step-item">
+                            <div className="step-number" style={{ background: '#8b5cf6' }}>2</div>
+                            <div className="step-content">
+                                <h3>Crear un Proyecto</h3>
+                                <p>Dentro del entorno, añade un nuevo proyecto. Asígnale un código único para identificación rápida.</p>
+                                <div className="step-meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8', fontSize: '0.9rem' }}>
+                                    <Folder size={14} /> Entorno → Nuevo Proyecto
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="step-item">
+                            <div className="step-number" style={{ background: '#10b981' }}>3</div>
+                            <div className="step-content">
+                                <h3>Añadir Recursos</h3>
+                                <p>Puebla tu proyecto con documentación técnica:</p>
+                                <ul style={{ listStyle: 'none', padding: 0, marginTop: '10px' }}>
+                                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                                        <FileText size={16} /> <strong>Documentos:</strong> Escribe manuales o wikis.
+                                    </li>
+                                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                                        <Zap size={16} /> <strong>APIs:</strong> Sube tus archivos OpenAPI / Swagger.
+                                    </li>
+                                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <GitBranch size={16} /> <strong>Repos:</strong> Conecta GitHub para extraer APIs automáticamente.
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="step-item">
+                            <div className="step-number" style={{ background: '#f59e0b' }}>4</div>
+                            <div className="step-content">
+                                <h3>Configurar Accesos</h3>
+                                <p>Genera una API Key para compartir acceso de solo lectura con tus clientes o integradores.</p>
+                                <div className="step-meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8', fontSize: '0.9rem' }}>
+                                    <Key size={14} /> Workspace → API Keys
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </main>

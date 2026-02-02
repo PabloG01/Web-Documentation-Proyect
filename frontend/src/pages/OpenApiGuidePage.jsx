@@ -6,7 +6,7 @@ import '../styles/AppGuidePage.css'; // Shared styles for guides
 import '../styles/OpenApiGuidePage.css'; // Local overrides
 import '../styles/MarkdownRenderer.css';
 import '../styles/CodeBlockOverrides.css';
-import { FileCode, Server, Wrench, Box, Coffee } from 'lucide-react';
+import { FileCode, Server, Wrench, Box, Coffee, Book } from 'lucide-react';
 
 // Componente para bloques de código con estilo consistente
 function CodeBlock({ code, language = 'javascript', title }) {
@@ -95,7 +95,7 @@ function OpenApiGuidePage() {
                     ref={el => sectionRefs.current['what-is-openapi'] = el}
                     className="guide-section"
                 >
-                    <h1>¿Qué es OpenAPI?</h1>
+                    <h1><Book size={45} className='text-icon' /> ¿Qué es OpenAPI?</h1>
                     <p className="lead-text">
                         OpenAPI (anteriormente conocido como Swagger) es el estándar mundial para describir APIs RESTful.
                         Es un contrato legible tanto para humanos como para máquinas que potencia todo tu ciclo de desarrollo.
@@ -129,7 +129,7 @@ function OpenApiGuidePage() {
                     ref={el => sectionRefs.current['openapi-structure'] = el}
                     className="guide-section"
                 >
-                    <h2>Estructura básica</h2>
+                    <h2><Box size={35} className='text-icon' />Estructura básica</h2>
                     <p>Un archivo OpenAPI típico es simple pero potente. Aquí tienes la anatomía básica:</p>
 
                     <CodeBlock
@@ -162,9 +162,9 @@ function OpenApiGuidePage() {
                     ref={el => sectionRefs.current['nodejs-swagger-jsdoc'] = el}
                     className="guide-section"
                 >
-                    <h1><Server size={35} className='text-icon' /> Node.js / Express</h1>
+                    <h1><Server size={45} className='text-icon' /> Node.js / Express</h1>
                     <p className="lead-text">
-                        Integra OpenAPI en tu aplicación Express fácilmente usando comentarios JSDoc. Tu código *es* tu documentación.
+                        Integra OpenAPI en tu aplicación Express fácilmente usando comentarios JSDoc. Tu código es tu documentación.
                     </p>
 
                     <h2>Paso a Paso</h2>
@@ -206,7 +206,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));`} />
                     ref={el => sectionRefs.current['nodejs-examples'] = el}
                     className="guide-section"
                 >
-                    <h2>Ejemplos de Anotaciones</h2>
+                    <h2><FileCode size={45} className='text-icon' />Ejemplos de Anotaciones</h2>
                     <p>Usa bloques de comentarios especiales encima de tus rutas:</p>
 
                     <CodeBlock
@@ -239,9 +239,9 @@ router.get('/users', async (req, res) => { ... });`}
                     ref={el => sectionRefs.current['python-setup'] = el}
                     className="guide-section"
                 >
-                    <h1><FileCode size={35} className='text-icon' /> Python / FastAPI</h1>
+                    <h1><FileCode size={45} className='text-icon' /> Python / FastAPI</h1>
                     <p className="lead-text">
-                        FastAPI fue diseñado *para* OpenAPI. No tienes que hacer nada extra, la documentación se genera sola analizando tus tipos de Python.
+                        FastAPI fue diseñado para OpenAPI. No tienes que hacer nada extra, la documentación se genera sola analizando tus tipos de Python.
                     </p>
 
                     <h2>Como funciona</h2>
@@ -298,7 +298,7 @@ async def create_user(user: User):
                     ref={el => sectionRefs.current['java-springdoc'] = el}
                     className="guide-section"
                 >
-                    <h1><Coffee size={35} className='text-icon' /> Java / Spring Boot</h1>
+                    <h1><Coffee size={45} className='text-icon' /> Java / Spring Boot</h1>
                     <p>Usa la librería <code>springdoc-openapi</code> para integrar OpenAPI 3 en tus aplicaciones Spring Boot.</p>
 
                     <h2>Integración Rápida</h2>
@@ -356,7 +356,7 @@ public class UserController {
                         </div>
                     </div>
 
-                    <h2>Generación de Código CLI</h2>
+                    <h2><Wrench size={30} className='text-icon' />Generación de Código CLI</h2>
                     <CodeBlock language="bash" code={`# Generar cliente React/Axios
 openapi-generator-cli generate -i openapi.json -g typescript-axios -o ./api-client`} />
                 </section>

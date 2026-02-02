@@ -184,7 +184,7 @@ function WorkspacePage() {
                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                         title={sidebarCollapsed ? 'Expandir' : 'Colapsar'}
                     >
-                        {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                        {sidebarCollapsed ? <ChevronRight size={18} color="#000000ff" /> : <ChevronLeft size={18} color="#000000ff" />}
                     </button>
                 </div>
 

@@ -6,7 +6,7 @@
 |-------|---------|
 | **Proyecto** | DocApp - Plataforma de Documentación Profesional |
 | **Inicio estimado** | Lunes 15 de diciembre de 2025 |
-| **Última actualización** | 26 de enero de 2026 |
+| **Última actualización** | 30 de enero de 2026 |
 | **Stack tecnológico** | React 19 + Express 5 + PostgreSQL 15 + Docker |
 
 ---
@@ -197,38 +197,57 @@
 
 ---
 
-### Semana 7 (26 de enero de 2026 - Presente)
+### Semana 7 (26 - 30 de enero de 2026)
 
 #### 🎯 Objetivos
 - Estabilizar la persistencia de filtros en la interfaz
 - Refactorización de componentes críticos de navegación
-- Limpieza de código y logs de producción
+- Implementación de actualizaciones en tiempo real (Socket.IO)
+- Integración completa de GitHub OAuth (Connect/Disconnect)
+- Rediseño y estandarización visual de Guías (App & OpenAPI)
 
 #### ✅ Logros
 - **Persistencia de Filtros**: Solución definitiva al reseteo automático de filtros en `WorkspacePage`
 - **Gestión de API Keys**: 
   - Implementación de fallback para copiado en portapapeles (compatible con conexiones HTTP/LAN)
   - Corrección de base de datos (tabla `api_key_usage_logs` faltante)
-  - Optimización de middleware para reducir ruido en logs y evitar conteo de preflight requests (OPTIONS)
-- **Limpieza de Backend**: Eliminación de logs de depuración (GET logs) innecesarios
+- **Real-Time Features**: Integración de `Socket.IO` para actualización en vivo de contadores de uso de API Keys sin recargar la página.
+- **GitHub OAuth (Implementado y Retirado)**: Se completó la integración full-stack del flujo de autenticación y vinculación de cuentas. *Nota: Funcionalidad posteriormente retirada por decisión de seguridad.*
+- **UI/UX Guías (Overhaul)**:
+  - **Estandarización**: Unificación visual completa entre *App Guide* y *OpenAPI Guide* (Paleta clara, layout centrado).
+  - **Navegación**: Refactorización de sidebars a listas planas (sin acordeones) para acceso rápido.
+  - **Contenido**: Reestructuración de la Guía de Aplicación (Nueva sección "Flujo de Trabajo", iconos `lucide-react` consistentes).
 
 #### ⚠️ Dificultades Encontradas
 
-1. **Reseteo Automático de Filtros**
+1. **Decisión de Seguridad: Retiro de OAuth**
+   - *Contexto*: La integración con terceros (GitHub) aumentaba la superficie de ataque y complejidad de gestión de tokens.
+   - *Decisión*: Se optó por **eliminar** la funcionalidad de OAuth del producto final para priorizar un modelo de seguridad cerrado y autocontenido.
+
+2. **Reseteo Automático de Filtros**
    - *Problema*: Al aplicar un filtro (ej. por entorno), la lista de proyectos se recargaba y perdía el filtro después de 3 segundos.
-   - *Causa*: Conflicto entre el estado local `activeSection` y los parámetros URL gestionados por un `useEffect` reactivo.
-   - *Solución*: Refactorización de la lógica de navegación para eliminar el `useEffect` conflictivo y gestionar la URL de manera explícita en los eventos de usuario.
+   - *Solución*: Refactorización de la lógica de navegación para eliminar el `useEffect` conflictivo.
 
 2. **Error en Logs de Uso de API Key**
    - *Problema*: Error 500 al usar una API Key válida: `relation "api_key_usage_logs" does not exist`.
-   - *Solución*: Se agregó la definición de la tabla faltante en el script de inicialización de `database.js`.
+   - *Solución*: Se agregó la definición de la tabla faltante en el script de inicialización.
+
+3. **Conflicto de Estilos CSS en Sidebars**
+   - *Problema*: La sidebar de la App Guide heredaba estilos púrpuras no deseados de la OpenAPI Guide debido a clases genéricas (`.sidebar-header`).
+   - *Solución*: Namespacing de clases CSS (`.app-sidebar-*` vs `.guide-sidebar-*`) y sincronización manual de estilos para paridad visual pixel-perfect.
+
+4. **Crash por Referencia React Perdida**
+   - *Problema*: La página de OpenAPI Guide dejó de renderizar tras un refactor.
+   - *Causa*: Se eliminó el hook `useRef` pero se mantuvo su asignación en el JSX.
+   - *Solución*: Restauración de la inicialización de `sidebarRefs`.
 
 #### 📝 Commits Relacionados
 - fix: Refactorización de navegación en WorkspacePage para persistencia de filtros
-- chores: Limpieza de logs de debug en backend routes
-- fix: Fallback para portapapeles en ApiKeysPage
-- fix: Migración de base de datos para tabla api_key_usage_logs
-- perf: Optimización de logs de autenticación API Key
+- feat(realtime): Implementación de Socket.IO para updates de API Keys
+- feat(auth): Endpoints y botones para desconexión de GitHub OAuth
+- refactor(ui): Estandarización de iconos Lucide y paleta de colores en Guías
+- fix(css): Resolución de colisiones de estilos en componentes Sidebar
+- docs: Actualización masiva de contenido y estructura en App Guide
 
 ---
 
@@ -293,4 +312,4 @@
 
 ---
 
-**Documento generado automáticamente - Última actualización: 26 de enero de 2026**
+**Documento generado automáticamente - Última actualización: 30 de enero de 2026**

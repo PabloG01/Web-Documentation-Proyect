@@ -1,8 +1,11 @@
 .guides-page {
-    min-height: 100vh;
+    min-height: calc(100vh - 70px);
     background: #ffffff;
-    padding: 4rem 2rem;
+    padding: 2rem;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     overflow: hidden;
 }
 
@@ -29,7 +32,7 @@
 .guides-header {
     text-align: center;
     margin-bottom: 4rem;
-    animation: fadeInDown 0.6s ease-out;
+    margin-bottom: 3rem;
 }
 
 .guides-header h1 {
@@ -45,7 +48,7 @@
 }
 
 .guides-grid {
-    display: grid;
+    display: flex;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 2rem;
     margin-bottom: 4rem;
@@ -56,20 +59,12 @@
     background: #ffffff;
     border: 2px solid #e0e0e0;
     border-radius: 20px;
-    padding: 2.5rem;
+    padding: 1.5rem;
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
-    animation: fadeInUp 0.6s ease-out;
-    animation-fill-mode: both;
-}
-
-.guide-card:nth-child(1) {
-    animation-delay: 0.1s;
-}
-
-.guide-card:nth-child(2) {
-    animation-delay: 0.2s;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
 }
 
 .guide-card-inner {
@@ -156,8 +151,7 @@
 }
 
 .guides-footer {
-    animation: fadeInUp 0.6s ease-out 0.3s;
-    animation-fill-mode: both;
+    margin-top: 2rem;
 }
 
 .info-box {

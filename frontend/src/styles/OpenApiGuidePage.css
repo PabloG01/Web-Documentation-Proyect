@@ -15,8 +15,9 @@
 
 /* Add specific overrides below if needed */
 .openapi-guide-page .guide-content {
-    margin-left: 0 !important;
+    margin: 0 auto !important;
     max-width: 1000px;
+    width: 100%;
 }
 
 /* Ensure sidebar sticks correctly */
