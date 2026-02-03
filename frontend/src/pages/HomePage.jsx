@@ -55,9 +55,29 @@ function HomePage() {
       };
       fetchData();
     } else {
-      setLoading(false); // Stop loading if not connected
+      setLoading(false);
+      setSpecs([]);
+      setProjects([]);
     }
   }, [apiKeyConnected, user]);
+
+  // Cleanup API key when leaving the page (unmount or refresh)
+  useEffect(() => {
+    const handleUnload = () => {
+      localStorage.removeItem('homepage_api_key');
+    };
+
+    // Handle refresh/close
+    window.addEventListener('beforeunload', handleUnload);
+
+    // Handle component unmount (navigation)
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      localStorage.removeItem('homepage_api_key');
+    };
+  }, []);
+
+
 
   // Helper: Group Specs
   const getGroupedSpecs = () => {
@@ -297,7 +317,7 @@ function HomePage() {
         ) : groupedSpecs.map(group => (
           <div key={group.id} className="project-section">
             <div
-              className={`project-header ${expandedProjects[group.id] ? 'expanded' : ''}`}
+              className={`dashboard-project-header ${expandedProjects[group.id] ? 'expanded' : ''}`}
               onClick={() => toggleProject(group.id)}
               style={{ borderLeftColor: group.color }}
             >

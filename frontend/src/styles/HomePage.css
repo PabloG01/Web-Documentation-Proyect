@@ -92,7 +92,9 @@
   margin-bottom: 0;
 }
 
-.project-header {
+
+
+.dashboard-project-header {
   background-color: #6b87ad;
   padding: 0.75rem 1.5rem;
   cursor: pointer;
@@ -102,16 +104,21 @@
   gap: 1rem;
   border-bottom: 1px solid #475569;
   color: white;
+  transition: background-color 0.2s;
 }
 
-.project-header h2 {
+.dashboard-project-header:hover {
+  background-color: #5a7294;
+}
+
+.dashboard-project-header h2 {
   font-size: 1rem;
   color: white;
   margin: 0;
   font-weight: 600;
 }
 
-.project-header .toggle-icon {
+.dashboard-project-header .toggle-icon {
   color: white !important;
   margin-left: auto;
 }

@@ -339,7 +339,7 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
         <div className="projects-grid">
           {filteredProjects.map(project => (
             <div key={project.id} className="project-item" style={{ borderLeftColor: project.color, position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+              <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }}>
                 <input
                   type="checkbox"
                   checked={selectedProjectIds.includes(project.id)}

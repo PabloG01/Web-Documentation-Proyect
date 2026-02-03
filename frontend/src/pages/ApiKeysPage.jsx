@@ -532,7 +532,7 @@ function ApiKeysPage() {
                                 borderLeftColor: isExpired(key.expires_at) ? '#ef4444' : key.is_active ? '#10b981' : '#9ca3af',
                                 position: 'relative'
                             }}>
-                                <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                                <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }}>
                                     <input
                                         type="checkbox"
                                         checked={selectedKeyIds.includes(key.id)}

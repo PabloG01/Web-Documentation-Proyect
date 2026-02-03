@@ -270,7 +270,7 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
                     {environments.map(env => (
                         env.id !== editingId && (
                             <div key={env.id} className="project-item" style={{ borderLeftColor: env.color, position: 'relative' }}>
-                                <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                                <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }}>
                                     <input
                                         type="checkbox"
                                         checked={selectedEnvIds.includes(env.id)}

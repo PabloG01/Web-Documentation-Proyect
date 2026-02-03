@@ -155,9 +155,7 @@ function ApiTesterPage({ embedded = false }) {
         return {
             local: 'http://localhost:5000',
             'same-network': `${currentProtocol}//${currentHost}:5000`,
-            'custom': serverUrl,
-            staging: 'https://staging-api.ejemplo.com',
-            production: 'https://api.ejemplo.com'
+            'custom': serverUrl
         };
     };
 
@@ -518,8 +516,6 @@ function ApiTesterPage({ embedded = false }) {
                                 {environment === 'local' && <><Home size={16} /> Local (localhost:5000)</>}
                                 {environment === 'same-network' && <><Globe size={20} /> Mismo servidor ({currentHostname}:5000)</>}
                                 {environment === 'custom' && <><PenTool size={16} /> Personalizado</>}
-                                {environment === 'staging' && <><Wrench size={16} /> Staging</>}
-                                {environment === 'production' && <><Rocket size={16} /> Production</>}
                             </span>
                             <span className="arrow">{isEnvDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
                         </div>
@@ -539,13 +535,9 @@ function ApiTesterPage({ embedded = false }) {
                                         onClick={() => { handleEnvironmentChange('custom'); setIsEnvDropdownOpen(false); }}>
                                         <PenTool size={16} /> Personalizado
                                     </li>
-                                    <li className={`spec-item ${environment === 'staging' ? 'selected' : ''}`}
-                                        onClick={() => { handleEnvironmentChange('staging'); setIsEnvDropdownOpen(false); }}>
-                                        <Wrench size={16} /> Staging
-                                    </li>
-                                    <li className={`spec-item ${environment === 'production' ? 'selected' : ''}`}
-                                        onClick={() => { handleEnvironmentChange('production'); setIsEnvDropdownOpen(false); }}>
-                                        <Rocket size={16} /> Production
+                                    <li className={`spec-item ${environment === 'custom' ? 'selected' : ''}`}
+                                        onClick={() => { handleEnvironmentChange('custom'); setIsEnvDropdownOpen(false); }}>
+                                        <PenTool size={16} /> Personalizado
                                     </li>
                                 </ul>
                             </div>

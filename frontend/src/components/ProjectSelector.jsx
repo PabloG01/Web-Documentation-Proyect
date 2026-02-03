@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { projectsAPI } from '../services/api';
 import '../styles/ProjectSelector.css';
 import '../styles/LoadingStates.css';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Check } from 'lucide-react';
 
 function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
   const [projects, setProjects] = useState([]);
@@ -61,10 +61,18 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
   };
 
   const colors = [
-    '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16',
-    '#22C55E', '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9',
-    '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#D946EF',
-    '#EC4899', '#F43F5E', '#71717A', '#64748B', '#000000'
+    '#6366F1', // Indigo (Primary)
+    '#3B82F6', // Blue
+    '#0EA5E9', // Sky
+    '#10B981', // Emerald
+    '#22C55E', // Green
+    '#EAB308', // Yellow
+    '#F97316', // Orange
+    '#EF4444', // Red
+    '#EC4899', // Pink
+    '#D946EF', // Fuchsia
+    '#8B5CF6', // Violet
+    '#64748B'  // Slate
   ];
 
   return (
@@ -159,13 +167,20 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
               key={project.id}
               className={`project-card ${selectedProjectId === project.id ? 'selected' : ''}`}
               onClick={() => onSelect && onSelect(project.id)}
-              style={{ borderLeftColor: project.color }}
+              style={{ '--project-color': project.color }}
             >
               <div className="project-header">
-                <span className="project-code" style={{ backgroundColor: project.color }}>
-                  {project.code}
-                </span>
-                <h4>{project.name}</h4>
+                <div className="project-identity">
+                  <span className="project-code">
+                    {project.code}
+                  </span>
+                  <h4>{project.name}</h4>
+                </div>
+                {selectedProjectId === project.id && (
+                  <div className="selected-indicator">
+                    <Check size={18} />
+                  </div>
+                )}
               </div>
               {project.description && (
                 <p className="project-description">{project.description}</p>
@@ -173,19 +188,22 @@ function ProjectSelector({ selectedProjectId, onSelect, allowCreate = true }) {
             </div>
           ))}
         </div>
-      )}
+      )
+      }
 
-      {projects.length === 0 && !showCreateForm && (
-        <div className="empty-projects">
-          <p>No hay proyectos creados</p>
-          {allowCreate && (
-            <button className="btn btn-primary" onClick={() => setShowCreateForm(true)}>
-              Crear primer proyecto
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+      {
+        projects.length === 0 && !showCreateForm && (
+          <div className="empty-projects">
+            <p>No hay proyectos creados</p>
+            {allowCreate && (
+              <button className="btn btn-primary" onClick={() => setShowCreateForm(true)}>
+                Crear primer proyecto
+              </button>
+            )}
+          </div>
+        )
+      }
+    </div >
   );
 }
 

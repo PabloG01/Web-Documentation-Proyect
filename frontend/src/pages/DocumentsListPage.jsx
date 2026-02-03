@@ -433,7 +433,7 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
                   showAuthor={viewMode === 'all'}
                 >
                   <div
-                    style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 20, cursor: 'pointer' }}
+                    style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 20, cursor: 'pointer' }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <input
@@ -468,7 +468,7 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
             {filteredSpecs.map(spec => (
               <div key={spec.id} className="spec-card" style={{ position: 'relative' }}>
                 <div
-                  style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 20, cursor: 'pointer' }}
+                  style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 20, cursor: 'pointer' }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <input
