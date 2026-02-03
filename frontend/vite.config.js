@@ -9,6 +9,9 @@ export default defineConfig({
         host: '0.0.0.0', // Permite acceso desde otras máquinas en LAN
         strictPort: true, // Falla si el puerto está ocupado
         open: false, // No abrir automáticamente el navegador
+        watch: {
+            usePolling: true, // Vital para Docker en Windows
+        }
     },
     build: {
         outDir: 'build', // Mantener compatibilidad con scripts existentes
@@ -36,4 +39,4 @@ export default defineConfig({
         ]
     }
 });
- 
+
