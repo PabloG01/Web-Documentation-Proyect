@@ -22,6 +22,10 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
     const [toasts, setToasts] = useState([]);
     const [deleteModal, setDeleteModal] = useState({ show: false, env: null, projectCount: 0 });
 
+    // Selection State
+    const [selectedEnvIds, setSelectedEnvIds] = useState([]);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     // Toast helper
     const addToast = (message, type = 'info') => {
         const id = Date.now();
@@ -95,9 +99,58 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
             setEnvironments(environments.filter(e => e.id !== env.id));
             addToast('Entorno eliminado exitosamente', 'success');
             setDeleteModal({ show: false, env: null, projectCount: 0 });
+            // Deselect
+            setSelectedEnvIds(prev => prev.filter(id => id !== env.id));
         } catch (err) {
             addToast('Error al eliminar: ' + err.message, 'error');
             setDeleteModal({ show: false, env: null, projectCount: 0 });
+        }
+    };
+
+    // Bulk Actions
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedEnvIds(environments.map(e => e.id));
+        } else {
+            setSelectedEnvIds([]);
+        }
+    };
+
+    const handleSelectEnv = (envId) => {
+        setSelectedEnvIds(prev => {
+            if (prev.includes(envId)) return prev.filter(id => id !== envId);
+            return [...prev, envId];
+        });
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedEnvIds.length === 0) return;
+
+        // Validation: Check if any selected env has projects
+        const envsToDelete = environments.filter(e => selectedEnvIds.includes(e.id));
+        const envsWithProjects = envsToDelete.filter(e => Number(e.project_count || 0) > 0);
+
+        if (envsWithProjects.length > 0) {
+            addToast(`No se pueden eliminar ${envsWithProjects.length} entorno(s) porque tienen proyectos activos. Elimínalos antes.`, 'warning');
+            return;
+        }
+
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar ${selectedEnvIds.length} entorno(s)?`)) return;
+
+        setIsDeleting(true);
+        try {
+            await Promise.all(selectedEnvIds.map(id => environmentsAPI.delete(id)));
+
+            // Update UI
+            setEnvironments(prev => prev.filter(e => !selectedEnvIds.includes(e.id)));
+            setSelectedEnvIds([]);
+            addToast(`${selectedEnvIds.length} entornos eliminados`, 'success');
+        } catch (err) {
+            console.error(err);
+            addToast('Error al eliminar algunos entornos', 'error');
+            loadEnvironments();
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -162,13 +215,41 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
                     <p>Organiza tus proyectos por clientes o áreas de trabajo</p>
                 </div>
                 {!isCreating && !editingId && (
-                    <button className="btn btn-primary" onClick={handleCreate}>
-                        <Plus size={18} /> Nuevo Entorno
-                    </button>
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+
+
+                        <button className="btn btn-primary" onClick={handleCreate}>
+                            <Plus size={18} /> Nuevo Entorno
+                        </button>
+                    </div>
                 )}
             </div>
 
             {(isCreating || editingId) && renderForm()}
+
+            {!isCreating && !editingId && (
+                <div className="filters" style={{ maxWidth: '1200px', margin: '0 auto 20px auto', padding: '0 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', minHeight: '30px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <input
+                                type="checkbox"
+                                id="selectAllEnvs"
+                                checked={environments.length > 0 && selectedEnvIds.length === environments.length}
+                                onChange={handleSelectAll}
+                                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                                disabled={environments.length === 0}
+                            />
+                            <label htmlFor="selectAllEnvs" style={{ cursor: 'pointer', fontSize: '0.9rem', minWidth: 'max-content' }}>Seleccionar Todos</label>
+                        </div>
+
+                        {selectedEnvIds.length > 0 && (
+                            <button className="btn btn-danger btn-small" onClick={handleBulkDelete} disabled={isDeleting}>
+                                <Trash2 size={14} /> ({selectedEnvIds.length})
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {loading ? (
                 <div className="loading-container">
@@ -188,7 +269,15 @@ function EnvironmentsPage({ embedded = false, onNavigate }) {
                 <div className="projects-grid">
                     {environments.map(env => (
                         env.id !== editingId && (
-                            <div key={env.id} className="project-item" style={{ borderLeftColor: env.color }}>
+                            <div key={env.id} className="project-item" style={{ borderLeftColor: env.color, position: 'relative' }}>
+                                <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedEnvIds.includes(env.id)}
+                                        onChange={() => handleSelectEnv(env.id)}
+                                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                    />
+                                </div>
                                 <div className="project-info">
                                     <div className="project-main">
                                         <div className="project-details">

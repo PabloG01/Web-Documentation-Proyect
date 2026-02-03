@@ -299,27 +299,26 @@ function detectResourceType(path) {
     return 'item'; // fallback
 }
 
+const FIELD_EXAMPLES = {
+    id: 1, user_id: 1, project_id: 1, document_id: 1, order_id: 1, product_id: 1,
+    username: 'juan_garcia', email: 'usuario@ejemplo.com', password: '********',
+    name: 'Nombre de ejemplo', title: 'Título de ejemplo',
+    description: 'Descripción detallada del recurso',
+    content: '# Contenido\n\nTexto de ejemplo...',
+    price: 99.99, amount: 150.00, total: 250.00, quantity: 5, stock: 100,
+    status: 'active', type: 'general', role: 'user',
+    url: 'https://ejemplo.com/recurso', image_url: 'https://ejemplo.com/imagen.jpg',
+    created_at: '2026-01-14T12:00:00Z', updated_at: '2026-01-14T15:30:00Z',
+    is_active: true, enabled: true, is_private: false
+};
+
 /**
  * Generate example value for a field based on its name and type
  */
 function generateExampleValue(fieldName, fieldType = 'string') {
     const nameLower = fieldName.toLowerCase();
 
-    // Common field patterns
-    const fieldExamples = {
-        id: 1, user_id: 1, project_id: 1, document_id: 1, order_id: 1, product_id: 1,
-        username: 'juan_garcia', email: 'usuario@ejemplo.com', password: '********',
-        name: 'Nombre de ejemplo', title: 'Título de ejemplo',
-        description: 'Descripción detallada del recurso',
-        content: '# Contenido\n\nTexto de ejemplo...',
-        price: 99.99, amount: 150.00, total: 250.00, quantity: 5, stock: 100,
-        status: 'active', type: 'general', role: 'user',
-        url: 'https://ejemplo.com/recurso', image_url: 'https://ejemplo.com/imagen.jpg',
-        created_at: '2026-01-14T12:00:00Z', updated_at: '2026-01-14T15:30:00Z',
-        is_active: true, enabled: true, is_private: false
-    };
-
-    if (fieldExamples[fieldName] !== undefined) return fieldExamples[fieldName];
+    if (FIELD_EXAMPLES[fieldName] !== undefined) return FIELD_EXAMPLES[fieldName];
 
     // Pattern matching
     if (nameLower.includes('email')) return 'usuario@ejemplo.com';
@@ -448,6 +447,44 @@ function generateSuccessResponseExample(method, path, fields = []) {
     }
 }
 
+const ERROR_MESSAGES = {
+    '400': {
+        error: 'Error de validación',
+        details: [
+            { field: 'email', message: 'El formato del email no es válido' },
+            { field: 'password', message: 'La contraseña debe tener al menos 6 caracteres' }
+        ]
+    },
+    '401': {
+        error: 'No autenticado',
+        message: 'Debe iniciar sesión para acceder a este recurso'
+    },
+    '403': {
+        error: 'Acceso denegado',
+        message: 'No tiene permisos para modificar este recurso'
+    },
+    '404': {
+        error: 'No encontrado',
+        message: 'El recurso solicitado no existe'
+    },
+    '409': {
+        error: 'Conflicto',
+        message: 'Ya existe un recurso con estos datos'
+    },
+    '422': {
+        error: 'Datos inválidos',
+        message: 'No se pudo procesar la solicitud con los datos proporcionados'
+    },
+    '429': {
+        error: 'Límite excedido',
+        message: 'Demasiadas solicitudes. Intente nuevamente en 60 segundos'
+    },
+    '500': {
+        error: 'Error interno',
+        message: 'Ha ocurrido un error inesperado. Por favor, intente más tarde'
+    }
+};
+
 /**
  * Generate error response examples
  */
@@ -455,44 +492,6 @@ function generateErrorResponseExamples(method, path, statusCodes = []) {
     const resourceName = extractResourceName(path);
     const hasId = path.includes(':') || path.includes('{');
     const examples = {};
-
-    const errorMessages = {
-        '400': {
-            error: 'Error de validación',
-            details: [
-                { field: 'email', message: 'El formato del email no es válido' },
-                { field: 'password', message: 'La contraseña debe tener al menos 6 caracteres' }
-            ]
-        },
-        '401': {
-            error: 'No autenticado',
-            message: 'Debe iniciar sesión para acceder a este recurso'
-        },
-        '403': {
-            error: 'Acceso denegado',
-            message: `No tiene permisos para modificar este ${resourceName}`
-        },
-        '404': {
-            error: 'No encontrado',
-            message: `${capitalizeFirst(resourceName)} con el ID especificado no existe`
-        },
-        '409': {
-            error: 'Conflicto',
-            message: `Ya existe un ${resourceName} con estos datos`
-        },
-        '422': {
-            error: 'Datos inválidos',
-            message: 'No se pudo procesar la solicitud con los datos proporcionados'
-        },
-        '429': {
-            error: 'Límite excedido',
-            message: 'Demasiadas solicitudes. Intente nuevamente en 60 segundos'
-        },
-        '500': {
-            error: 'Error interno',
-            message: 'Ha ocurrido un error inesperado. Por favor, intente más tarde'
-        }
-    };
 
     // Determine relevant errors
     const relevantErrors = new Set(['500', '401']);
@@ -520,8 +519,19 @@ function generateErrorResponseExamples(method, path, statusCodes = []) {
     statusCodes.forEach(c => relevantErrors.add(c));
 
     for (const code of relevantErrors) {
-        if (errorMessages[code]) {
-            examples[code] = errorMessages[code];
+        if (ERROR_MESSAGES[code]) {
+            // Customize message if needed
+            const error = { ...ERROR_MESSAGES[code] };
+
+            if (code === '403') {
+                error.message = `No tiene permisos para modificar este ${resourceName}`;
+            } else if (code === '404') {
+                error.message = `${capitalizeFirst(resourceName)} con el ID especificado no existe`;
+            } else if (code === '409') {
+                error.message = `Ya existe un ${resourceName} con estos datos`;
+            }
+
+            examples[code] = error;
         }
     }
 

@@ -24,6 +24,10 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState(''); // New search term
 
+  // Selection State
+  const [selectedProjectIds, setSelectedProjectIds] = useState([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // UI State
   const [toasts, setToasts] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ show: false, project: null, docCount: 0 });
@@ -177,11 +181,66 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
       setDocuments(documents.filter(d => d.project_id !== project.id));
       addToast('Proyecto eliminado exitosamente', 'success');
       setDeleteModal({ show: false, project: null, docCount: 0 });
+      // Remove from selection
+      setSelectedProjectIds(prev => prev.filter(id => id !== project.id));
       // Notify parent to update stats
       if (onStatsChange) onStatsChange();
     } catch (err) {
       addToast('Error al eliminar: ' + (err.response?.data?.error || err.message), 'error');
       setDeleteModal({ show: false, project: null, docCount: 0 });
+    }
+  };
+
+  // Bulk Actions
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedProjectIds(filteredProjects.map(p => p.id));
+    } else {
+      setSelectedProjectIds([]);
+    }
+  };
+
+  const handleSelectProject = (projectId) => {
+    setSelectedProjectIds(prev => {
+      if (prev.includes(projectId)) return prev.filter(id => id !== projectId);
+      return [...prev, projectId];
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProjectIds.length === 0) return;
+
+    // Calculate total affected documents
+    let totalDocsAffected = 0;
+    selectedProjectIds.forEach(pid => {
+      totalDocsAffected += getDocumentCount(pid);
+    });
+
+    const confirmMsg = totalDocsAffected > 0
+      ? `⚠️ ADVERTENCIA: Entre los ${selectedProjectIds.length} proyectos seleccionados hay un total de ${totalDocsAffected} documentos que también serán ELIMINADOS PERMANENTEMENTE.\n\n¿Estás seguro de continuar?`
+      : `¿Estás seguro de que deseas eliminar ${selectedProjectIds.length} proyecto(s)?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsDeleting(true);
+    try {
+      await Promise.all(selectedProjectIds.map(id => projectsAPI.delete(id)));
+
+      // Update UI
+      setProjects(prev => prev.filter(p => !selectedProjectIds.includes(p.id)));
+      // Also remove local docs for correct counts if we stay on page (though we might want to reload docs too)
+      setDocuments(prev => prev.filter(d => !selectedProjectIds.includes(d.project_id)));
+
+      setSelectedProjectIds([]);
+      addToast(`${selectedProjectIds.length} proyectos eliminados`, 'success');
+      if (onStatsChange) onStatsChange();
+    } catch (err) {
+      console.error(err);
+      addToast('Error al eliminar algunos proyectos', 'error');
+      // Reload to ensure consistent state
+      loadData();
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -207,9 +266,13 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
           <p>{environmentId ? `Viendo proyectos asociados al entorno ID: ${environmentId}` : 'Organiza tus documentos por código de proyecto'}</p>
         </div>
 
-        <button className="btn btn-primary" onClick={() => navigate(environmentId ? `/crear?environment_id=${environmentId}` : '/crear?type=project')}>
-          <Plus size={18} /> Nuevo Proyecto
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+
+
+          <button className="btn btn-primary" onClick={() => navigate(environmentId ? `/crear?environment_id=${environmentId}` : '/crear?type=project')}>
+            <Plus size={18} /> Nuevo Proyecto
+          </button>
+        </div>
       </div>
 
       <div className="filters">
@@ -221,6 +284,27 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+
+        {/* Bulk Actions Row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '10px', minHeight: '30px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              type="checkbox"
+              id="selectAllProjects"
+              checked={filteredProjects.length > 0 && selectedProjectIds.length === filteredProjects.length}
+              onChange={handleSelectAll}
+              style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+              disabled={filteredProjects.length === 0}
+            />
+            <label htmlFor="selectAllProjects" style={{ cursor: 'pointer', fontSize: '0.9rem', minWidth: 'max-content' }}>Seleccionar Todos</label>
+          </div>
+
+          {selectedProjectIds.length > 0 && (
+            <button className="btn btn-danger btn-small" onClick={handleBulkDelete} disabled={isDeleting}>
+              <Trash2 size={14} /> ({selectedProjectIds.length})
+            </button>
+          )}
         </div>
 
         <div className="filter-group">
@@ -254,7 +338,15 @@ function ProjectsPage({ embedded = false, onStatsChange }) {
       ) : (
         <div className="projects-grid">
           {filteredProjects.map(project => (
-            <div key={project.id} className="project-item" style={{ borderLeftColor: project.color }}>
+            <div key={project.id} className="project-item" style={{ borderLeftColor: project.color, position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                <input
+                  type="checkbox"
+                  checked={selectedProjectIds.includes(project.id)}
+                  onChange={() => handleSelectProject(project.id)}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+              </div>
               {editingId === project.id ? (
                 // MODO EDICIÓN
                 <div className="project-edit">

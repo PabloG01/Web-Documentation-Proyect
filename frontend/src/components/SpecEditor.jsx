@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import '../styles/SpecEditor.css';
 import { FileText, Settings, Box, Upload, Code, Trash2, RefreshCw, Check, X, Lightbulb } from 'lucide-react';
 
@@ -43,6 +43,14 @@ const COMMON_PARAM_SUGGESTIONS = {
     token: { type: 'string', description: 'Token de autenticación' },
     created_at: { type: 'string', format: 'date-time', description: 'Fecha de creación' },
     updated_at: { type: 'string', format: 'date-time', description: 'Fecha de actualización' }
+};
+
+const methodColors = {
+    GET: '#22c55e',
+    POST: '#3b82f6',
+    PUT: '#f59e0b',
+    PATCH: '#8b5cf6',
+    DELETE: '#ef4444'
 };
 
 /**
@@ -212,15 +220,27 @@ function SpecEditor({
     // Update body field
     const updateBodyField = (oldName, field, value) => {
         setEditedEndpoint(prev => {
+            // Deep copy the structure to avoid mutation
             const body = { ...prev.requestBody };
-            const schema = body.content['application/json'].schema;
+            const content = { ...body.content };
+            const appJson = { ...content['application/json'] };
+            const schema = { ...appJson.schema };
             const properties = { ...schema.properties };
 
             if (field === 'name') {
-                // Rename field
+                // Rename field - Safety check
                 const fieldData = properties[oldName];
-                delete properties[oldName];
-                properties[value] = fieldData;
+                if (!fieldData) return prev; // Avoid crash if field doesn't exist
+
+                // Reconstruct properties to preserve order
+                const newProperties = {};
+                Object.keys(properties).forEach(key => {
+                    if (key === oldName) {
+                        newProperties[value] = fieldData;
+                    } else {
+                        newProperties[key] = properties[key];
+                    }
+                });
 
                 // Update required array if needed
                 if (schema.required) {
@@ -230,24 +250,36 @@ function SpecEditor({
                 // Auto-fill from suggestions
                 if (COMMON_PARAM_SUGGESTIONS[value]) {
                     const suggestion = COMMON_PARAM_SUGGESTIONS[value];
-                    properties[value] = {
-                        ...properties[value],
+                    newProperties[value] = {
+                        ...newProperties[value],
                         type: suggestion.type,
                         format: suggestion.format,
                         description: suggestion.description
                     };
                 }
-            } else if (field === 'type') {
-                properties[oldName] = { ...properties[oldName], type: value };
-            } else if (field === 'description') {
-                properties[oldName] = { ...properties[oldName], description: value };
-            } else if (field === 'format') {
-                properties[oldName] = { ...properties[oldName], format: value || undefined };
-            } else if (field === 'example') {
-                properties[oldName] = { ...properties[oldName], example: value };
+
+                schema.properties = newProperties;
+            } else {
+                // For non-rename operations, we modify the properties object safely
+                if (properties[oldName]) {
+                    if (field === 'type') {
+                        properties[oldName] = { ...properties[oldName], type: value };
+                    } else if (field === 'description') {
+                        properties[oldName] = { ...properties[oldName], description: value };
+                    } else if (field === 'format') {
+                        properties[oldName] = { ...properties[oldName], format: value || undefined };
+                    } else if (field === 'example') {
+                        properties[oldName] = { ...properties[oldName], example: value };
+                    }
+                }
+                schema.properties = properties;
             }
 
-            schema.properties = properties;
+            // Reassemble the object tree
+            appJson.schema = schema;
+            content['application/json'] = appJson;
+            body.content = content;
+
             return { ...prev, requestBody: body };
         });
     };
@@ -292,13 +324,18 @@ function SpecEditor({
         onSave(editedEndpoint);
     };
 
-    const methodColors = {
-        GET: '#22c55e',
-        POST: '#3b82f6',
-        PUT: '#f59e0b',
-        PATCH: '#8b5cf6',
-        DELETE: '#ef4444'
-    };
+
+
+    const jsonPreview = useMemo(() => {
+        return JSON.stringify(
+            Object.fromEntries(
+                Object.entries(editedEndpoint.requestBody?.content?.['application/json']?.schema?.properties || {})
+                    .map(([key, val]) => [key, val.example || getExampleValue(val.type, val.format)])
+            ),
+            null,
+            2
+        );
+    }, [editedEndpoint.requestBody]);
 
     return (
         <div className="spec-editor-overlay">
@@ -365,11 +402,11 @@ function SpecEditor({
                                         onChange={(e) => updateField('method', e.target.value)}
                                         style={{ backgroundColor: methodColors[editedEndpoint.method], color: 'white' }}
                                     >
-                                        <option value="GET">GET</option>
-                                        <option value="POST">POST</option>
-                                        <option value="PUT">PUT</option>
-                                        <option value="PATCH">PATCH</option>
-                                        <option value="DELETE">DELETE</option>
+                                        <option value="GET" style={{ backgroundColor: methodColors.GET, color: 'white' }}>GET</option>
+                                        <option value="POST" style={{ backgroundColor: methodColors.POST, color: 'white' }}>POST</option>
+                                        <option value="PUT" style={{ backgroundColor: methodColors.PUT, color: 'white' }}>PUT</option>
+                                        <option value="PATCH" style={{ backgroundColor: methodColors.PATCH, color: 'white' }}>PATCH</option>
+                                        <option value="DELETE" style={{ backgroundColor: methodColors.DELETE, color: 'white' }}>DELETE</option>
                                     </select>
                                 </div>
                                 <div className="form-group flex-2">
@@ -567,8 +604,8 @@ function SpecEditor({
                                             <span className="th-actions"></span>
                                         </div>
 
-                                        {Object.entries(editedEndpoint.requestBody.content?.['application/json']?.schema?.properties || {}).map(([fieldName, fieldData]) => (
-                                            <div key={fieldName} className="body-field-row">
+                                        {Object.entries(editedEndpoint.requestBody.content?.['application/json']?.schema?.properties || {}).map(([fieldName, fieldData], index) => (
+                                            <div key={index} className="body-field-row">
                                                 <input
                                                     type="text"
                                                     value={fieldName}
@@ -576,9 +613,10 @@ function SpecEditor({
                                                     placeholder="campo"
                                                     className="field-name"
                                                     list="body-field-suggestions"
+                                                    autoFocus={document.activeElement?.value === fieldName}
                                                 />
                                                 <select
-                                                    value={fieldData.type}
+                                                    value={fieldData?.type || 'string'}
                                                     onChange={(e) => updateBodyField(fieldName, 'type', e.target.value)}
                                                     className="field-type"
                                                 >
@@ -587,7 +625,7 @@ function SpecEditor({
                                                     ))}
                                                 </select>
                                                 <select
-                                                    value={fieldData.format || ''}
+                                                    value={fieldData?.format || ''}
                                                     onChange={(e) => updateBodyField(fieldName, 'format', e.target.value)}
                                                     className="field-format"
                                                 >
@@ -625,14 +663,14 @@ function SpecEditor({
                                                 </label>
                                                 <input
                                                     type="text"
-                                                    value={fieldData.description || ''}
+                                                    value={fieldData?.description || ''}
                                                     onChange={(e) => updateBodyField(fieldName, 'description', e.target.value)}
                                                     placeholder="Descripción"
                                                     className="field-desc"
                                                 />
                                                 <input
                                                     type="text"
-                                                    value={fieldData.example || ''}
+                                                    value={fieldData?.example || ''}
                                                     onChange={(e) => updateBodyField(fieldName, 'example', e.target.value)}
                                                     placeholder="ej: valor"
                                                     className="field-example"
@@ -692,14 +730,9 @@ function SpecEditor({
                                             <span><Code size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> Vista previa JSON</span>
                                         </div>
                                         <pre className="json-code">
-                                            {JSON.stringify(
-                                                Object.fromEntries(
-                                                    Object.entries(editedEndpoint.requestBody?.content?.['application/json']?.schema?.properties || {})
-                                                        .map(([key, val]) => [key, val.example || getExampleValue(val.type, val.format)])
-                                                ),
-                                                null,
-                                                2
-                                            )}
+                                            <pre className="json-code">
+                                                {jsonPreview}
+                                            </pre>
                                         </pre>
                                     </div>
                                 </div>

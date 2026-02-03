@@ -40,6 +40,10 @@ function ReposPage({ embedded = false, onStatsChange }) {
     const [previewFile, setPreviewFile] = useState(null);
     const [previewEndpoints, setPreviewEndpoints] = useState([]);
 
+    // Selection State
+    const [selectedReposIds, setSelectedReposIds] = useState([]);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const loadRepos = useCallback(async () => {
         try {
             setLoading(true);
@@ -152,10 +156,56 @@ function ReposPage({ embedded = false, onStatsChange }) {
         try {
             await reposAPI.delete(repoId);
             loadRepos();
+            setSelectedReposIds(prev => prev.filter(id => id !== repoId));
             if (selectedRepo?.id === repoId) setSelectedRepo(null);
             if (onStatsChange) onStatsChange();
         } catch (err) {
             alert('Error: ' + (err.response?.data?.error || err.message));
+        }
+    };
+
+    // Bulk Actions
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedReposIds(repos.map(r => r.id));
+        } else {
+            setSelectedReposIds([]);
+        }
+    };
+
+    const handleSelectRepo = (repoId) => {
+        setSelectedReposIds(prev => {
+            if (prev.includes(repoId)) {
+                return prev.filter(id => id !== repoId);
+            } else {
+                return [...prev, repoId];
+            }
+        });
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedReposIds.length === 0) return;
+
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar ${selectedReposIds.length} repositorio(s)?`)) return;
+
+        setIsDeleting(true);
+        try {
+            // Execute deletes in parallel
+            await Promise.all(selectedReposIds.map(id => reposAPI.delete(id)));
+
+            // Updates
+            loadRepos();
+            setSelectedReposIds([]);
+            if (selectedRepo && selectedReposIds.includes(selectedRepo.id)) {
+                setSelectedRepo(null);
+            }
+            if (onStatsChange) onStatsChange();
+        } catch (err) {
+            console.error(err);
+            alert('Error al eliminar algunos repositorios. Revisa la consola o recarga la página.');
+            loadRepos(); // Reload to see what remains
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -229,18 +279,51 @@ function ReposPage({ embedded = false, onStatsChange }) {
                     <p>Gestiona tus conexiones individuales a repositorios Git</p>
                 </div>
                 <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+
+                    <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                        <Plus size={16} /> Conectar Repositorio
+                    </button>
+                </div>
+            </div>
+
+            {/* Layout Controls */}
+            <div className="filters" style={{ maxWidth: '1200px', margin: '0 auto 20px auto', padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {/* Filters Row */}
+                <div style={{ display: 'flex', gap: '15px', width: '100%' }}>
                     <select
                         className="project-filter-select"
                         value={filterProjectId}
                         onChange={(e) => setFilterProjectId(e.target.value)}
-                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', width: '100%' }}
                     >
                         <option value="">Todos los Proyectos</option>
                         {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
-                    <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-                        <Plus size={16} /> Conectar Repositorio
-                    </button>
+                </div>
+
+                {/* Bulk Actions Row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', minHeight: '30px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                            type="checkbox"
+                            id="selectAllRepos"
+                            checked={repos.length > 0 && selectedReposIds.length === repos.length}
+                            onChange={handleSelectAll}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                            disabled={repos.length === 0}
+                        />
+                        <label htmlFor="selectAllRepos" style={{ cursor: 'pointer', fontSize: '0.9rem', minWidth: 'max-content' }}>Seleccionar Todos</label>
+                    </div>
+
+                    {selectedReposIds.length > 0 && (
+                        <button
+                            className="btn btn-danger btn-small"
+                            onClick={handleBulkDelete}
+                            disabled={isDeleting}
+                        >
+                            <Trash2 size={14} /> ({selectedReposIds.length})
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -263,6 +346,14 @@ function ReposPage({ embedded = false, onStatsChange }) {
                         <div className="repos-grid">
                             {repos.map(repo => (
                                 <div key={repo.id} className={`repo-card ${selectedRepo?.id === repo.id ? 'selected' : ''}`} onClick={() => handleViewRepo(repo)}>
+                                    <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }} onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedReposIds.includes(repo.id)}
+                                            onChange={() => handleSelectRepo(repo.id)}
+                                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                        />
+                                    </div>
                                     <div className="repo-header">
                                         <span className="repo-icon"><Folder size={20} /></span>
                                         <div className="repo-info">

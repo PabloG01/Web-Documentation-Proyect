@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { FileText, Settings, User, BarChart2, ClipboardList, CheckSquare, Calendar, Edit3, Server } from 'lucide-react';
 import '../styles/DocumentCard.css';
 
-function DocumentCard({ document, currentUserId, showAuthor = false }) {
+function DocumentCard({ document, currentUserId, showAuthor = false, children }) {
   // Project info now comes from API via JOIN
   const projectCode = document.project_code || null;
   const projectColor = '#6366f1'; // Could be added to API response if needed
@@ -32,7 +32,8 @@ function DocumentCard({ document, currentUserId, showAuthor = false }) {
   };
 
   return (
-    <div className="document-card">
+    <div className="document-card" style={{ position: 'relative' }}>
+      {children}
       <div className="card-header">
         <span className="card-icon">{icons[document.type] || <FileText size={24} />}</span>
         <div className="card-badges">

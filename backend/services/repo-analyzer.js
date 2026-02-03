@@ -8,6 +8,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 const { parseSwaggerComments, extractSpecPreview } = require('./swagger-parser');
+const { generateEndpointExamples } = require('./parsers/example-generator');
 
 // Framework-specific parsers
 const expressParser = require('./parsers/express-parser');
@@ -81,6 +82,44 @@ const FRAMEWORK_PATTERNS = {
     }
 };
 
+// Optimization: Hoist static constants
+const PRIORITY_DIRS = [
+    'routes', 'api', 'controllers', 'src/routes', 'src/api', 'src/controllers',
+    'app/Http/Controllers', 'app/routes',  // Laravel
+    'src/Controller',  // Symfony
+    'app/api', 'pages/api',  // Next.js
+    'routers', 'endpoints'  // Python
+];
+
+const SKIP_DIRS = ['node_modules', 'vendor', '.git', 'dist', 'build', '__pycache__', '.next'];
+
+const SWAGGER_PATTERN = /@swagger|@openapi|\* @swagger|\* @openapi/gi;
+
+const ROUTE_PATTERNS = [
+    // Match any object calling standard HTTP methods (e.g. app.get, router.post, api.put, etc.)
+    /\w+\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+    /Route::(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+    /fastify\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi
+];
+
+const ERROR_DESCRIPTIONS = {
+    '400': 'Solicitud inválida',
+    '401': 'No autenticado',
+    '403': 'Acceso denegado',
+    '404': 'Recurso no encontrado',
+    '409': 'Conflicto',
+    '500': 'Error interno del servidor'
+};
+
+const ACTION_MAP_GET = (path) => path.includes(':') ? 'Obtener' : 'Listar';
+
+const ACTION_MAP_STATIC = {
+    POST: 'Crear',
+    PUT: 'Actualizar',
+    PATCH: 'Actualizar parcialmente',
+    DELETE: 'Eliminar'
+};
+
 /**
  * Clone a repository to a temporary directory
  */
@@ -142,89 +181,37 @@ async function cloneRepository(repoUrl, branch = 'main') {
 /**
  * Detect the framework used in the repository
  */
+/**
+ * Detect the framework used in the repository
+ */
 async function detectFramework(repoPath) {
-    const detected = {
-        frameworks: [],
-        type: null,
-        primary: null
-    };
+    const detected = { frameworks: [], type: null, primary: null };
 
-    try {
-        // Check package.json for Node.js projects
-        const packageJsonPath = path.join(repoPath, 'package.json');
+    async function checkFile(file, depType, parser = JSON.parse, extractor = (d) => d) {
         try {
-            const packageContent = await fs.readFile(packageJsonPath, 'utf8');
-            const packageJson = JSON.parse(packageContent);
-            const allDeps = {
-                ...packageJson.dependencies,
-                ...packageJson.devDependencies
-            };
+            const content = await fs.readFile(path.join(repoPath, file), 'utf8');
+            const data = parser(content);
+            const allDeps = extractor(data);
 
-            for (const [framework, config] of Object.entries(FRAMEWORK_PATTERNS)) {
-                if (config.packageDeps) {
-                    const found = config.packageDeps.some(dep => allDeps[dep]);
-                    if (found) {
-                        detected.frameworks.push(framework);
-                        detected.type = 'node';
-                    }
-                }
-            }
-        } catch (e) {
-            // No package.json
-        }
-
-        // Check composer.json for PHP projects
-        const composerPath = path.join(repoPath, 'composer.json');
-        try {
-            const composerContent = await fs.readFile(composerPath, 'utf8');
-            const composer = JSON.parse(composerContent);
-            const allDeps = {
-                ...composer.require,
-                ...composer['require-dev']
-            };
-
-            for (const [framework, config] of Object.entries(FRAMEWORK_PATTERNS)) {
-                if (config.composerDeps) {
-                    const found = config.composerDeps.some(dep => allDeps[dep]);
-                    if (found) {
-                        detected.frameworks.push(framework);
-                        detected.type = 'php';
-                    }
-                }
-            }
-        } catch (e) {
-            // No composer.json
-        }
-
-        // Check requirements.txt for Python projects
-        const requirementsPath = path.join(repoPath, 'requirements.txt');
-        try {
-            const requirements = await fs.readFile(requirementsPath, 'utf8');
-
-            for (const [framework, config] of Object.entries(FRAMEWORK_PATTERNS)) {
-                if (config.requirementsDeps) {
-                    const found = config.requirementsDeps.some(dep =>
-                        requirements.toLowerCase().includes(dep.toLowerCase())
+            for (const [fw, config] of Object.entries(FRAMEWORK_PATTERNS)) {
+                if (config[depType]) {
+                    const found = config[depType].some(dep =>
+                        typeof allDeps === 'string' ? allDeps.toLowerCase().includes(dep.toLowerCase()) : allDeps[dep]
                     );
                     if (found) {
-                        detected.frameworks.push(framework);
-                        detected.type = 'python';
+                        detected.frameworks.push(fw);
+                        detected.type = config.type;
                     }
                 }
             }
-        } catch (e) {
-            // No requirements.txt
-        }
-
-        // Set primary framework
-        if (detected.frameworks.length > 0) {
-            detected.primary = detected.frameworks[0];
-        }
-
-    } catch (error) {
-        console.error('Error detecting framework:', error);
+        } catch (e) { }
     }
 
+    await checkFile('package.json', 'packageDeps', JSON.parse, d => ({ ...d.dependencies, ...d.devDependencies }));
+    await checkFile('composer.json', 'composerDeps', JSON.parse, d => ({ ...d.require, ...d['require-dev'] }));
+    await checkFile('requirements.txt', 'requirementsDeps', c => c, c => c);
+
+    if (detected.frameworks.length > 0) detected.primary = detected.frameworks[0];
     return detected;
 }
 
@@ -244,18 +231,6 @@ async function scanForApiFiles(repoPath, framework = null) {
         extensions = [...FILE_PATTERNS.node, ...FILE_PATTERNS.php, ...FILE_PATTERNS.python];
     }
 
-    // Directories to scan (prioritize common API locations)
-    const priorityDirs = [
-        'routes', 'api', 'controllers', 'src/routes', 'src/api', 'src/controllers',
-        'app/Http/Controllers', 'app/routes',  // Laravel
-        'src/Controller',  // Symfony
-        'app/api', 'pages/api',  // Next.js
-        'routers', 'endpoints'  // Python
-    ];
-
-    // Directories to skip
-    const skipDirs = ['node_modules', 'vendor', '.git', 'dist', 'build', '__pycache__', '.next'];
-
     async function scanDir(dirPath, depth = 0) {
         if (depth > 5) return; // Max depth
 
@@ -267,7 +242,7 @@ async function scanForApiFiles(repoPath, framework = null) {
                 const relativePath = path.relative(repoPath, fullPath);
 
                 if (entry.isDirectory()) {
-                    if (!skipDirs.includes(entry.name)) {
+                    if (!SKIP_DIRS.includes(entry.name)) {
                         await scanDir(fullPath, depth + 1);
                     }
                 } else if (entry.isFile()) {
@@ -295,7 +270,7 @@ async function scanForApiFiles(repoPath, framework = null) {
     }
 
     // First scan priority directories
-    for (const dir of priorityDirs) {
+    for (const dir of PRIORITY_DIRS) {
         const dirPath = path.join(repoPath, dir);
         try {
             await fs.access(dirPath);
@@ -326,8 +301,7 @@ function analyzeFileContent(content, framework = null) {
     };
 
     // Check for Swagger/JSDoc comments
-    const swaggerPattern = /@swagger|@openapi|\* @swagger|\* @openapi/gi;
-    const swaggerMatches = content.match(swaggerPattern);
+    const swaggerMatches = content.match(SWAGGER_PATTERN);
     if (swaggerMatches) {
         result.hasSwaggerComments = true;
         result.swaggerBlocks = swaggerMatches.length;
@@ -347,14 +321,8 @@ function analyzeFileContent(content, framework = null) {
 
     // Extract unique endpoints using Set to avoid duplicates
     const seenEndpoints = new Set();
-    const routePatterns = [
-        // Match any object calling standard HTTP methods (e.g. app.get, router.post, api.put, etc.)
-        /\w+\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
-        /Route::(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
-        /fastify\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi
-    ];
 
-    for (const pattern of routePatterns) {
+    for (const pattern of ROUTE_PATTERNS) {
         let match;
         const regex = new RegExp(pattern.source, pattern.flags);
         while ((match = regex.exec(content)) !== null) {
@@ -609,55 +577,36 @@ async function parseWithFrameworkParser(content, filePath, framework) {
     const fileName = path.basename(filePath);
     let parseResult, spec;
 
-    switch (framework) {
-        case 'express': {
-            // Try AST parser first for more accuracy
-            const astResult = astParser.parseWithAST(content, filePath);
+    const PARSERS = {
+        express: { module: expressParser, method: 'parseExpressFile', generator: 'generateOpenApiSpec', fallback: astParser },
+        laravel: { module: laravelParser, method: 'parseLaravelFile', generator: 'generateOpenApiSpec' },
+        symfony: { module: symfonyParser, method: 'parseSymfonyFile', generator: 'generateOpenApiSpec' },
+        nextjs: { module: nextjsParser, method: 'parseNextjsFile', generator: 'generateOpenApiSpec' },
+        fastify: { module: nodejsParser, method: 'parseNodejsFile', generator: 'generateOpenApiSpec' },
+        koa: { module: nodejsParser, method: 'parseNodejsFile', generator: 'generateOpenApiSpec' },
+        hapi: { module: nodejsParser, method: 'parseNodejsFile', generator: 'generateOpenApiSpec' }
+    };
+
+    const config = PARSERS[framework];
+    if (config) {
+        // Try fallback (AST) first for Express
+        if (config.fallback) {
+            const astResult = config.fallback.parseWithAST(content, filePath);
             if (astResult && astResult.endpoints.length > 0) {
                 parseResult = astResult;
-                spec = astParser.generateOpenApiSpec(astResult, fileName);
-            } else {
-                // Fallback to regex parser
-                parseResult = expressParser.parseExpressFile(content, filePath);
-                if (parseResult.endpoints.length > 0) {
-                    spec = expressParser.generateOpenApiSpec(parseResult, fileName);
-                }
+                spec = config.fallback.generateOpenApiSpec(astResult, fileName);
             }
-            break;
         }
 
-        case 'laravel':
-            parseResult = laravelParser.parseLaravelFile(content, filePath);
+        // Use configured parser if fallback didn't work
+        if (!spec) {
+            parseResult = config.module[config.method](content, filePath);
             if (parseResult.endpoints.length > 0) {
-                spec = laravelParser.generateOpenApiSpec(parseResult, fileName);
+                spec = config.module[config.generator](parseResult, fileName);
             }
-            break;
-
-        case 'symfony':
-            parseResult = symfonyParser.parseSymfonyFile(content, filePath);
-            if (parseResult.endpoints.length > 0) {
-                spec = symfonyParser.generateOpenApiSpec(parseResult, fileName);
-            }
-            break;
-
-        case 'nextjs':
-            parseResult = nextjsParser.parseNextjsFile(content, filePath);
-            if (parseResult.endpoints.length > 0) {
-                spec = nextjsParser.generateOpenApiSpec(parseResult, fileName);
-            }
-            break;
-
-        case 'fastify':
-        case 'koa':
-        case 'hapi':
-            parseResult = nodejsParser.parseNodejsFile(content, filePath);
-            if (parseResult.endpoints.length > 0) {
-                spec = nodejsParser.generateOpenApiSpec(parseResult, fileName);
-            }
-            break;
-
-        default:
-            return null;
+        }
+    } else {
+        return null;
     }
 
     if (spec && Object.keys(spec.paths || {}).length > 0) {
@@ -711,9 +660,6 @@ async function parseWithFrameworkParser(content, filePath, framework) {
  * Generate an inferred OpenAPI spec from detected endpoints
  */
 function generateInferredSpec(endpoints, fileName) {
-    // Import example generator
-    const { generateEndpointExamples } = require('./parsers/example-generator');
-
     const paths = {};
 
     for (const endpoint of endpoints) {
@@ -767,17 +713,13 @@ function generateInferredSpec(endpoints, fileName) {
 
         // Extract resource name for better summary
         const resourceName = extractResourceFromPath(endpoint.path);
-        const actionMap = {
-            GET: endpoint.path.includes(':') ? 'Obtener' : 'Listar',
-            POST: 'Crear',
-            PUT: 'Actualizar',
-            PATCH: 'Actualizar parcialmente',
-            DELETE: 'Eliminar'
-        };
+
+        const actionLabel = ACTION_MAP_STATIC[methodUpper] ||
+            (methodUpper === 'GET' ? ACTION_MAP_GET(endpoint.path) : methodUpper);
 
         paths[pathKey][methodLower] = {
-            summary: `${actionMap[methodUpper] || methodUpper} ${resourceName}`,
-            description: `Endpoint para ${(actionMap[methodUpper] || methodUpper).toLowerCase()} ${resourceName}`,
+            summary: `${actionLabel} ${resourceName}`,
+            description: `Endpoint para ${actionLabel.toLowerCase()} ${resourceName}`,
             tags: [capitalizeFirst(resourceName)],
             parameters: extractPathParams(endpoint.path),
             responses
@@ -834,15 +776,7 @@ function inferServersFromFileName(fileName) {
  * Get error description by code
  */
 function getErrorDescription(code) {
-    const descriptions = {
-        '400': 'Solicitud inválida',
-        '401': 'No autenticado',
-        '403': 'Acceso denegado',
-        '404': 'Recurso no encontrado',
-        '409': 'Conflicto',
-        '500': 'Error interno del servidor'
-    };
-    return descriptions[code] || `Error HTTP ${code}`;
+    return ERROR_DESCRIPTIONS[code] || `Error HTTP ${code}`;
 }
 
 /**
@@ -900,141 +834,54 @@ function calculateQualityScore(spec, detailed = false) {
     const suggestions = [];
     const paths = spec.paths || {};
     const pathCount = Object.keys(paths).length;
+    let counts = { desc: 0, params: 0, resp: 0, ex: 0, ops: 0 };
 
-    // Routes (20 points)
-    if (pathCount > 0) {
+    if (pathCount === 0) suggestions.push('Añadir endpoints a la especificación');
+    else {
         breakdown.routes.score = 20;
-    } else {
-        suggestions.push('Añadir endpoints a la especificación');
-    }
+        Object.values(paths).forEach(pathItem => {
+            ['get', 'post', 'put', 'delete', 'patch'].forEach(method => {
+                const op = pathItem[method];
+                if (!op) return;
+                counts.ops++;
+                if (op.description && !op.description.includes('[TODO]')) counts.desc++;
+                else if (op.summary && !op.summary.includes('[TODO]')) counts.desc++;
 
-    if (pathCount > 0) {
-        let descriptionsCount = 0;
-        let parametersCount = 0;
-        let responsesCount = 0;
-        let examplesCount = 0;
-        let totalOperations = 0;
-        let missingDescriptions = 0;
-        let missingResponses = 0;
+                if (op.parameters?.some(p => p.description && !p.description.includes('[TODO]'))) counts.params++;
+                if (Object.values(op.responses || {}).some(r => r.content?.['application/json']?.schema)) counts.resp++;
+                if (Object.values(op.responses || {}).some(r => r.content?.['application/json']?.example)) counts.ex++;
+            });
+        });
 
-        for (const pathKey of Object.keys(paths)) {
-            const pathItem = paths[pathKey];
-            for (const method of ['get', 'post', 'put', 'delete', 'patch']) {
-                if (pathItem[method]) {
-                    totalOperations++;
-                    const operation = pathItem[method];
+        if (counts.ops > 0) {
+            breakdown.descriptions.score = Math.round((counts.desc / counts.ops) * 20);
+            breakdown.parameters.score = Math.round((counts.params / counts.ops) * 15);
+            breakdown.responses.score = Math.round((counts.resp / counts.ops) * 15);
+            breakdown.examples.score = Math.round((counts.ex / counts.ops) * 10);
 
-                    // Has description (not TODO)
-                    if (operation.description && !operation.description.includes('[TODO]')) {
-                        descriptionsCount++;
-                    } else if (operation.summary && !operation.summary.includes('[TODO]')) {
-                        descriptionsCount++;
-                    } else {
-                        missingDescriptions++;
-                    }
-
-                    // Has parameters documented
-                    if (operation.parameters && operation.parameters.length > 0) {
-                        const documented = operation.parameters.filter(p =>
-                            p.description && !p.description.includes('[TODO]')
-                        );
-                        if (documented.length > 0) {
-                            parametersCount++;
-                        }
-                    }
-
-                    // Has response schemas
-                    if (operation.responses) {
-                        const hasSchema = Object.values(operation.responses).some(r =>
-                            r.content?.['application/json']?.schema
-                        );
-                        if (hasSchema) {
-                            responsesCount++;
-                        } else {
-                            missingResponses++;
-                        }
-                    }
-
-                    // Has examples
-                    if (operation.responses) {
-                        const hasExample = Object.values(operation.responses).some(r =>
-                            r.content?.['application/json']?.example ||
-                            r.content?.['application/json']?.examples
-                        );
-                        if (hasExample) {
-                            examplesCount++;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (totalOperations > 0) {
-            // Descriptions (20 points)
-            breakdown.descriptions.score = Math.round((descriptionsCount / totalOperations) * 20);
-            if (missingDescriptions > 0) {
-                suggestions.push(`Añadir descripción a ${missingDescriptions} endpoint(s)`);
-            }
-
-            // Parameters (15 points)
-            breakdown.parameters.score = Math.round((parametersCount / totalOperations) * 15);
-
-            // Responses (15 points)
-            breakdown.responses.score = Math.round((responsesCount / totalOperations) * 15);
-            if (missingResponses > 0) {
-                suggestions.push(`Documentar respuestas en ${missingResponses} endpoint(s)`);
-            }
-
-            // Examples (10 points)
-            breakdown.examples.score = Math.round((examplesCount / totalOperations) * 10);
-            if (examplesCount < totalOperations) {
-                suggestions.push('Incluir ejemplos de request/response');
-            }
+            if (counts.desc < counts.ops) suggestions.push(`Añadir descripción a ${counts.ops - counts.desc} endpoint(s)`);
+            if (counts.resp < counts.ops) suggestions.push(`Documentar respuestas en ${counts.ops - counts.resp} endpoint(s)`);
+            if (counts.ex < counts.ops) suggestions.push('Incluir ejemplos de request/response');
         }
     }
 
-    // Schemas (10 points)
-    if (spec.components?.schemas && Object.keys(spec.components.schemas).length > 0) {
-        breakdown.schemas.score = 10;
-    } else {
-        suggestions.push('Definir schemas reutilizables en components');
-    }
+    if (spec.components?.schemas && Object.keys(spec.components.schemas).length > 0) breakdown.schemas.score = 10;
+    else suggestions.push('Definir schemas reutilizables en components');
 
-    // Info complete (10 points)
     if (spec.info) {
         let infoScore = 0;
         if (spec.info.title && !spec.info.title.includes('[TODO]')) infoScore += 3;
         if (spec.info.description && !spec.info.description.includes('[TODO]')) infoScore += 4;
         if (spec.info.version) infoScore += 3;
         breakdown.info.score = infoScore;
-
-        if (infoScore < 10) {
-            suggestions.push('Completar información de la API (título, descripción, versión)');
-        }
+        if (infoScore < 10) suggestions.push('Completar información de la API');
     }
 
-    // Calculate total
     let totalScore = 0;
-    let totalMax = 0;
-    for (const key of Object.keys(breakdown)) {
-        totalScore += breakdown[key].score;
-        totalMax += breakdown[key].max;
-        breakdown[key].percentage = Math.round((breakdown[key].score / breakdown[key].max) * 100);
-    }
+    Object.values(breakdown).forEach(b => { totalScore += b.score; b.percentage = Math.round((b.score / b.max) * 100); });
+    const finalScore = Math.round((totalScore / 100) * 100);
 
-    const finalScore = Math.round((totalScore / totalMax) * 100);
-
-    // Return detailed or simple score
-    if (detailed) {
-        return {
-            total: finalScore,
-            breakdown,
-            suggestions: suggestions.slice(0, 5), // Max 5 suggestions
-            level: getQualityLevel(finalScore)
-        };
-    }
-
-    return finalScore;
+    return detailed ? { total: finalScore, breakdown, suggestions: suggestions.slice(0, 5), level: getQualityLevel(finalScore) } : finalScore;
 }
 
 /**

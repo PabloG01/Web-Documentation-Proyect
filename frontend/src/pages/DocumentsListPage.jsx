@@ -37,6 +37,11 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
   const [toasts, setToasts] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ show: false, spec: null });
 
+  // Selection State
+  const [selectedDocIds, setSelectedDocIds] = useState([]);
+  const [selectedSpecIds, setSelectedSpecIds] = useState([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Toast helper
   const addToast = (message, type = 'info') => {
     const id = Date.now();
@@ -177,9 +182,86 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
       // Notify parent to update stats
       if (onStatsChange) onStatsChange();
       setDeleteModal({ show: false, spec: null });
+      // Remove from selection if it was selected
+      setSelectedSpecIds(prev => prev.filter(id => id !== spec.id));
     } catch (err) {
       addToast('Error al eliminar: ' + (err.response?.data?.error || err.message), 'error');
       setDeleteModal({ show: false, spec: null });
+    }
+  };
+
+  // Bulk Actions Handlers
+  const handleSelectAllDocs = (e) => {
+    if (e.target.checked) {
+      setSelectedDocIds(filteredDocuments.map(d => d.id));
+    } else {
+      setSelectedDocIds([]);
+    }
+  };
+
+  const handleSelectDoc = (docId) => {
+    setSelectedDocIds(prev => {
+      if (prev.includes(docId)) return prev.filter(id => id !== docId);
+      return [...prev, docId];
+    });
+  };
+
+  const handleSelectAllSpecs = (e) => {
+    if (e.target.checked) {
+      setSelectedSpecIds(filteredSpecs.map(s => s.id));
+    } else {
+      setSelectedSpecIds([]);
+    }
+  };
+
+  const handleSelectSpec = (specId) => {
+    setSelectedSpecIds(prev => {
+      if (prev.includes(specId)) return prev.filter(id => id !== specId);
+      return [...prev, specId];
+    });
+  };
+
+  const handleBulkDeleteDocs = async () => {
+    if (selectedDocIds.length === 0) return;
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar ${selectedDocIds.length} documento(s)?`)) return;
+
+    setIsDeleting(true);
+    try {
+      await Promise.all(selectedDocIds.map(id => documentsAPI.delete(id)));
+
+      // Cleanup
+      loadDocuments();
+      setSelectedDocIds([]);
+      addToast(`${selectedDocIds.length} documentos eliminados`, 'success');
+      if (onStatsChange) onStatsChange();
+    } catch (err) {
+      console.error(err);
+      addToast('Error al eliminar algunos documentos', 'error');
+      loadDocuments();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteSpecs = async () => {
+    if (selectedSpecIds.length === 0) return;
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar ${selectedSpecIds.length} API spec(s)?`)) return;
+
+    setIsDeleting(true);
+    try {
+      await Promise.all(selectedSpecIds.map(id => apiSpecsAPI.delete(id)));
+
+      // Cleanup
+      loadApiSpecs();
+      setSelectedSpecIds([]);
+      addToast(`${selectedSpecIds.length} specs eliminadas`, 'success');
+      if (onStatsChange) onStatsChange();
+    } catch (err) {
+      console.error(err);
+      addToast('Error al eliminar algunas specs', 'error');
+      loadApiSpecs();
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -242,14 +324,16 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
           />
         </div>
 
-        <div className="filter-group">
-          <div className="type-filter">
+        {/* Filters Row */}
+        <div style={{ display: 'flex', gap: '15px', width: '100%' }}>
+          <div className="type-filter" style={{ flex: 1 }}>
             <select
               value={filterProject}
               onChange={(e) => {
                 setFilterProject(e.target.value);
                 setCurrentPage(1);
               }}
+              style={{ width: '100%' }}
             >
               <option value="todos">Todos los proyectos</option>
               {projects.map(project => (
@@ -262,8 +346,8 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
           </div>
 
           {contentType === 'documents' && (
-            <div className="type-filter">
-              <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+            <div className="type-filter" style={{ flex: 1 }}>
+              <select value={filterType} onChange={(e) => setFilterType(e.target.value)} style={{ width: '100%' }}>
                 {documentTypes.map(type => (
                   <option key={type.value} value={type.value}>
                     {type.label}
@@ -271,6 +355,50 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
                 ))}
               </select>
             </div>
+          )}
+        </div>
+
+        {/* Bulk Actions Row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '10px', minHeight: '30px' }}>
+          {/* Select All Checkbox for Docs */}
+          {contentType === 'documents' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="checkbox"
+                id="selectAllDocs"
+                checked={filteredDocuments.length > 0 && selectedDocIds.length === filteredDocuments.length}
+                onChange={handleSelectAllDocs}
+                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                disabled={filteredDocuments.length === 0}
+              />
+              <label htmlFor="selectAllDocs" style={{ cursor: 'pointer', fontSize: '0.9rem', minWidth: 'max-content' }}>Seleccionar Todos</label>
+            </div>
+          )}
+          {/* Select All Checkbox for Specs */}
+          {contentType === 'api-specs' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="checkbox"
+                id="selectAllSpecs"
+                checked={filteredSpecs.length > 0 && selectedSpecIds.length === filteredSpecs.length}
+                onChange={handleSelectAllSpecs}
+                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                disabled={filteredSpecs.length === 0}
+              />
+              <label htmlFor="selectAllSpecs" style={{ cursor: 'pointer', fontSize: '0.9rem', minWidth: 'max-content' }}>Seleccionar Todos</label>
+            </div>
+          )}
+
+          {/* Bulk Actions Button */}
+          {contentType === 'documents' && selectedDocIds.length > 0 && (
+            <button className="btn btn-danger btn-small" onClick={handleBulkDeleteDocs} disabled={isDeleting}>
+              <Trash2 size={14} /> ({selectedDocIds.length})
+            </button>
+          )}
+          {contentType === 'api-specs' && selectedSpecIds.length > 0 && (
+            <button className="btn btn-danger btn-small" onClick={handleBulkDeleteSpecs} disabled={isDeleting}>
+              <Trash2 size={14} /> ({selectedSpecIds.length})
+            </button>
           )}
         </div>
       </div>
@@ -303,7 +431,19 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
                   document={doc}
                   currentUserId={user?.id}
                   showAuthor={viewMode === 'all'}
-                />
+                >
+                  <div
+                    style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 20, cursor: 'pointer' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedDocIds.includes(doc.id)}
+                      onChange={() => handleSelectDoc(doc.id)}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--primary-color)' }}
+                    />
+                  </div>
+                </DocumentCard>
               ))}
             </div>
 
@@ -326,7 +466,18 @@ function DocumentsListPage({ embedded = false, onStatsChange }) {
         ) : (
           <div className="specs-grid">
             {filteredSpecs.map(spec => (
-              <div key={spec.id} className="spec-card">
+              <div key={spec.id} className="spec-card" style={{ position: 'relative' }}>
+                <div
+                  style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 20, cursor: 'pointer' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedSpecIds.includes(spec.id)}
+                    onChange={() => handleSelectSpec(spec.id)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--primary-color)' }}
+                  />
+                </div>
                 <div className="spec-card-header">
                   <span className="spec-icon"><Code size={20} /></span>
                   {spec.project_code && (

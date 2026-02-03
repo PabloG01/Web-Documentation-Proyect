@@ -15,6 +15,10 @@ function ApiKeysPage() {
     const [copiedId, setCopiedId] = useState(null);
     const [usageModal, setUsageModal] = useState({ show: false, keyId: null, stats: null, loading: false });
 
+    // Selection State
+    const [selectedKeyIds, setSelectedKeyIds] = useState([]);
+    const [isProcessing, setIsProcessing] = useState(false);
+
     // Ref for socket to keep connection persistent
     const socketRef = useRef(null);
     // Ref to track usage usageModal.keyId without triggering re-effects
@@ -142,9 +146,66 @@ function ApiKeysPage() {
         try {
             await apiKeysAPI.deletePermanently(id);
             loadKeys();
+            // Deselect if selected
+            setSelectedKeyIds(prev => prev.filter(kId => kId !== id));
         } catch (err) {
             console.error('Error deleting key:', err);
             alert('Error eliminando API Key');
+        }
+    };
+
+    // Bulk Actions
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedKeyIds(keys.map(k => k.id));
+        } else {
+            setSelectedKeyIds([]);
+        }
+    };
+
+    const handleSelectKey = (keyId) => {
+        setSelectedKeyIds(prev => {
+            if (prev.includes(keyId)) return prev.filter(id => id !== keyId);
+            return [...prev, keyId];
+        });
+    };
+
+    const handleBulkRevoke = async () => {
+        if (selectedKeyIds.length === 0) return;
+        if (!window.confirm(`¿Seguro que quieres REVOCAR ${selectedKeyIds.length} API Key(s)? Dejarán de funcionar.`)) return;
+
+        setIsProcessing(true);
+        try {
+            await Promise.all(selectedKeyIds.map(id => apiKeysAPI.revoke(id)));
+            loadKeys();
+            alert(`${selectedKeyIds.length} keys revocadas correctamente.`);
+            // Keep selection to allow deleting them? Or clear? Let's clear.
+            setSelectedKeyIds([]);
+        } catch (err) {
+            console.error(err);
+            alert('Error al revocar algunas keys');
+            loadKeys();
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedKeyIds.length === 0) return;
+        if (!window.confirm(`¿Seguro que quieres ELIMINAR PERMANENTEMENTE ${selectedKeyIds.length} API Key(s)? Accion irreversible.`)) return;
+
+        setIsProcessing(true);
+        try {
+            await Promise.all(selectedKeyIds.map(id => apiKeysAPI.deletePermanently(id)));
+            loadKeys();
+            setSelectedKeyIds([]);
+            alert(`${selectedKeyIds.length} keys eliminadas correctamente.`);
+        } catch (err) {
+            console.error(err);
+            alert('Error al eliminar algunas keys');
+            loadKeys();
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -220,441 +281,489 @@ function ApiKeysPage() {
                     <p>Genera keys para acceso M2M (Machine-to-Machine)</p>
                 </div>
                 {!showCreateForm && (
-                    <button className="btn btn-primary" onClick={() => setShowCreateForm(true)}>
-                        <Plus size={18} /> Generar Nueva Key
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <button className="btn btn-primary" onClick={() => setShowCreateForm(true)}>
+                            <Plus size={18} /> Generar Nueva Key
+                        </button>
+                    </div>
                 )}
             </div>
 
+            {!showCreateForm && (
+                <div className="filters" style={{ maxWidth: '1200px', margin: '0 auto 20px auto', padding: '0 20px' }}>
+                    {/* Bulk Actions Row */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', minHeight: '30px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <input
+                                type="checkbox"
+                                id="selectAllKeys"
+                                checked={keys.length > 0 && selectedKeyIds.length === keys.length}
+                                onChange={handleSelectAll}
+                                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                                disabled={keys.length === 0}
+                            />
+                            <label htmlFor="selectAllKeys" style={{ cursor: 'pointer', fontSize: '0.9rem', minWidth: 'max-content' }}>Seleccionar Todos</label>
+                        </div>
+
+                        {selectedKeyIds.length > 0 && (
+                            <div style={{ display: 'flex', gap: '5px' }}>
+                                <button className="btn btn-secondary btn-small" onClick={handleBulkRevoke} disabled={isProcessing}>
+                                    <Lock size={16} /> Revocar ({selectedKeyIds.length})
+                                </button>
+                                <button className="btn btn-danger btn-small" onClick={handleBulkDelete} disabled={isProcessing}>
+                                    <Trash2 size={16} /> Eliminar ({selectedKeyIds.length})
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* NEW KEY ALERT */}
-            {newKey && (
-                <div style={{
-                    background: '#fef3c7',
-                    border: '2px solid #f59e0b',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    marginBottom: '20px'
-                }}>
-                    <h3 style={{ color: '#92400e', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <AlertTriangle size={24} /> API Key Generada
-                    </h3>
-                    <p style={{ color: '#78350f' }}>
-                        <strong>Copia esta key ahora. No se volverá a mostrar.</strong>
-                    </p>
+            {
+                newKey && (
                     <div style={{
-                        background: '#1f2937',
-                        color: '#10b981',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        fontFamily: 'monospace',
-                        fontSize: '14px',
-                        wordBreak: 'break-all',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
+                        background: '#fef3c7',
+                        border: '2px solid #f59e0b',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        marginBottom: '20px'
                     }}>
-                        <code>{newKey.key}</code>
+                        <h3 style={{ color: '#92400e', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <AlertTriangle size={24} /> API Key Generada
+                        </h3>
+                        <p style={{ color: '#78350f' }}>
+                            <strong>Copia esta key ahora. No se volverá a mostrar.</strong>
+                        </p>
+                        <div style={{
+                            background: '#1f2937',
+                            color: '#10b981',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            fontFamily: 'monospace',
+                            fontSize: '14px',
+                            wordBreak: 'break-all',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <code>{newKey.key}</code>
+                            <button
+                                onClick={() => copyToClipboard(newKey.key, 'new')}
+                                style={{
+                                    background: '#10b981',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}
+                            >
+                                {copiedId === 'new' ? (
+                                    <><Check size={16} /> Copiado</>
+                                ) : (
+                                    <><Copy size={16} /> Copiar</>
+                                )}
+                            </button>
+                        </div>
                         <button
-                            onClick={() => copyToClipboard(newKey.key, 'new')}
+                            onClick={() => setNewKey(null)}
                             style={{
-                                background: '#10b981',
+                                marginTop: '12px',
+                                background: '#9ca3af',
                                 color: 'white',
                                 border: 'none',
                                 padding: '8px 16px',
                                 borderRadius: '6px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px'
+                                cursor: 'pointer'
                             }}
                         >
-                            {copiedId === 'new' ? (
-                                <><Check size={16} /> Copiado</>
-                            ) : (
-                                <><Copy size={16} /> Copiar</>
-                            )}
+                            Entendido, ya la copié
                         </button>
                     </div>
-                    <button
-                        onClick={() => setNewKey(null)}
-                        style={{
-                            marginTop: '12px',
-                            background: '#9ca3af',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Entendido, ya la copié
-                    </button>
-                </div>
-            )}
+                )
+            }
 
             {/* CREATE FORM */}
-            {showCreateForm && (
-                <div className="project-edit" style={{ marginBottom: '20px' }}>
-                    <h3>Generar Nueva API Key</h3>
-                    <form onSubmit={handleCreate}>
-                        <div className="edit-row">
-                            <div className="edit-field">
-                                <label>Nombre*</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="Ej: Servidor Producción"
-                                    required
-                                />
+            {
+                showCreateForm && (
+                    <div className="project-edit" style={{ marginBottom: '20px' }}>
+                        <h3>Generar Nueva API Key</h3>
+                        <form onSubmit={handleCreate}>
+                            <div className="edit-row">
+                                <div className="edit-field">
+                                    <label>Nombre*</label>
+                                    <input
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="Ej: Servidor Producción"
+                                        required
+                                    />
+                                </div>
+                                <div className="edit-field">
+                                    <label>Días hasta expiración (opcional)</label>
+                                    <input
+                                        type="number"
+                                        value={formData.expiresInDays}
+                                        onChange={(e) => setFormData({ ...formData, expiresInDays: e.target.value })}
+                                        placeholder="365"
+                                        min="1"
+                                    />
+                                    <small>Dejar vacío para sin expiración</small>
+                                </div>
                             </div>
-                            <div className="edit-field">
-                                <label>Días hasta expiración (opcional)</label>
-                                <input
-                                    type="number"
-                                    value={formData.expiresInDays}
-                                    onChange={(e) => setFormData({ ...formData, expiresInDays: e.target.value })}
-                                    placeholder="365"
-                                    min="1"
-                                />
-                                <small>Dejar vacío para sin expiración</small>
-                            </div>
-                        </div>
 
 
-                        {/* PROJECT SELECTOR - Enhanced Dropdown */}
-                        <div className="edit-row">
-                            <div className="edit-field">
-                                <label style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    fontSize: '0.95rem',
-                                    fontWeight: '600',
-                                    color: '#1f2937'
-                                }}>
-                                    <Target size={20} /> Ámbito de Acceso
-                                </label>
-                                <select
-                                    value={formData.projectId}
-                                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-                                    style={{
-                                        width: '100%',
-                                        padding: '14px 16px',
-                                        fontSize: '1rem',
-                                        borderRadius: '10px',
-                                        border: '2px solid #e5e7eb',
-                                        background: 'linear-gradient(to bottom, #ffffff, #f9fafb)',
-                                        color: '#1f2937',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        fontWeight: '500',
-                                        outline: 'none',
-                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                                    }}
-                                    onFocus={(e) => {
-                                        e.target.style.borderColor = '#6366f1';
-                                        e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
-                                    }}
-                                    onBlur={(e) => {
-                                        e.target.style.borderColor = '#e5e7eb';
-                                        e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                            {/* PROJECT SELECTOR - Enhanced Dropdown */}
+                            <div className="edit-row">
+                                <div className="edit-field">
+                                    <label style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        fontSize: '0.95rem',
+                                        fontWeight: '600',
+                                        color: '#1f2937'
+                                    }}>
+                                        <Target size={20} /> Ámbito de Acceso
+                                    </label>
+                                    <select
+                                        value={formData.projectId}
+                                        onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            fontSize: '1rem',
+                                            borderRadius: '10px',
+                                            border: '2px solid #e5e7eb',
+                                            background: 'linear-gradient(to bottom, #ffffff, #f9fafb)',
+                                            color: '#1f2937',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            fontWeight: '500',
+                                            outline: 'none',
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.style.borderColor = '#6366f1';
+                                            e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.target.style.borderColor = '#e5e7eb';
+                                            e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                                        }}
+                                    >
+                                        <option value="">
+                                            <Globe size={20} /> Acceso Global - Todos los proyectos
+                                        </option>
+                                        {projects.length > 0 && (
+                                            <optgroup label="───────── Proyectos Específicos ─────────">
+                                                {projects.map(proj => (
+                                                    <option key={proj.id} value={proj.id}>
+                                                        <Folder size={20} /> {proj.code ? `[${proj.code}] ` : ''}{proj.name}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        )}
+                                    </select>
+                                    <small style={{
+                                        display: 'block',
+                                        marginTop: '8px',
+                                        color: '#64748b',
+                                        lineHeight: '1.5',
+                                        padding: '8px 12px',
+                                        background: '#f1f5f9',
+                                        borderRadius: '6px',
+                                        borderLeft: '3px solid #6366f1'
+                                    }}>
+                                        {!formData.projectId ? (
+                                            <>
+                                                <strong><Globe size={20} /> Acceso Global:</strong> Esta API Key podrá acceder a todos tus proyectos, documentos y APIs.
+                                            </>
+                                        ) : (
+                                            <>
+                                                <strong><Lock size={20} /> Acceso Restringido:</strong> Esta API Key solo podrá acceder a los recursos del proyecto seleccionado.
+                                            </>
+                                        )}
+                                    </small>
+                                </div>
+                            </div>
+                            <div className="edit-actions">
+                                <button type="submit" className="btn btn-primary btn-small">
+                                    Generar Key
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary btn-small"
+                                    onClick={() => {
+                                        setShowCreateForm(false);
+                                        setFormData({ name: '', projectId: '', expiresInDays: '' });
                                     }}
                                 >
-                                    <option value="">
-                                        <Globe size={20} /> Acceso Global - Todos los proyectos
-                                    </option>
-                                    {projects.length > 0 && (
-                                        <optgroup label="───────── Proyectos Específicos ─────────">
-                                            {projects.map(proj => (
-                                                <option key={proj.id} value={proj.id}>
-                                                    <Folder size={20} /> {proj.code ? `[${proj.code}] ` : ''}{proj.name}
-                                                </option>
-                                            ))}
-                                        </optgroup>
-                                    )}
-                                </select>
-                                <small style={{
-                                    display: 'block',
-                                    marginTop: '8px',
-                                    color: '#64748b',
-                                    lineHeight: '1.5',
-                                    padding: '8px 12px',
-                                    background: '#f1f5f9',
-                                    borderRadius: '6px',
-                                    borderLeft: '3px solid #6366f1'
-                                }}>
-                                    {!formData.projectId ? (
-                                        <>
-                                            <strong><Globe size={20} /> Acceso Global:</strong> Esta API Key podrá acceder a todos tus proyectos, documentos y APIs.
-                                        </>
-                                    ) : (
-                                        <>
-                                            <strong><Lock size={20} /> Acceso Restringido:</strong> Esta API Key solo podrá acceder a los recursos del proyecto seleccionado.
-                                        </>
-                                    )}
-                                </small>
+                                    Cancelar
+                                </button>
                             </div>
-                        </div>
-                        <div className="edit-actions">
-                            <button type="submit" className="btn btn-primary btn-small">
-                                Generar Key
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-secondary btn-small"
-                                onClick={() => {
-                                    setShowCreateForm(false);
-                                    setFormData({ name: '', projectId: '', expiresInDays: '' });
-                                }}
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
+                        </form>
+                    </div>
+                )
+            }
 
             {/* KEYS LIST */}
-            {loading ? (
-                <div className="loading-container">
-                    <div className="spinner-large"></div>
-                    <p>Cargando API Keys...</p>
-                </div>
-            ) : keys.length === 0 ? (
-                <div className="empty-state">
-                    <div className="empty-icon"><Key size={40} className="text-icon" /></div>
-                    <h3>No tienes API Keys</h3>
-                    <p>Genera una para acceder desde otras máquinas</p>
-                </div>
-            ) : (
-                <div className="projects-grid">
-                    {keys.map((key) => (
-                        <div key={key.id} className="project-item" style={{
-                            borderLeftColor: isExpired(key.expires_at) ? '#ef4444' : key.is_active ? '#10b981' : '#9ca3af'
-                        }}>
-                            <div className="project-info">
-                                <div className="project-main">
-                                    <div className="project-details">
-                                        <h3>{key.name}</h3>
-                                        <p style={{ fontFamily: 'monospace', fontSize: '0.9em', color: '#64748b' }}>
-                                            {key.prefix}_••••••••
-                                        </p>
-                                        {key.project_name && (
-                                            <p style={{ fontSize: '0.85em', color: '#6366f1', margin: '4px 0 0 0' }}>
-                                                <Folder size={20} /> Proyecto: <strong>{key.project_name}</strong>
+            {
+                loading ? (
+                    <div className="loading-container">
+                        <div className="spinner-large"></div>
+                        <p>Cargando API Keys...</p>
+                    </div>
+                ) : keys.length === 0 ? (
+                    <div className="empty-state">
+                        <div className="empty-icon"><Key size={40} className="text-icon" /></div>
+                        <h3>No tienes API Keys</h3>
+                        <p>Genera una para acceder desde otras máquinas</p>
+                    </div>
+                ) : (
+                    <div className="projects-grid">
+                        {keys.map((key) => (
+                            <div key={key.id} className="project-item" style={{
+                                borderLeftColor: isExpired(key.expires_at) ? '#ef4444' : key.is_active ? '#10b981' : '#9ca3af',
+                                position: 'relative'
+                            }}>
+                                <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedKeyIds.includes(key.id)}
+                                        onChange={() => handleSelectKey(key.id)}
+                                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                    />
+                                </div>
+                                <div className="project-info">
+                                    <div className="project-main">
+                                        <div className="project-details">
+                                            <h3>{key.name}</h3>
+                                            <p style={{ fontFamily: 'monospace', fontSize: '0.9em', color: '#64748b' }}>
+                                                {key.prefix}_••••••••
                                             </p>
+                                            {key.project_name && (
+                                                <p style={{ fontSize: '0.85em', color: '#6366f1', margin: '4px 0 0 0' }}>
+                                                    <Folder size={20} /> Proyecto: <strong>{key.project_name}</strong>
+                                                </p>
+                                            )}
+                                            {!key.project_id && (
+                                                <p style={{ fontSize: '0.85em', color: '#10b981', margin: '4px 0 0 0' }}>
+                                                    <Globe size={20} /> Acceso global
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="project-stats" style={{ flexWrap: 'wrap', gap: '8px' }}>
+                                        <span className="stat-badge">
+                                            <Calendar size={20} /> Creada: {formatDate(key.created_at)}
+                                        </span>
+                                        {key.last_used_at && (
+                                            <span className="stat-badge">
+                                                <Clock size={20} /> Última uso: {formatDate(key.last_used_at)}
+                                            </span>
                                         )}
-                                        {!key.project_id && (
-                                            <p style={{ fontSize: '0.85em', color: '#10b981', margin: '4px 0 0 0' }}>
-                                                <Globe size={20} /> Acceso global
-                                            </p>
+                                        {key.usage_count !== undefined && (
+                                            <span className="stat-badge" style={{
+                                                background: '#e0e7ff',
+                                                color: '#4338ca',
+                                                cursor: 'pointer'
+                                            }}
+                                                onClick={() => handleViewUsage(key.id, key.name)}
+                                                title="Ver detalles de uso"
+                                            >
+                                                <BarChart size={20} /> Usos: {key.usage_count || 0}
+                                            </span>
+                                        )}
+                                        <span className="stat-badge" style={{
+                                            background: isExpired(key.expires_at) ? '#fee2e2' :
+                                                key.expires_at ? '#fef3c7' : '#d1fae5',
+                                            color: isExpired(key.expires_at) ? '#991b1b' :
+                                                key.expires_at ? '#92400e' : '#065f46'
+                                        }}>
+                                            {isExpired(key.expires_at) ? <><XCircle size={16} /> Expirada</> :
+                                                key.expires_at ? <><Hourglass size={16} /> Expira: {formatDate(key.expires_at)}</> :
+                                                    <><Infinity size={16} /> Sin expiración</>}
+                                        </span>
+                                        {!key.is_active && (
+                                            <span className="stat-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
+                                                <Lock size={20} /> Revocada
+                                            </span>
                                         )}
                                     </div>
                                 </div>
-                                <div className="project-stats" style={{ flexWrap: 'wrap', gap: '8px' }}>
-                                    <span className="stat-badge">
-                                        <Calendar size={20} /> Creada: {formatDate(key.created_at)}
-                                    </span>
-                                    {key.last_used_at && (
-                                        <span className="stat-badge">
-                                            <Clock size={20} /> Última uso: {formatDate(key.last_used_at)}
-                                        </span>
-                                    )}
-                                    {key.usage_count !== undefined && (
-                                        <span className="stat-badge" style={{
-                                            background: '#e0e7ff',
-                                            color: '#4338ca',
-                                            cursor: 'pointer'
-                                        }}
-                                            onClick={() => handleViewUsage(key.id, key.name)}
-                                            title="Ver detalles de uso"
+                                <div className="project-actions" style={{ display: 'flex', gap: '8px' }}>
+                                    {key.is_active && !isExpired(key.expires_at) && (
+                                        <button
+                                            className="btn btn-small btn-secondary"
+                                            onClick={() => handleRevoke(key.id)}
+                                            title="Desactivar esta API Key"
                                         >
-                                            <BarChart size={20} /> Usos: {key.usage_count || 0}
-                                        </span>
+                                            <Trash2 size={14} /> Revocar
+                                        </button>
                                     )}
-                                    <span className="stat-badge" style={{
-                                        background: isExpired(key.expires_at) ? '#fee2e2' :
-                                            key.expires_at ? '#fef3c7' : '#d1fae5',
-                                        color: isExpired(key.expires_at) ? '#991b1b' :
-                                            key.expires_at ? '#92400e' : '#065f46'
-                                    }}>
-                                        {isExpired(key.expires_at) ? <><XCircle size={16} /> Expirada</> :
-                                            key.expires_at ? <><Hourglass size={16} /> Expira: {formatDate(key.expires_at)}</> :
-                                                <><Infinity size={16} /> Sin expiración</>}
-                                    </span>
-                                    {!key.is_active && (
-                                        <span className="stat-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
-                                            <Lock size={20} /> Revocada
-                                        </span>
+
+                                    {/* Mostrar botón eliminar para keys revocadas o expiradas */}
+                                    {(!key.is_active || isExpired(key.expires_at)) && (
+                                        <button
+                                            className="btn btn-small"
+                                            onClick={() => handleDelete(key.id)}
+                                            title="Eliminar permanentemente esta API Key"
+                                            style={{
+                                                background: '#dc2626',
+                                                color: 'white',
+                                                border: 'none'
+                                            }}
+                                        >
+                                            <Trash2 size={14} /> Eliminar
+                                        </button>
                                     )}
                                 </div>
                             </div>
-                            <div className="project-actions" style={{ display: 'flex', gap: '8px' }}>
-                                {key.is_active && !isExpired(key.expires_at) && (
-                                    <button
-                                        className="btn btn-small btn-secondary"
-                                        onClick={() => handleRevoke(key.id)}
-                                        title="Desactivar esta API Key"
-                                    >
-                                        <Trash2 size={14} /> Revocar
-                                    </button>
-                                )}
-
-                                {/* Mostrar botón eliminar para keys revocadas o expiradas */}
-                                {(!key.is_active || isExpired(key.expires_at)) && (
-                                    <button
-                                        className="btn btn-small"
-                                        onClick={() => handleDelete(key.id)}
-                                        title="Eliminar permanentemente esta API Key"
-                                        style={{
-                                            background: '#dc2626',
-                                            color: 'white',
-                                            border: 'none'
-                                        }}
-                                    >
-                                        <Trash2 size={14} /> Eliminar
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )
+            }
 
             {/* USAGE MODAL */}
-            {usageModal.show && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
-                }}
-                    onClick={closeUsageModal}
-                >
+            {
+                usageModal.show && (
                     <div style={{
-                        background: 'white',
-                        borderRadius: '16px',
-                        padding: '24px',
-                        maxWidth: '800px',
-                        width: '90%',
-                        maxHeight: '80vh',
-                        overflow: 'auto',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000
                     }}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={closeUsageModal}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Activity size={28} /> Estadísticas de Uso
-                            </h2>
-                            <button onClick={closeUsageModal} style={{
-                                background: 'none',
-                                border: 'none',
-                                fontSize: '24px',
-                                cursor: 'pointer',
-                                color: '#6b7280'
-                            }}><X size={24} /></button>
-                        </div>
-
-                        <h3 style={{ color: '#6366f1', marginBottom: '16px' }}>{usageModal.keyName}</h3>
-
-                        {usageModal.loading ? (
-                            <div style={{ textAlign: 'center', padding: '40px' }}>
-                                <div className="spinner-large"></div>
-                                <p>Cargando estadísticas...</p>
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '16px',
+                            padding: '24px',
+                            maxWidth: '800px',
+                            width: '90%',
+                            maxHeight: '80vh',
+                            overflow: 'auto',
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                        }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <Activity size={28} /> Estadísticas de Uso
+                                </h2>
+                                <button onClick={closeUsageModal} style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '24px',
+                                    cursor: 'pointer',
+                                    color: '#6b7280'
+                                }}><X size={24} /></button>
                             </div>
-                        ) : usageModal.stats ? (
-                            <>
-                                <div style={{
-                                    background: '#f3f4f6',
-                                    padding: '16px',
-                                    borderRadius: '12px',
-                                    marginBottom: '24px',
-                                    textAlign: 'center'
-                                }}>
-                                    <h1 style={{ fontSize: '3em', margin: 0, color: '#4338ca' }}>
-                                        {usageModal.stats.usage_count || 0}
-                                    </h1>
-                                    <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Total de usos</p>
-                                </div>
 
-                                <h4 style={{ marginBottom: '12px' }}><Notebook size={20} /> Últimos 10 accesos</h4>
-                                {usageModal.stats.recent_uses && usageModal.stats.recent_uses.length > 0 ? (
-                                    <div style={{ overflowX: 'auto' }}>
-                                        <table style={{
-                                            width: '100%',
-                                            borderCollapse: 'collapse',
-                                            fontSize: '0.9em'
-                                        }}>
-                                            <thead>
-                                                <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
-                                                    <th style={{ padding: '12px', textAlign: 'left' }}>Fecha/Hora</th>
-                                                    <th style={{ padding: '12px', textAlign: 'left' }}>Método</th>
-                                                    <th style={{ padding: '12px', textAlign: 'left' }}>Endpoint</th>
-                                                    <th style={{ padding: '12px', textAlign: 'left' }}>IP</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {usageModal.stats.recent_uses.map((use, idx) => (
-                                                    <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                                        <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em' }}>
-                                                            {(() => {
-                                                                // Asegurar que la fecha se interprete como UTC si viene sin zona
-                                                                let dateStr = use.used_at;
-                                                                if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
-                                                                    dateStr += 'Z';
-                                                                }
-                                                                return new Date(dateStr).toLocaleString('es-ES');
-                                                            })()}
-                                                        </td>
-                                                        <td style={{ padding: '12px' }}>
-                                                            <span style={{
-                                                                background: use.method === 'GET' ? '#d1fae5' :
-                                                                    use.method === 'POST' ? '#dbeafe' :
-                                                                        use.method === 'PUT' ? '#fef3c7' :
-                                                                            use.method === 'DELETE' ? '#fee2e2' : '#f3f4f6',
-                                                                color: use.method === 'GET' ? '#065f46' :
-                                                                    use.method === 'POST' ? '#1e40af' :
-                                                                        use.method === 'PUT' ? '#92400e' :
-                                                                            use.method === 'DELETE' ? '#991b1b' : '#4b5563',
-                                                                padding: '4px 8px',
-                                                                borderRadius: '4px',
-                                                                fontSize: '0.8em',
-                                                                fontWeight: '600'
-                                                            }}>
-                                                                {use.method}
-                                                            </span>
-                                                        </td>
-                                                        <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em', color: '#6366f1' }}>
-                                                            {use.endpoint}
-                                                        </td>
-                                                        <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em', color: '#6b7280' }}>
-                                                            {use.ip_address}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                            <h3 style={{ color: '#6366f1', marginBottom: '16px' }}>{usageModal.keyName}</h3>
+
+                            {usageModal.loading ? (
+                                <div style={{ textAlign: 'center', padding: '40px' }}>
+                                    <div className="spinner-large"></div>
+                                    <p>Cargando estadísticas...</p>
+                                </div>
+                            ) : usageModal.stats ? (
+                                <>
+                                    <div style={{
+                                        background: '#f3f4f6',
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        marginBottom: '24px',
+                                        textAlign: 'center'
+                                    }}>
+                                        <h1 style={{ fontSize: '3em', margin: 0, color: '#4338ca' }}>
+                                            {usageModal.stats.usage_count || 0}
+                                        </h1>
+                                        <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Total de usos</p>
                                     </div>
-                                ) : (
-                                    <p style={{ textAlign: 'center', color: '#9ca3af', padding: '40px' }}>
-                                        No hay registros de uso disponibles
-                                    </p>
-                                )}
-                            </>
-                        ) : (
-                            <p style={{ textAlign: 'center', color: '#ef4444' }}>Error cargando estadísticas</p>
-                        )}
+
+                                    <h4 style={{ marginBottom: '12px' }}><Notebook size={20} /> Últimos 10 accesos</h4>
+                                    {usageModal.stats.recent_uses && usageModal.stats.recent_uses.length > 0 ? (
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table style={{
+                                                width: '100%',
+                                                borderCollapse: 'collapse',
+                                                fontSize: '0.9em'
+                                            }}>
+                                                <thead>
+                                                    <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+                                                        <th style={{ padding: '12px', textAlign: 'left' }}>Fecha/Hora</th>
+                                                        <th style={{ padding: '12px', textAlign: 'left' }}>Método</th>
+                                                        <th style={{ padding: '12px', textAlign: 'left' }}>Endpoint</th>
+                                                        <th style={{ padding: '12px', textAlign: 'left' }}>IP</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {usageModal.stats.recent_uses.map((use, idx) => (
+                                                        <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                                            <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em' }}>
+                                                                {(() => {
+                                                                    // Asegurar que la fecha se interprete como UTC si viene sin zona
+                                                                    let dateStr = use.used_at;
+                                                                    if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+                                                                        dateStr += 'Z';
+                                                                    }
+                                                                    return new Date(dateStr).toLocaleString('es-ES');
+                                                                })()}
+                                                            </td>
+                                                            <td style={{ padding: '12px' }}>
+                                                                <span style={{
+                                                                    background: use.method === 'GET' ? '#d1fae5' :
+                                                                        use.method === 'POST' ? '#dbeafe' :
+                                                                            use.method === 'PUT' ? '#fef3c7' :
+                                                                                use.method === 'DELETE' ? '#fee2e2' : '#f3f4f6',
+                                                                    color: use.method === 'GET' ? '#065f46' :
+                                                                        use.method === 'POST' ? '#1e40af' :
+                                                                            use.method === 'PUT' ? '#92400e' :
+                                                                                use.method === 'DELETE' ? '#991b1b' : '#4b5563',
+                                                                    padding: '4px 8px',
+                                                                    borderRadius: '4px',
+                                                                    fontSize: '0.8em',
+                                                                    fontWeight: '600'
+                                                                }}>
+                                                                    {use.method}
+                                                                </span>
+                                                            </td>
+                                                            <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em', color: '#6366f1' }}>
+                                                                {use.endpoint}
+                                                            </td>
+                                                            <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.85em', color: '#6b7280' }}>
+                                                                {use.ip_address}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <p style={{ textAlign: 'center', color: '#9ca3af', padding: '40px' }}>
+                                            No hay registros de uso disponibles
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <p style={{ textAlign: 'center', color: '#ef4444' }}>Error cargando estadísticas</p>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )
+                )
             }
         </div >
     );

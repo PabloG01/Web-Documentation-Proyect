@@ -80,6 +80,7 @@
 
 .repo-icon {
     color: var(--text-secondary);
+    margin-left: 15px;
 }
 
 .repo-info h4 {
@@ -89,7 +90,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
+    max-width: 250px;
 }
 
 .repo-branch {
