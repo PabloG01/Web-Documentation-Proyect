@@ -4,7 +4,8 @@ import axios from 'axios';
 // Esto asegura que frontend y backend usen el MISMO hostname
 // Ejemplo: si accedes vía http://172.16.3.254:3000, el backend será http://172.16.3.254:5000
 // Esto permite usar sameSite: 'lax' (más seguro) en lugar de 'none'
-const API_URL = `http://${window.location.hostname}:5000`;
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+const API_URL = `http://${window.location.hostname}:${PORT}`;
 
 // Create axios instance with baseURL
 const api = axios.create({

@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5433:5432"
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,17 +24,18 @@ services:
     container_name: docapp-backend
     restart: always
     ports:
-      - "0.0.0.0:5000:5000"
+      - "${BACKEND_PORT:-5000}:${BACKEND_PORT:-5000}"
     environment:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE: ${DB_DATABASE}
       DB_HOST: ${DB_HOST:-db}
-      DB_PORT: ${DB_PORT:-5432}
-      PORT: ${PORT:-5000}
+      DB_PORT: ${DB_PORT:-5432} # Internal port for backend to connect to db
+      PORT: ${BACKEND_PORT:-5000}
       JWT_SECRET: ${JWT_SECRET}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      FRONTEND_URL: ${FRONTEND_URL:-http://172.16.3.254:3000}
+      # Frontend URL for CORS/Redirects, ensure this matches the exposed frontend port
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:${FRONTEND_PORT:-3000}}
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -48,11 +49,14 @@ services:
     container_name: docapp-frontend
     restart: always
     ports:
-      - "0.0.0.0:3000:3000"
+      - "${FRONTEND_PORT:-3000}:${FRONTEND_PORT:-3000}"
     environment:
       # Optimizaciones de memoria
       - CI=true
       - NODE_ENV=development
+      - PORT=${FRONTEND_PORT:-3000}
+      - VITE_PORT=${FRONTEND_PORT:-3000} # Pass to Vite if needed
+      - VITE_BACKEND_PORT=${BACKEND_PORT:-5000} # Pass backend port to frontend code
       - NODE_OPTIONS=--max_old_space_size=2048
     env_file:
       - ./frontend/.env

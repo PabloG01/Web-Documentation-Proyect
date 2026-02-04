@@ -10,7 +10,7 @@ RUN npm install --legacy-peer-deps
 
 COPY . .
 
-EXPOSE 3000
+EXPOSE ${PORT}
 
 # Esto ejecutará "vite" según tu package.json
 CMD ["npm", "start"]

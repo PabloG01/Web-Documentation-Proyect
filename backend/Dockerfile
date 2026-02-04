@@ -16,7 +16,7 @@ RUN npm install
 COPY . .
 
 # El puerto que usa tu server.js
-EXPOSE 5000
+EXPOSE ${PORT}
 
 # Usamos "dev" para que nodemon reinicie si haces cambios, o "start" para producción
 CMD ["npm", "run", "dev"]
