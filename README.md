@@ -74,7 +74,6 @@ npm start    # Inicia servidor Vite con Hot Reload
 
 ## 📚 Documentación Adicional
 
-- [Anotaciones del Proyecto](DONDE_VAN_ANOTACIONES.md)
 - La documentación de API completa está disponible en `/api-docs` una vez iniciada la aplicación.
 - Las guías de uso (OpenAPI, Paginación) están integradas directamente en la sección "Guías" de la aplicación web.
 
