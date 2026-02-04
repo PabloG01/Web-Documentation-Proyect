@@ -384,7 +384,7 @@ function ReposPage({ embedded = false, onStatsChange }) {
                     <div className="files-panel">
                         <div className="panel-header">
                             <h3><FileText size={18} /> {selectedRepo.repo_name}</h3>
-                            <button onClick={() => setSelectedRepo(null)}><X size={18} /></button>
+                            <button className="btn-icon" onClick={() => setSelectedRepo(null)}><X size={20} /></button>
                         </div>
 
                         {loadingFiles ? <div className="loading">Cargando estructura...</div> : repoFiles.length === 0 ? (

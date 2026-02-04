@@ -286,60 +286,101 @@ input:checked+.slider:before {
     display: flex;
     gap: 2rem;
     align-items: flex-start;
-    /* Important for sticky behavior */
     position: relative;
+    flex-wrap: wrap;
+    /* Permitir wrap en pantallas muy pequeñas */
 }
 
 .repos-list {
     flex: 1;
-    /* Takes remaining space */
     min-width: 0;
-    /* Prevents flex overflow */
+    /* Previene desbordamiento en flex */
 }
 
-/* Repos Grid - Force 2 columns max generally, or fill */
+/* Repos Grid - Adaptable */
 .repos-grid {
     display: grid;
-    /* User requested "always columns of 2", so let's try to respect that or scale nicely */
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    /* Usar repeat(auto-fill) para que se adapte al espacio disponible */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
 }
 
-/* When panel is open, ensure we try to keep 2 columns if space permits, 
-   but flex will shrink .repos-list. 
-   If user specifically wants 2 columns always: */
+/* 
+   Cuando el panel está abierto, el espacio se reduce.
+   Dejamos que el auto-fill maneje las columnas (probablemente baje a 1 o 2 columnas)
+   en lugar de forzar grid-template-columns específicos que causan overflow.
+*/
 .with-panel .repos-grid {
-    grid-template-columns: 1fr 1fr;
+    /* Opcional: ajustar el minmax si quieres tarjetas más pequeñas cuando hay panel */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
 /* Files Panel (Side Panel) - Inline Split View */
 .files-panel {
     background: var(--bg-card);
-    border-left: 1px solid var(--border-color);
     border-radius: 12px;
     border: 1px solid var(--border-color);
-    /* Full border since it's a card/panel now */
 
-    /* Make it stick to the top so it scrolls with viewport but stays visible */
+    /* Configuración Sticky */
     position: sticky;
     top: 2rem;
-    /* stick 2rem from top of viewport/container */
 
-    width: 450px;
-    /* Fixed width for panel */
-    flex-shrink: 0;
-    /* Don't shrink */
+    /* Responsive Width: 
+       - Base: 400px o el 35% del ancho si es muy grande.
+       - Max-width para no ocupar demasiado monitor ancho.
+    */
+    flex: 0 0 400px;
+    max-width: 450px;
 
-    height: calc(100vh - 8rem);
-    /* Adjust height to fit in viewport approx */
+    height: calc(100vh - 4rem);
+    /* Ajuste para dar margen inferior */
     overflow-y: hidden;
-    /* Header is fixed, list scrolls */
-
+    /* Header fijo, lista scrollea */
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     z-index: 100;
-    /* Just above standard content */
+}
+
+/* Mobile / Tablet Breakpoint */
+@media (max-width: 900px) {
+    .repos-content-wrapper {
+        flex-direction: column;
+        /* Apilar verticalmente */
+    }
+
+    .with-panel .repos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+
+    .files-panel {
+        /* En móvil, el panel pierde sticky y toma ancho completo */
+        position: fixed;
+        /* O fixed para overlay, pero static para flujo normal */
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        height: 80vh;
+        /* Panel deslizante desde abajo estilo "Sheet" */
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+        }
+
+        to {
+            transform: translateY(0);
+        }
+    }
 }
 
 /* Adjust header z-index just in case */
@@ -367,19 +408,54 @@ input:checked+.slider:before {
     padding: 1rem;
 }
 
+/* File Items Polish */
 .file-item {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
+    padding: 0.8rem;
+    /* Padding más compacto */
+    margin-bottom: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: var(--bg-primary-light);
+    border-color: var(--primary-color-dim);
 }
 
 .file-path {
-    font-family: monospace;
-    font-size: 0.9rem;
+    font-family: 'Fira Code', monospace;
+    /* Usar fuente mono si disponible o default */
+    font-size: 0.85rem;
     margin-bottom: 0.5rem;
     word-break: break-all;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Close button for mobile panel */
+.mobile-close-btn {
+    display: none;
+    /* Oculto en desktop */
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+@media (max-width: 900px) {
+    .mobile-close-btn {
+        display: block;
+        /* Visible en móvil */
+    }
+
+    /* Repos Grid adapta a 1 col muy angosta o 2 si cabe */
+    .repos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+        /* Stack completo en movil muy chico */
+    }
 }
 
 .file-badges {
