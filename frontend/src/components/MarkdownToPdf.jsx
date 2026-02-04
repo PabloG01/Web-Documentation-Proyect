@@ -352,7 +352,7 @@ const PdfDocument = ({ document }) => {
                     <View style={styles.metaRow}>
                         <View style={styles.metaItem}>
                             <Text style={styles.metaLabel}>Autor:</Text>
-                            <Text style={styles.metaValue}>{document.author || 'N/A'}</Text>
+                            <Text style={styles.metaValue}>{document.author || document.username || 'N/A'}</Text>
                         </View>
                         <View style={styles.metaItem}>
                             <Text style={styles.metaLabel}>Versión:</Text>
