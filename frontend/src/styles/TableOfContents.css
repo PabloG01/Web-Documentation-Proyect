@@ -4,7 +4,10 @@
   height: calc(100vh - 100px);
   overflow: auto;
   padding: 16px;
-  border-left: 1px solid var(--border-color);
+  border: 1px solid var(--border-color);
+  /* Cambiado de solo border-left para que se note el rounded */
+  border-radius: 8px;
+  /* Curvar bordes */
   background: var(--surface-color);
 }
 
@@ -39,16 +42,19 @@
   color: var(--primary-color);
 }
 
-.toc-item.level-2 { /* h2 */
+.toc-item.level-2 {
+  /* h2 */
   font-weight: 700;
   color: var(--text-primary);
 }
 
-.toc-item.level-3 { /* h3 */
+.toc-item.level-3 {
+  /* h3 */
   margin-left: 12px;
 }
 
-.toc-item.level-4 { /* h4 */
+.toc-item.level-4 {
+  /* h4 */
   margin-left: 24px;
 }
 

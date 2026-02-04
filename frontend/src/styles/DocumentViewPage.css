@@ -1,8 +1,8 @@
 .document-view-page {
-  padding: 20px;
+  padding: 10px;
   min-height: calc(100vh - 70px);
-  max-width: 1600px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
 }
 
 .view-header {
@@ -78,8 +78,8 @@
 
 .document-with-toc {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1px;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
 }
 
 /* VISTA */
@@ -461,9 +461,18 @@
 }
 
 .edit-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 20px;
+  width: 100%;
+}
+
+.edit-row.header-fields .title-field {
+  flex: 3;
+}
+
+.edit-row.header-fields .version-field {
+  flex: 1;
+  max-width: 200px;
 }
 
 .edit-actions {

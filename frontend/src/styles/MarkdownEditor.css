@@ -121,18 +121,25 @@
 }
 
 /* Dar más espacio al editor en modo dividido */
-.editor-mode-split .editor-pane {
-  flex: 2;
-}
-
+/* Equal width for split mode items with robust sizing */
+.editor-mode-split .editor-pane,
 .editor-mode-split .preview-pane {
-  flex: 1;
+  flex: 1 !important;
+  min-width: 0 !important;
+  /* CRITICAL: Allows flex items to shrink below content size */
+  max-width: 50% !important;
+  border-right: 1px solid var(--border-color);
 }
 
 /* modo dividido */
 .editor-mode-split {
-  min-height: 350px;
-  max-height: 60vh;
+  min-height: 500px;
+  max-height: 85vh;
+  flex-direction: row !important;
+  /* FORCE horizontal */
+  flex-wrap: nowrap !important;
+  /* FORCE no wrapping */
+  width: 100%;
 }
 
 .editor-pane {
@@ -161,6 +168,13 @@
   color: var(--text-primary);
   overflow-y: auto;
   height: 100%;
+  cursor: text !important;
+  /* Force text cursor */
+}
+
+.editor-content {
+  cursor: auto;
+  /* Ensure container doesn't hide cursor */
 }
 
 .editor-textarea::placeholder {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import '../styles/MarkdownHelper.css';
 import { FileQuestion, X, Info, HelpCircle } from 'lucide-react';
 
@@ -55,11 +56,40 @@ function MarkdownHelper() {
         }
     ];
 
-    const insertSyntax = (syntax) => {
-        // Copiar al portapapeles
-        navigator.clipboard.writeText(syntax);
+    const insertSyntax = async (syntax) => {
+        try {
+            // Intentar usar la API moderna
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(syntax);
+            } else {
+                throw new Error('Clipboard API unavailable');
+            }
+        } catch (err) {
+            // Fallback para navegadores antiguos o contextos no seguros http
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = syntax;
 
-        // Mostrar notificación temporal
+                // Asegurar que no sea visible
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                if (!successful) throw new Error('Fallback copy failed');
+            } catch (fallbackErr) {
+                console.error('Error al copiar:', fallbackErr);
+                return; // No mostrar notificación de éxito
+            }
+        }
+
+        // Mostrar notificación temporal (solo si tuvo éxito)
         const notification = document.createElement('div');
         notification.className = 'syntax-copied-notification';
         notification.textContent = '✓ Copiado al portapapeles';
@@ -70,7 +100,7 @@ function MarkdownHelper() {
         }, 2000);
     };
 
-    return (
+    return createPortal(
         <>
             <div className={`markdown-helper ${isExpanded ? 'expanded' : ''}`}>
                 {isExpanded && (
@@ -128,7 +158,8 @@ function MarkdownHelper() {
                     {isExpanded ? <X size={24} /> : <HelpCircle size={24} />}
                 </button>
             </div>
-        </>
+        </>,
+        document.body
     );
 }
 

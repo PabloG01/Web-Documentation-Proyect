@@ -109,7 +109,8 @@ main {
 
 /* Full-width layout for workspace and guide */
 main:has(.workspace-page),
-main:has(.openapi-guide-page) {
+main:has(.openapi-guide-page),
+main:has(.document-view-page) {
   padding: 0;
   max-width: none;
   margin: 0;

@@ -231,18 +231,18 @@ function DocumentViewPage() {
           // EDICIÓN (solo si es propietario)
           <>
             <div className="document-edit">
-              <div className="edit-section">
-                <label>Título</label>
-                <input
-                  type="text"
-                  value={editedContent.title}
-                  onChange={(e) => handleEditChange('title', e.target.value)}
-                  placeholder="Título del documento"
-                />
-              </div>
+              <div className="edit-row header-fields">
+                <div className="edit-section title-field">
+                  <label>Título</label>
+                  <input
+                    type="text"
+                    value={editedContent.title}
+                    onChange={(e) => handleEditChange('title', e.target.value)}
+                    placeholder="Título del documento"
+                  />
+                </div>
 
-              <div className="edit-row">
-                <div className="edit-section">
+                <div className="edit-section version-field">
                   <label>Versión</label>
                   <input
                     type="text"
