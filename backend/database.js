@@ -133,6 +133,16 @@ const initializeDatabase = async () => {
               )
           `);
 
+            // Migration for documents
+            await pool.query(`
+              DO $$ 
+              BEGIN 
+                  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='documents' AND column_name='version') THEN
+                      ALTER TABLE documents ADD COLUMN version VARCHAR(20) DEFAULT '1.0.0';
+                  END IF;
+              END $$;
+            `);
+
             // Create API Specs Table (Updated with source fields)
             await pool.query(`
               CREATE TABLE IF NOT EXISTS api_specs (

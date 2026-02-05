@@ -158,19 +158,7 @@ Bienvenido a nuestro sistema.
             />
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="version">Versión</label>
-              <input
-                type="text"
-                id="version"
-                name="version"
-                value={formData.version}
-                onChange={handleChange}
-                placeholder="1.0.0"
-              />
-            </div>
-          </div>
+          {/* Version field removed for automatic versioning */}
 
           <div className="form-group">
             <label htmlFor="description">Descripción Breve</label>

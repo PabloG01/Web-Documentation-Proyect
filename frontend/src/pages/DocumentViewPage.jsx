@@ -250,16 +250,6 @@ function DocumentViewPage() {
                     placeholder="Título del documento"
                   />
                 </div>
-
-                <div className="edit-section version-field">
-                  <label>Versión</label>
-                  <input
-                    type="text"
-                    value={editedContent.version}
-                    onChange={(e) => handleEditChange('version', e.target.value)}
-                    placeholder="1.0.0"
-                  />
-                </div>
               </div>
 
               <div className="edit-section">

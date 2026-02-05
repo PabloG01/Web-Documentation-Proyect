@@ -106,9 +106,9 @@ class DocumentsRepository extends BaseRepository {
      */
     async createDocument({ projectId, userId, title, content, type }) {
         const result = await this.query(
-            `INSERT INTO documents (project_id, user_id, title, content, type) 
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [projectId, userId, title, content, type || 'general']
+            `INSERT INTO documents (project_id, user_id, title, content, type, version) 
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [projectId, userId, title, content, type || 'general', 'V1']
         );
         return result.rows[0];
     }
@@ -124,14 +124,17 @@ class DocumentsRepository extends BaseRepository {
         const currentDoc = await this.findById(id);
         if (!currentDoc) return null;
 
+        // Clone data to avoid side effects or immutability issues with req.body
+        const updateData = { ...data };
+
         // 2. Archive current state as a new version
         if (!skipVersioning) {
             // Get next version number
-            const countResult = await this.query(
-                'SELECT COUNT(*) FROM document_versions WHERE document_id = $1',
+            const maxResult = await this.query(
+                'SELECT MAX(version_number) as max_ver FROM document_versions WHERE document_id = $1',
                 [id]
             );
-            const nextVersion = parseInt(countResult.rows[0].count) + 1;
+            const nextVersion = (parseInt(maxResult.rows[0].max_ver) || 0) + 1;
 
             // Insert into versions table
             // We track who *archived* this version (the person making the change that forced a backup)
@@ -149,6 +152,12 @@ class DocumentsRepository extends BaseRepository {
                     userId || currentDoc.user_id // Fallback to owner if no user provided
                 ]
             );
+
+            // Cleanup old versions (keep only 10 latest)
+            await this.cleanupOldVersions(id, 10);
+
+            // Auto-update the version string in the main document
+            updateData.version = `V${nextVersion + 1}`;
         }
 
         // 3. Update the live document
@@ -159,7 +168,7 @@ class DocumentsRepository extends BaseRepository {
         // Let's leave the `version` column management to the user input/frontend for now, 
         // or just increment the internal history version number.
 
-        return await super.update(id, data);
+        return await super.update(id, updateData);
     }
 
     /**
@@ -212,6 +221,25 @@ class DocumentsRepository extends BaseRepository {
             content: version.content,
             updated_at: new Date()
         }, userId, true);
+    }
+
+    /**
+     * Cleanup old versions (keep only N latest)
+     * @param {number} docId
+     * @param {number} maxVersions
+     */
+    async cleanupOldVersions(docId, maxVersions = 10) {
+        await this.query(
+            `DELETE FROM document_versions 
+             WHERE document_id = $1 
+             AND version_number NOT IN (
+                 SELECT version_number FROM document_versions 
+                 WHERE document_id = $1 
+                 ORDER BY version_number DESC 
+                 LIMIT $2
+             )`,
+            [docId, maxVersions]
+        );
     }
 }
 
