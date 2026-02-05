@@ -223,11 +223,33 @@ const initializeDatabase = async () => {
               )
           `);
 
+
             // Create index for faster version queries
             await pool.query(`
           CREATE INDEX IF NOT EXISTS idx_spec_versions_api_spec_id 
           ON api_spec_versions(api_spec_id, version_number DESC)
       `);
+
+
+            // Create Document Versions Table
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS document_versions (
+                    id SERIAL PRIMARY KEY,
+                    document_id INTEGER REFERENCES documents(id) ON DELETE CASCADE,
+                    version_number INTEGER NOT NULL,
+                    title VARCHAR(150) NOT NULL,
+                    content TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    UNIQUE(document_id, version_number)
+                )
+            `);
+
+            // Create index for faster document version queries
+            await pool.query(`
+                CREATE INDEX IF NOT EXISTS idx_document_versions_document_id 
+                ON document_versions(document_id, version_number DESC)
+            `);
 
 
             // Create API Keys Table

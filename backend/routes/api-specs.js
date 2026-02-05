@@ -626,13 +626,14 @@ router.post('/:id/versions/:versionId/restore', verifyToken, asyncHandler(async 
     const currentSpec = await apiSpecsRepository.findById(id);
 
     // Save current as new version before restoring
-    const nextVersion = await apiSpecsRepository.getNextVersionNumber(id);
-    await apiSpecsRepository.saveVersion(
-        id,
-        nextVersion,
-        currentSpec.spec_content,
-        `Before restore to v${versionToRestore.version_number}`
-    );
+    // USER REQUEST: Do NOT create a new version on restore to avoid loops.
+    // const nextVersion = await apiSpecsRepository.getNextVersionNumber(id);
+    // await apiSpecsRepository.saveVersion(
+    //     id,
+    //     nextVersion,
+    //     currentSpec.spec_content,
+    //     `Before restore to v${versionToRestore.version_number}`
+    // );
 
     // Cleanup old versions
     await apiSpecsRepository.cleanupOldVersions(id, 4);

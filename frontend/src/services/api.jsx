@@ -65,7 +65,9 @@ export const documentsAPI = {
     getById: (id) => api.get(`/documents/${id}`),
     create: (documentData) => api.post('/documents', documentData),
     update: (id, documentData) => api.put(`/documents/${id}`, documentData),
-    delete: (id) => api.delete(`/documents/${id}`)
+    delete: (id) => api.delete(`/documents/${id}`),
+    getVersions: (docId) => api.get(`/documents/${docId}/versions`),
+    restoreVersion: (docId, versionId) => api.post(`/documents/${docId}/versions/${versionId}/restore`)
 };
 
 // API Specs API

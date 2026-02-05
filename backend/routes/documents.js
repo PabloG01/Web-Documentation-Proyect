@@ -344,7 +344,7 @@ router.put('/:id', verifyToken, validateDocumentId, validateUpdateDocument, asyn
     if (content !== undefined) updateData.content = content;
     if (type !== undefined) updateData.type = type;
 
-    const doc = await documentsRepository.update(id, updateData);
+    const doc = await documentsRepository.update(id, updateData, req.user.id);
 
     res.json(doc);
 }));
@@ -397,6 +397,86 @@ router.delete('/:id', verifyToken, validateDocumentId, asyncHandler(async (req, 
     await documentsRepository.delete(id);
 
     res.json({ message: 'Document deleted successfully' });
+}));
+
+/**
+ * @swagger
+ * /documents/{id}/versions:
+ *   get:
+ *     summary: Obtener historial de versiones
+ *     description: Obtiene la lista de versiones anteriores de un documento
+ *     tags: [Documents]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de versiones
+ */
+// GET /documents/:id/versions - Get document versions
+router.get('/:id/versions', verifyToken, validateDocumentId, asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    // Check ownership or access rights?
+    // Currently, documents can be seen by "user_only" filter but findAll doesn't restrict strictly if you know ID?
+    // But /:id route does check restrictions? No, /:id route checks "can_edit" but returns doc to anyone authenticated (lines 217-230 do not throw if not owner, just add can_edit).
+    // So anyone can view history? Let's assume yes for now, or restrict to owner if sensitive.
+    // The plan didn't specify, but let's be consistent with "view".
+
+    // If we want to restrict to owner:
+    // const isOwner = await documentsRepository.checkOwnership(id, req.user.id);
+    // if (!isOwner) throw new AppError('No autorizado', 403);
+
+    const versions = await documentsRepository.getVersions(id);
+    res.json(versions);
+}));
+
+/**
+ * @swagger
+ * /documents/{id}/versions/{versionId}/restore:
+ *   post:
+ *     summary: Restaurar versión
+ *     description: Restaura el documento a una versión anterior.
+ *     tags: [Documents]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: versionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Documento restaurado
+ */
+// POST /documents/:id/versions/:versionId/restore - Restore a version
+router.post('/:id/versions/:versionId/restore', verifyToken, validateDocumentId, asyncHandler(async (req, res) => {
+    const { id, versionId } = req.params;
+
+    // Check ownership (only owner can restore)
+    const isOwner = await documentsRepository.checkOwnership(id, req.user.id);
+    if (!isOwner) {
+        throw new AppError('No autorizado', 403);
+    }
+
+    const restoredDoc = await documentsRepository.restoreVersion(id, versionId, req.user.id);
+
+    if (!restoredDoc) {
+        throw new AppError('Versión no encontrada', 404);
+    }
+
+    res.json(restoredDoc);
 }));
 
 module.exports = router;

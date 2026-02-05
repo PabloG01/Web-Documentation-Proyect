@@ -113,8 +113,106 @@ class DocumentsRepository extends BaseRepository {
         return result.rows[0];
     }
 
-    // updateDocument removed to use BaseRepository.update logic
+    /**
+     * Update document with versioning
+     * @param {number} id - Document ID
+     * @param {Object} data - Update data
+     * @param {number} userId - ID of user performing the update (for version tracking)
+     */
+    async update(id, data, userId, skipVersioning = false) {
+        // 1. Get current document state
+        const currentDoc = await this.findById(id);
+        if (!currentDoc) return null;
 
+        // 2. Archive current state as a new version
+        if (!skipVersioning) {
+            // Get next version number
+            const countResult = await this.query(
+                'SELECT COUNT(*) FROM document_versions WHERE document_id = $1',
+                [id]
+            );
+            const nextVersion = parseInt(countResult.rows[0].count) + 1;
+
+            // Insert into versions table
+            // We track who *archived* this version (the person making the change that forced a backup)
+            // Or strictly adhere to "who created this content" - but we don't have that info reliably if not tracked.
+            // Let's use userId (the updater) as the creator of the version entry.
+            await this.query(
+                `INSERT INTO document_versions 
+            (document_id, version_number, title, content, created_by)
+            VALUES ($1, $2, $3, $4, $5)`,
+                [
+                    id,
+                    nextVersion,
+                    currentDoc.title,
+                    currentDoc.content,
+                    userId || currentDoc.user_id // Fallback to owner if no user provided
+                ]
+            );
+        }
+
+        // 3. Update the live document
+        // Remove version field if it exists in data to avoid DB errors (schema doesn't have it locally if changed)
+        // actually documents table has 'version' column (string like '1.0.0'). 
+        // We might want to auto-bump that string too? The user didn't ask for semantic versioning logic, 
+        // just "version history". The database.js shows there is a `version` column VARCHAR(20) DEFAULT '1.0.0'.
+        // Let's leave the `version` column management to the user input/frontend for now, 
+        // or just increment the internal history version number.
+
+        return await super.update(id, data);
+    }
+
+    /**
+     * Get all versions for a document
+     * @param {number} docId
+     */
+    async getVersions(docId) {
+        const result = await this.query(
+            `SELECT v.*, u.username as created_by_username
+             FROM document_versions v
+             LEFT JOIN users u ON v.created_by = u.id
+             WHERE v.document_id = $1 
+             ORDER BY v.version_number DESC`,
+            [docId]
+        );
+        return result.rows;
+    }
+
+    /**
+     * Get a specific version
+     * @param {number} docId 
+     * @param {number} versionId 
+     */
+    async getVersion(docId, versionId) {
+        const result = await this.query(
+            `SELECT * FROM document_versions 
+             WHERE document_id = $1 AND id = $2`,
+            [docId, versionId]
+        );
+        return result.rows[0];
+    }
+
+    /**
+     * Restore a specific version
+     * @param {number} docId 
+     * @param {number} versionId 
+     * @param {number} userId - User performing restore
+     */
+    async restoreVersion(docId, versionId, userId) {
+        const version = await this.getVersion(docId, versionId);
+        if (!version) return null;
+
+        // Restore content by updating the main document
+        // This will automatically save the *current* state as a new version
+        // thanks to our overridden update method.
+        // UPDATE: User requested to NOT create a new version on restore to avoid loops.
+        // So we pass true to skipVersioning.
+        return await this.update(docId, {
+            title: version.title,
+            content: version.content,
+            updated_at: new Date()
+        }, userId, true);
+    }
 }
 
 module.exports = new DocumentsRepository();

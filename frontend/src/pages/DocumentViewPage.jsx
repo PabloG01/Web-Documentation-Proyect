@@ -12,7 +12,8 @@ import PdfDownloadButton from '../components/PdfDownloadButton';
 
 import Modal from '../components/Modal';
 import { ToastContainer } from '../components/Toast';
-import { FileText, Edit, Trash2, Info, Loader2, Check, X, Code, User, Settings, BarChart2, ClipboardList, CheckSquare } from 'lucide-react';
+import { FileText, Edit, Trash2, Info, Loader2, Check, X, Code, User, Settings, BarChart2, ClipboardList, CheckSquare, Clock } from 'lucide-react';
+import DocumentHistory from '../components/DocumentHistory';
 
 function DocumentViewPage() {
   const { id } = useParams();
@@ -34,6 +35,7 @@ function DocumentViewPage() {
   // UI State
   const [toasts, setToasts] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   // Ref para el contenido del documento (usado para exportar a PDF)
   const documentRef = useRef(null);
@@ -156,6 +158,13 @@ function DocumentViewPage() {
           {!isEditing && (
             <>
               <PdfDownloadButton document={document} />
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowHistoryModal(true)}
+                title="Historial de versiones"
+              >
+                <Clock size={16} /> Historial
+              </button>
               {isOwner && (
                 <>
                   <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
@@ -321,6 +330,23 @@ function DocumentViewPage() {
         <p style={{ textAlign: 'center', margin: '10px 0', fontSize: '1rem' }}>
           ¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.
         </p>
+      </Modal>
+
+      {/* History Modal */}
+      <Modal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        title="Historial de Versiones"
+        size="medium"
+      >
+        <DocumentHistory
+          documentId={id}
+          onClose={() => setShowHistoryModal(false)}
+          onRestore={() => {
+            loadDocument();
+            addToast('Versión restaurada exitosamente', 'success');
+          }}
+        />
       </Modal>
 
       {/* Ayuda flotante de Markdown - solo en modo edición */}
