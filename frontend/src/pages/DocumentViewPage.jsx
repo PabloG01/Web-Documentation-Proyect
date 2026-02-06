@@ -331,6 +331,7 @@ function DocumentViewPage() {
       >
         <DocumentHistory
           documentId={id}
+          currentDocument={document}
           onClose={() => setShowHistoryModal(false)}
           onRestore={() => {
             loadDocument();
