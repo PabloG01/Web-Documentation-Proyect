@@ -6,7 +6,7 @@
 |-------|---------|
 | **Proyecto** | DocApp - Plataforma de Documentación Profesional |
 | **Inicio estimado** | Lunes 15 de diciembre de 2025 |
-| **Última actualización** | 30 de enero de 2026 |
+| **Última actualización** | 6 de febrero de 2026 |
 | **Stack tecnológico** | React 19 + Express 5 + PostgreSQL 15 + Docker |
 
 ---
@@ -251,6 +251,43 @@
 
 ---
 
+### Semana 8 (2 - 8 de febrero de 2026)
+
+#### 🎯 Objetivos
+- Optimizar la interfaz de edición de documentos
+- Implementar sistema de comparación de versiones (Diffing)
+- Corregir lógica de versionamiento y parseo de repositorios
+- Actualizar documentación del proyecto
+
+#### ✅ Logros
+- **Editor Split-View**: Rediseño del editor Markdown para maximizar el espacio vertical y mostrar vista previa lado a lado sin stack vertical.
+- **Visualizador de Cambios (Diff)**: Implementación de `DiffViewer` integrada en el historial, permitiendo ver qué contenido se agregó o eliminó entre versiones.
+- **Corrección de Versionamiento**: Transición de versionado semántico (1.0.0) a escalar (v1, v2, v3) para simplificar la experiencia de usuario.
+- **Parseo de Repositorios**: Solución a fallos en el análisis inicial de repositorios conectados.
+
+#### ⚠️ Dificultades Encontradas
+
+1. **Bug en Números de Versión**
+   - *Problema*: Las versiones se guardaban con formato '1.x.x' causando confusión.
+   - *Solución*: Ajuste en backend para usar contadores incrementales simples y limpiar versiones antiguas.
+
+2. **Visualización de Diferencias**
+   - *Problema*: Necesidad de mostrar cambios de forma clara sin sobrecargar la UI.
+   - *Solución*: Integración de librería `diff` en frontend con un modal dedicado y código de colores (Verde/Rojo) accesible desde el historial.
+
+3. **Layout del Editor**
+   - *Problema*: El editor desperdiciaba espacio vertical y ocultaba la vista previa en pantallas medianas.
+   - *Solución*: Refactor CSS completo para layout flexbox de altura completa y eliminación de márgenes innecesarios.
+
+#### 📝 Commits Relacionados
+- fix: Corrección de lógica de versionado escalar
+- feat: Rediseño de layout del editor (Split View optimizado)
+- feat: Implementación de DiffViewer y UI de historial
+- docs: Actualización de README y limpieza de guías obsoletas
+- fix: Resolución de bug en parser de repositorios
+
+---
+
 ## 📈 Métricas de Progreso
 
 ### Funcionalidades Completadas ✅
@@ -274,7 +311,7 @@
 
 ### Funcionalidades Pendientes 📋
 - [ ] Búsqueda full-text en contenido
-- [ ] Versionado detallado de documentos
+- [x] Versionado detallado de documentos
 - [ ] Colaboración en tiempo real (WebSockets)
 - [ ] Templates personalizados
 - [ ] Sistema de permisos por proyecto
@@ -312,4 +349,4 @@
 
 ---
 
-**Documento generado automáticamente - Última actualización: 30 de enero de 2026**
+**Documento generado automáticamente - Última actualización: 6 de febrero de 2026**

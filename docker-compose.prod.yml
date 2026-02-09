@@ -1,0 +1,61 @@
+services:
+  # 1. Base de Datos
+  db:
+    image: postgres:16-alpine
+    container_name: docapp-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: docapp-backend-prod
+    restart: always
+    ports:
+      - "${BACKEND_PORT:-5000}:${BACKEND_PORT:-5000}"
+    environment:
+      NODE_ENV: production
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_DATABASE: ${POSTGRES_DB}
+      DB_HOST: db
+      DB_PORT: 5432
+      PORT: ${BACKEND_PORT:-5000}
+      JWT_SECRET: ${JWT_SECRET}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:${FRONTEND_PORT:-3000}}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm start
+
+  # 3. Frontend React (Producción con Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: docapp-frontend-prod
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      - VITE_BACKEND_URL=http://localhost:${BACKEND_PORT:-5000}
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data_prod:

@@ -20,6 +20,13 @@ Sistema completo de gestión de documentación técnica con arquitectura cliente
 - Códigos de color personalizados
 - Operaciones CRUD completas
 
+### 📝 **Documentación y Versionado**
+- **Editor Markdown Split-View** optimizado para máxima productividad
+- **Historial de Versiones Escalar** (v1, v2, v3...)
+- **Visualizador de Cambios (Diffing)**: Comparación visual de adiciones y eliminaciones entre versiones
+- Exportación a PDF profesional
+- Soporte para sintaxis GFM (GitHub Flavored Markdown)
+
 ...
 
 ### 🚀 Instalación y Despliegue
@@ -111,4 +118,4 @@ Desarrollado como proyecto de demostración de arquitectura fullstack moderna.
 
 ---
 
-**Última actualización**: Enero 2026
+**Última actualización**: Febrero 2026
