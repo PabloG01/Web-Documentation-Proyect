@@ -126,6 +126,25 @@ class ApiSpecsRepository extends BaseRepository {
         );
         return result.rows[0] || null;
     }
+    /**
+     * Check ownership (Spec creator OR Project owner)
+     */
+    async checkOwnership(id, userId) {
+        if (!id || !userId) return false;
+
+        const result = await this.query(
+            `SELECT s.user_id, p.user_id as project_owner_id 
+             FROM api_specs s
+             LEFT JOIN projects p ON s.project_id = p.id
+             WHERE s.id = $1`,
+            [id]
+        );
+
+        if (result.rows.length === 0) return null;
+
+        const record = result.rows[0];
+        return Number(record.user_id) === Number(userId) || Number(record.project_owner_id) === Number(userId);
+    }
 }
 
 module.exports = new ApiSpecsRepository();

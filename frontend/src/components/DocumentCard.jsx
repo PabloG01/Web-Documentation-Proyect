@@ -9,7 +9,13 @@ function DocumentCard({ document, currentUserId, showAuthor = false, children })
   const projectColor = '#6366f1'; // Could be added to API response if needed
 
   // Verificar si el usuario actual es el propietario
-  const isOwner = currentUserId && document.user_id === currentUserId;
+  const isOwner = currentUserId && (
+    Number(document.user_id) === Number(currentUserId) ||
+    Number(document.project_owner_id) === Number(currentUserId)
+  );
+
+  // Open Collaboration: Todos los usuarios logueados pueden editar
+  const canEdit = !!currentUserId;
 
   const icons = {
     api: <Server size={24} />,
@@ -62,7 +68,7 @@ function DocumentCard({ document, currentUserId, showAuthor = false, children })
         <Link to={`/documento/${document.id}`} className="btn btn-small">
           Ver
         </Link>
-        {isOwner && (
+        {canEdit && (
           <Link to={`/documento/${document.id}?edit=true`} className="btn btn-small btn-secondary">
             Editar
           </Link>

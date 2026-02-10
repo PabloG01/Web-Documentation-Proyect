@@ -28,6 +28,7 @@ class DocumentsRepository extends BaseRepository {
             SELECT documents.*, 
                    projects.name as project_name, 
                    projects.code as project_code, 
+                   projects.user_id as project_owner_id,
                    users.username
             FROM documents 
             LEFT JOIN projects ON documents.project_id = projects.id
@@ -90,6 +91,7 @@ class DocumentsRepository extends BaseRepository {
             `SELECT documents.*, 
                     projects.name as project_name, 
                     projects.code as project_code, 
+                    projects.user_id as project_owner_id,
                     users.username
              FROM documents 
              LEFT JOIN projects ON documents.project_id = projects.id 
@@ -104,11 +106,11 @@ class DocumentsRepository extends BaseRepository {
      * Create a new document
      * @param {Object} data - Document data
      */
-    async createDocument({ projectId, userId, title, content, type }) {
+    async createDocument({ projectId, userId, title, content, type, description }) {
         const result = await this.query(
-            `INSERT INTO documents (project_id, user_id, title, content, type, version) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [projectId, userId, title, content, type || 'general', 'V1']
+            `INSERT INTO documents (project_id, user_id, title, content, type, description, version) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [projectId, userId, title, content, type || 'general', description, 'V1']
         );
         return result.rows[0];
     }
@@ -240,6 +242,41 @@ class DocumentsRepository extends BaseRepository {
              )`,
             [docId, maxVersions]
         );
+    }
+    /**
+     * Check ownership of a record (Document creator OR Project owner)
+     * @param {number} id - Record ID
+     * @param {number} userId - User ID to check
+     * @returns {Promise<boolean|null>} True if user has rights, null if not found
+     */
+    async checkOwnership(id, userId) {
+        if (!id || !userId) return false;
+
+        const result = await this.query(
+            `SELECT d.user_id, p.user_id as project_owner_id 
+             FROM documents d
+             LEFT JOIN projects p ON d.project_id = p.id
+             WHERE d.id = $1`,
+            [id]
+        );
+
+        if (result.rows.length === 0) return null;
+
+        const doc = result.rows[0];
+        return Number(doc.user_id) === Number(userId) || Number(doc.project_owner_id) === Number(userId);
+    }
+    /**
+     * Check edit permission (Open Collaboration: Any auth user can edit if doc exists)
+     * @param {number} id - Document ID
+     * @param {number} userId - User ID (for future role checks)
+     * @returns {Promise<boolean>} True if allowed
+     */
+    async checkEditPermission(id, userId) {
+        if (!id) return false;
+        // Simple existence check. 
+        // In the future, this could allow-list specific users/groups.
+        const result = await this.query('SELECT id FROM documents WHERE id = $1', [id]);
+        return result.rows.length > 0;
     }
 }
 

@@ -263,7 +263,7 @@ router.get('/:id', verifyToken, validateDocumentId, asyncHandler(async (req, res
  */
 // POST /documents - Create a new document
 router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandler(async (req, res) => {
-    const { project_id, title, content, type } = req.body;
+    const { project_id, title, content, type, description } = req.body;
 
     // Validate project_id is required
     if (!project_id) {
@@ -281,7 +281,8 @@ router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandle
         userId: req.user.id,
         title,
         content,
-        type
+        type,
+        description
     });
 
     res.status(201).json(doc);
@@ -324,14 +325,18 @@ router.post('/', verifyToken, createLimiter, validateCreateDocument, asyncHandle
 // PUT /documents/:id - Update a document
 router.put('/:id', verifyToken, validateDocumentId, validateUpdateDocument, asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { title, content, type } = req.body;
+    const { title, content, type, description } = req.body;
 
     // Check ownership
-    const isOwner = await documentsRepository.checkOwnership(id, req.user.id);
-    if (isOwner === null) {
-        throw new AppError('Documento no encontrado', 404);
-    }
-    if (!isOwner) {
+    // Check edit permission (Open Collaboration)
+    const canEdit = await documentsRepository.checkEditPermission(id, req.user.id);
+    if (!canEdit) {
+        // If canEdit is false, it means document likely doesn't exist (since all users can edit)
+        // Check existence specifically to return 404 vs 403 if we add stricter rules later
+        const exists = await documentsRepository.findById(id);
+        if (!exists) {
+            throw new AppError('Documento no encontrado', 404);
+        }
         throw new AppError('No autorizado', 403);
     }
 
@@ -343,6 +348,7 @@ router.put('/:id', verifyToken, validateDocumentId, validateUpdateDocument, asyn
     if (title !== undefined) updateData.title = title;
     if (content !== undefined) updateData.content = content;
     if (type !== undefined) updateData.type = type;
+    if (description !== undefined) updateData.description = description;
 
     const doc = await documentsRepository.update(id, updateData, req.user.id);
 

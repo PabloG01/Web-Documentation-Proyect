@@ -118,29 +118,29 @@ function MarkdownRenderer({ content }) {
           blockquote({ children }) {
             return <blockquote className="markdown-blockquote">{children}</blockquote>;
           },
-          // Añadir IDs a headings para anchors
+          // Añadir IDs a headings para anchors (sincronizado con TableOfContents)
           h1({ children }) {
-            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            const id = String(children).toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
             return <h1 id={id}>{children}</h1>;
           },
           h2({ children }) {
-            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            const id = String(children).toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
             return <h2 id={id}>{children}</h2>;
           },
           h3({ children }) {
-            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            const id = String(children).toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
             return <h3 id={id}>{children}</h3>;
           },
           h4({ children }) {
-            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            const id = String(children).toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
             return <h4 id={id}>{children}</h4>;
           },
           h5({ children }) {
-            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            const id = String(children).toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
             return <h5 id={id}>{children}</h5>;
           },
           h6({ children }) {
-            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            const id = String(children).toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
             return <h6 id={id}>{children}</h6>;
           },
           // Mejorar links

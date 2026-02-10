@@ -7,6 +7,7 @@
 }
 
 /* Headings */
+/* Headings */
 .markdown-content h1 {
     font-size: 2.5em;
     font-weight: 700;
@@ -14,7 +15,7 @@
     padding-bottom: 0.3em;
     border-bottom: 2px solid var(--border);
     color: var(--primary);
-    scroll-margin-top: 80px;
+    scroll-margin-top: 120px;
 }
 
 .markdown-content h2 {
@@ -23,20 +24,21 @@
     margin: 1.3em 0 0.5em;
     padding-bottom: 0.2em;
     border-bottom: 1px solid var(--border);
-    scroll-margin-top: 80px;
+    scroll-margin-top: 120px;
 }
 
 .markdown-content h3 {
     font-size: 1.5em;
     font-weight: 600;
     margin: 1em 0 0.5em;
-    scroll-margin-top: 80px;
+    scroll-margin-top: 120px;
 }
 
 .markdown-content h4 {
     font-size: 1.25em;
     font-weight: 600;
     margin: 1em 0 0.5em;
+    scroll-margin-top: 120px;
 }
 
 .markdown-content h5,
@@ -45,6 +47,7 @@
     font-weight: 600;
     margin: 1em 0 0.5em;
     color: var(--text-muted);
+    scroll-margin-top: 120px;
 }
 
 /* Paragraphs */

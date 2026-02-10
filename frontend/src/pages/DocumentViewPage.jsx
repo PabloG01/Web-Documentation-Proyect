@@ -68,8 +68,23 @@ function DocumentViewPage() {
     loadDocument();
   }, [loadDocument]);
 
-  // Verificar si el usuario actual es el propietario del documento
-  const isOwner = user && document && document.user_id === user.id;
+  // Verificar si el usuario actual es el propietario del documento O el propietario del proyecto
+  const isOwner = user && document && (
+    Number(document.user_id) === Number(user.id) ||
+    Number(document.project_owner_id) === Number(user.id)
+  );
+
+  // Open Collaboration: Todos los usuarios logueados pueden editar (si tienen usuario)
+  const canEdit = !!user;
+
+  console.log('Document Permissions Debug:', {
+    userId: user?.id,
+    docUser: document?.user_id,
+    projectOwner: document?.project_owner_id,
+    isOwner,
+    canEdit,
+    userObject: user
+  });
 
   const handleEditChange = (field, value) => {
     setEditedContent(prev => ({
@@ -165,15 +180,15 @@ function DocumentViewPage() {
               >
                 <Clock size={16} /> Historial
               </button>
+              {canEdit && (
+                <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
+                  <Edit size={16} /> Editar
+                </button>
+              )}
               {isOwner && (
-                <>
-                  <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
-                    <Edit size={16} /> Editar
-                  </button>
-                  <button className="btn btn-secondary" onClick={handleDeleteClick}>
-                    <Trash2 size={16} /> Eliminar
-                  </button>
-                </>
+                <button className="btn btn-secondary" onClick={handleDeleteClick}>
+                  <Trash2 size={16} /> Eliminar
+                </button>
               )}
             </>
           )}
@@ -181,9 +196,15 @@ function DocumentViewPage() {
       </div>
 
       {/* Mostrar aviso si no es propietario */}
-      {!isOwner && (
+      {/* Mostrar aviso de colaboración */}
+      {!isOwner && canEdit && (
+        <div className="owner-notice" style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
+          <Info size={16} /> Estás en modo colaborativo. Este documento pertenece a <strong>{document.username || 'otro usuario'}</strong>, pero puedes contribuir editándolo.
+        </div>
+      )}
+      {!canEdit && (
         <div className="owner-notice" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Info size={16} /> Este documento fue creado por <strong>{document.username || 'otro usuario'}</strong>. Solo puedes visualizarlo.
+          <Info size={16} /> Solo lectura. Inicia sesión para editar.
         </div>
       )}
 

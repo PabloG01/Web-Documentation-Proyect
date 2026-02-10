@@ -58,8 +58,8 @@ function ReposPage({ embedded = false, onStatsChange }) {
 
     const loadProjects = useCallback(async () => {
         try {
-            const response = await projectsAPI.getByUser();
-            setProjects(response.data.data || []);
+            const response = await projectsAPI.getAll();
+            setProjects(response.data.data || response.data || []);
         } catch (err) {
             console.error('Error loading projects:', err);
         }

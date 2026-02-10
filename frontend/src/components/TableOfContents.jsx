@@ -11,6 +11,8 @@ function slugify(text) {
 }
 
 function TableOfContents({ content = '' }) {
+  const [activeId, setActiveId] = React.useState('');
+
   const items = useMemo(() => {
     const lines = content.split('\n');
     const toc = [];
@@ -34,6 +36,36 @@ function TableOfContents({ content = '' }) {
     return toc;
   }, [content]);
 
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: '-100px 0px -60% 0px' }
+    );
+
+    items.forEach((item) => {
+      const element = document.getElementById(item.id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [items]);
+
+  const handleClick = (e, id) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      // Update active ID immediately for better UX
+      setActiveId(id);
+    }
+  };
+
   if (!items.length) {
     return (
       <aside className="toc-sidebar">
@@ -55,7 +87,8 @@ function TableOfContents({ content = '' }) {
           <a
             key={`${item.id}-${idx}`}
             href={`#${item.id}`}
-            className={`toc-item level-${item.level}`}
+            className={`toc-item level-${item.level} ${activeId === item.id ? 'active' : ''}`}
+            onClick={(e) => handleClick(e, item.id)}
             title={item.title}
           >
             {item.title}

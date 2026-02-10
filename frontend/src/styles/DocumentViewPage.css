@@ -73,13 +73,16 @@
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  overflow: hidden;
+  /* overflow: hidden; Removed to allow sticky TOC to work */
 }
 
 .document-with-toc {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  /* Reduced width slightly */
   gap: 20px;
+  align-items: start;
+  /* Crucial for sticky positioning */
 }
 
 /* VISTA */

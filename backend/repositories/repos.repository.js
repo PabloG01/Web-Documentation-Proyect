@@ -153,6 +153,25 @@ class ReposRepository extends BaseRepository {
             [specId, fileId]
         );
     }
+    /**
+     * Check ownership (Repo creator OR Project owner)
+     */
+    async checkOwnership(id, userId) {
+        if (!id || !userId) return false;
+
+        const result = await this.query(
+            `SELECT rc.user_id, p.user_id as project_owner_id 
+             FROM repo_connections rc
+             LEFT JOIN projects p ON rc.project_id = p.id
+             WHERE rc.id = $1`,
+            [id]
+        );
+
+        if (result.rows.length === 0) return null;
+
+        const record = result.rows[0];
+        return Number(record.user_id) === Number(userId) || Number(record.project_owner_id) === Number(userId);
+    }
 }
 
 module.exports = new ReposRepository();
