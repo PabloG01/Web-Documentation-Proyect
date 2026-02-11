@@ -6,7 +6,7 @@
 |-------|---------|
 | **Proyecto** | DocApp - Plataforma de Documentación Profesional |
 | **Inicio estimado** | Lunes 15 de diciembre de 2025 |
-| **Última actualización** | 6 de febrero de 2026 |
+| **Última actualización** | 11 de febrero de 2026 |
 | **Stack tecnológico** | React 19 + Express 5 + PostgreSQL 15 + Docker |
 
 ---
@@ -288,6 +288,35 @@
 
 ---
 
+### Semana 9 (9 - 11 de febrero de 2026 - Cierre de Práctica)
+
+#### 🎯 Objetivos
+- Implementar visualización de diferencias entre versiones de documentos (Diffing)
+- Depurar y corregir lógica de permisos de edición
+- Estabilizar el sistema de propiedad de documentos (Ownership)
+
+#### ✅ Logros
+- **Visualizador de Diff**: Implementación exitosa de comparación visual que resalta adiciones y eliminaciones en el historial de versiones
+- **Corrección de Permisos**: Resolución del bug que ocultaba el botón de edición a usuarios autenticados legítimos
+- **Refactorización de Auth**: Mejora en la propagación del estado de autenticación
+
+#### ⚠️ Dificultades Encontradas
+
+1. **Lógica de 'canEdit' Falsa Negativa**
+   - *Problema*: Usuarios con permisos válidos no veían el botón de editar
+   - *Solución*: Ajuste en `DocumentViewPage.jsx` para evaluar correctamente la propiedad y roles
+
+2. **Integración de Librería de Diff**
+   - *Problema*: Visualizar cambios de forma limpia sin romper el layout
+   - *Solución*: Creación de componente modal dedicado para la vista de diferencias
+
+#### 📝 Commits Relacionados
+- feat: implement ownership and services
+- fix: edit button visibility logic
+- feat: document diff viewer implementation
+
+---
+
 ## 📈 Métricas de Progreso
 
 ### Funcionalidades Completadas ✅
@@ -308,6 +337,7 @@
 - [x] Generación automática de specs OpenAPI desde código
 - [x] Historial de versiones para API specs
 - [x] Acceso multi-dispositivo en LAN
+- [x] Comparación visual de versiones (Diffing)
 
 ### Funcionalidades Pendientes 📋
 - [ ] Búsqueda full-text en contenido
@@ -349,4 +379,4 @@
 
 ---
 
-**Documento generado automáticamente - Última actualización: 6 de febrero de 2026**
+**Documento generado automáticamente - Última actualización: 11 de febrero de 2026**
